@@ -10,15 +10,18 @@ Follow these sources on every Rust change in this repo:
 1. **Clean code** — https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce
 2. **Optimization** — https://gist.github.com/jFransham/369a86eff00e5f280ed25121454acec1
 3. **Project structure** — https://dev.to/ghost/rust-project-structure-example-step-by-step-3ee
-4. **Code review (RCRG)** — https://github.com/ZhangHanDong/rust-code-review-guidelines
-5. **Git-flow** — https://nvie.com/posts/a-successful-git-branching-model/
-6. **Git hygiene / push** — `Git_Mistakes.pdf` (Conventional Commits, `feature|fix|…/kebab-case`, never push straight to `main`/`develop`, rebase only private branches, `push -u` first time, `--force-with-lease` after rebase)
-7. **Language processor** — `Dragon Book.pdf` (lex → parse → IR/exec)
-8. **Product slices** — `Minishell 1.pdf` (then later 42sh-class features)
+4. **Code review skill (Rust Code Review 1.0.0)** — `.cursor/skills/rust-code-review/SKILL.md` (read and follow before finishing any Rust slice or PR)
+5. **Code review checklist (RCRG)** — https://github.com/ZhangHanDong/rust-code-review-guidelines
+6. **Git-flow** — https://nvie.com/posts/a-successful-git-branching-model/
+7. **Git hygiene / push** — `Git_Mistakes.pdf` (Conventional Commits, `feature|fix|…/kebab-case`, never push straight to `main`/`develop`, rebase only private branches, `push -u` first time, `--force-with-lease` after rebase)
+8. **Language processor** — `Dragon Book.pdf` (lex → parse → IR/exec)
+9. **Product slices** — `Minishell 1.pdf` (then later 42sh-class features)
 
-## Rust Code Review Guidelines (mandatory before finishing a slice)
+## Rust Code Review (mandatory before finishing a slice)
 
-Before calling a feature done, self-review against [RCRG](https://github.com/ZhangHanDong/rust-code-review-guidelines):
+1. **Load** `.cursor/skills/rust-code-review/SKILL.md` and apply its workflow, gates, checklist, and output format.
+2. Use `references/` under that skill for deep dives (ownership, errors, unsafe, etc.).
+3. Also self-review against [RCRG](https://github.com/ZhangHanDong/rust-code-review-guidelines):
 
 ### Correctness
 - Compiles with **no warnings** (`clippy -D warnings`).
