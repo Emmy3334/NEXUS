@@ -8,6 +8,7 @@ use std::path::PathBuf;
 
 /// Outcome of a recognized builtin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[must_use = "builtin status vs shell exit must be handled by the caller"]
 pub enum BuiltinResult {
     /// Keep the REPL running with this status.
     Status(u8),
@@ -50,21 +51,31 @@ fn cd(
     }
 
     let target = match argv.get(1).map(String::as_str) {
-        None | Some("~") => match shell_env.get("HOME") {
-            Some(home) => PathBuf::from(home),
-            None => {
+        None | Some("~") => {
+            let Some(home) = shell_env.get("HOME") else {
                 writeln!(stderr, "cd: No home directory.")?;
                 return Ok(1);
-            }
-        },
-        Some("-") => match shell_env.get("OLDPWD") {
-            Some(old) => PathBuf::from(old),
-            None => {
+            };
+            PathBuf::from(home)
+        }
+        Some("-") => {
+            let Some(old) = shell_env.get("OLDPWD") else {
                 writeln!(stderr, "cd: OLDPWD not set.")?;
                 return Ok(1);
+            };
+            PathBuf::from(old)
+        }
+        Some(path) => {
+            if let Some(rest) = path.strip_prefix("~/") {
+                let Some(home) = shell_env.get("HOME") else {
+                    writeln!(stderr, "cd: No home directory.")?;
+                    return Ok(1);
+                };
+                PathBuf::from(home).join(rest)
+            } else {
+                PathBuf::from(path)
             }
-        },
-        Some(path) => PathBuf::from(path),
+        }
     };
 
     let previous = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -186,10 +197,21 @@ fn is_valid_env_name(name: &str) -> bool {
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+    use std::fs;
     use std::path::Path;
+    use std::sync::Mutex;
+
+    /// Serialize tests that mutate the process working directory.
+    static CWD_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     fn empty_env() -> ShellEnvironment {
         ShellEnvironment::from_map(BTreeMap::new())
+    }
+
+    fn lock_cwd() -> std::sync::MutexGuard<'static, ()> {
+        CWD_TEST_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     #[test]
@@ -279,16 +301,38 @@ mod tests {
 
     #[test]
     fn cd_changes_directory() {
-        let mut shell_env = empty_env();
-        shell_env.set("HOME", std::env::temp_dir().to_string_lossy());
+        let _cwd_guard = lock_cwd();
         let start = process_env::current_dir().unwrap();
+        let scratch = process_env::temp_dir().join(format!("nexus-cd-test-{}", std::process::id()));
+        let nested = scratch.join("nested");
+        fs::create_dir_all(&nested).unwrap();
+
+        let mut shell_env = empty_env();
+        shell_env.set("HOME", scratch.to_string_lossy());
         let mut stderr = Vec::new();
 
-        let code = cd(&["cd".into(), ".".into()], &mut shell_env, &mut stderr).unwrap();
-        assert_eq!(code, 0);
-        assert!(shell_env.get("PWD").is_some());
+        let code = cd(
+            &["cd".into(), nested.to_string_lossy().into_owned()],
+            &mut shell_env,
+            &mut stderr,
+        )
+        .unwrap();
+        assert_eq!(code, 0, "stderr={}", String::from_utf8_lossy(&stderr));
+        assert_eq!(
+            process_env::current_dir().unwrap().canonicalize().unwrap(),
+            nested.canonicalize().unwrap()
+        );
         assert!(Path::new(shell_env.get("PWD").unwrap()).exists());
 
-        process_env::set_current_dir(start).unwrap();
+        let code = cd(
+            &["cd".into(), "~/nested".into()],
+            &mut shell_env,
+            &mut stderr,
+        )
+        .unwrap();
+        assert_eq!(code, 0, "stderr={}", String::from_utf8_lossy(&stderr));
+
+        process_env::set_current_dir(&start).unwrap();
+        let _ = fs::remove_dir_all(&scratch);
     }
 }

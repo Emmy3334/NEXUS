@@ -64,9 +64,9 @@ pub fn run(
 fn tokens_are_well_formed(source: &str, tokens: &[lex::Token]) -> bool {
     tokens.iter().all(|token| {
         token.start <= token.end
-            && token.end <= source.len()
-            && !token.lexeme(source).is_empty()
-            && !token.lexeme(source).chars().any(char::is_whitespace)
+            && token.try_lexeme(source).is_some_and(|lexeme| {
+                !lexeme.is_empty() && !lexeme.chars().any(char::is_whitespace)
+            })
     })
 }
 
