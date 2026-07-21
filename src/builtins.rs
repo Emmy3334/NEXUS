@@ -16,6 +16,12 @@ pub enum BuiltinResult {
     Exit(u8),
 }
 
+/// Whether `name` is a Minishell builtin.
+#[must_use]
+pub fn is_builtin(name: &str) -> bool {
+    matches!(name, "cd" | "setenv" | "unsetenv" | "env" | "exit")
+}
+
 /// Run a builtin if `argv[0]` matches one; otherwise return `Ok(None)`.
 pub fn try_run(
     argv: &[String],
