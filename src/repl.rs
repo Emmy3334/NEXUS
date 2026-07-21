@@ -1,7 +1,9 @@
-//! Read–eval–print loop (Minishell1 slice 1: prompt + read only).
+//! Read–eval–print loop (Minishell1: prompt + read + lex).
 //!
-//! Dragon Book framing: this driver will later feed lines into
-//! lexical analysis → parsing → execution. For now it only acquires input.
+//! Dragon Book pipeline so far: acquire line → lexical analysis.
+//! Parsing and execution arrive in later feature slices.
+
+use crate::lex;
 
 use std::io::{self, BufRead, Write};
 
@@ -13,11 +15,11 @@ const SUCCESS_EXIT: u8 = 0;
 /// - Prints [`PROMPT`] only when `interactive` is true (TTY stdin).
 /// - Blank lines re-prompt.
 /// - EOF (Ctrl-D / end of pipe) returns [`SUCCESS_EXIT`].
-/// - Non-blank lines are accepted and discarded until a later feature wires
-///   lex → parse → exec.
+/// - Non-blank lines are tokenized; execution is not wired yet.
 pub fn run(mut stdin: impl BufRead, mut stdout: impl Write, interactive: bool) -> io::Result<u8> {
-    // Reuse one buffer across iterations (hot path: avoid per-line alloc).
+    // Hot path: reuse one line buffer and one token buffer across iterations.
     let mut line_buffer = String::new();
+    let mut tokens = Vec::new();
 
     loop {
         write_prompt(&mut stdout, interactive)?;
@@ -32,9 +34,20 @@ pub fn run(mut stdin: impl BufRead, mut stdout: impl Write, interactive: bool) -
             continue;
         }
 
-        // Slice 1: line acquired; execution lands in the next feature.
-        let _command_line = trim_line_ending(&line_buffer);
+        let command_line = trim_line_ending(&line_buffer);
+        lex::tokenize_into(command_line, &mut tokens);
+        // Slice boundary: tokens ready for parse/exec next.
+        debug_assert!(tokens_are_well_formed(command_line, &tokens));
     }
+}
+
+fn tokens_are_well_formed(source: &str, tokens: &[lex::Token]) -> bool {
+    tokens.iter().all(|token| {
+        token.start <= token.end
+            && token.end <= source.len()
+            && !token.lexeme(source).is_empty()
+            && !token.lexeme(source).chars().any(char::is_whitespace)
+    })
 }
 
 fn write_prompt(stdout: &mut impl Write, interactive: bool) -> io::Result<()> {
