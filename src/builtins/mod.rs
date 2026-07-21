@@ -1,4 +1,4 @@
-//! Shell builtins: Minishell1 plus 42sh locals and aliases.
+//! Shell builtins: Minishell1 plus 42sh locals, aliases, and history.
 //!
 //! Each command lives in its own module; this file dispatches by `argv[0]`.
 
@@ -6,6 +6,7 @@ mod alias;
 mod cd;
 mod env;
 mod exit;
+mod history;
 mod set;
 mod setenv;
 mod unalias;
@@ -31,7 +32,15 @@ pub enum BuiltinResult {
 pub fn is_builtin(name: &str) -> bool {
     matches!(
         name,
-        "cd" | "setenv" | "unsetenv" | "env" | "exit" | "set" | "unset" | "alias" | "unalias"
+        "cd" | "setenv"
+            | "unsetenv"
+            | "env"
+            | "exit"
+            | "set"
+            | "unset"
+            | "alias"
+            | "unalias"
+            | "history"
     )
 }
 
@@ -56,6 +65,7 @@ pub fn try_run(
         "unset" => BuiltinResult::Status(unset::unset(argv, shell_env, stderr)?),
         "alias" => BuiltinResult::Status(alias::alias(argv, shell_env, stdout, stderr)?),
         "unalias" => BuiltinResult::Status(unalias::unalias(argv, shell_env, stderr)?),
+        "history" => BuiltinResult::Status(history::history_cmd(argv, shell_env, stdout, stderr)?),
         "exit" => exit::exit_cmd(argv, last_status, stderr)?,
         _ => return Ok(None),
     };
