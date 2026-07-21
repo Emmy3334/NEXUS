@@ -10,7 +10,7 @@ const PROGRAM_FAILURE_EXIT: u8 = 84;
 fn main() -> ExitCode {
     let interactive = io::stdin().is_terminal();
 
-    match repl::run(io::stdin().lock(), io::stdout(), interactive) {
+    match repl::run(io::stdin().lock(), io::stdout(), io::stderr(), interactive) {
         Ok(code) => ExitCode::from(code),
         Err(err) => {
             eprintln!("{err}");

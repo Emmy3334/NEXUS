@@ -1,0 +1,65 @@
+---
+description: NEXUS standing rules — clean code, optimization, structure, git, shell
+alwaysApply: true
+---
+
+# NEXUS Standing Rules
+
+Follow these sources on every Rust change in this repo:
+
+1. **Clean code** — https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce
+2. **Optimization** — https://gist.github.com/jFransham/369a86eff00e5f280ed25121454acec1
+3. **Project structure** — https://dev.to/ghost/rust-project-structure-example-step-by-step-3ee
+4. **Git-flow** — https://nvie.com/posts/a-successful-git-branching-model/
+5. **Git hygiene / push** — `Git_Mistakes.pdf` (Conventional Commits, `feature|fix|…/kebab-case`, never push straight to `main`/`develop`, rebase only private branches, `push -u` first time, `--force-with-lease` after rebase)
+6. **Language processor** — `Dragon Book.pdf` (lex → parse → IR/exec)
+7. **Product slices** — `Minishell 1.pdf` (then later 42sh-class features)
+
+## Project layout (structure guide stage: lib + bin)
+
+```
+src/
+  lib.rs              # pub mod … library surface
+  bin/nexus.rs        # thin main only
+  lex.rs | lex/       # grow file → folder when needed
+  parse.rs | parse/
+  exec.rs | exec/
+  repl.rs
+```
+
+- Domain logic lives in the **library**.
+- Binary stays a thin driver.
+- Folders + `mod.rs` only when a module outgrows one file.
+- Workspaces only when we truly need separate crates.
+- Binary name: **`nexus`**. `rust-version = "1.75"`, edition **2021**.
+
+## Clean code (always)
+
+- Meaningful names; single-responsibility functions.
+- No unused `pub` APIs; no dead params “for later” unless the next slice needs them.
+- Model domain with `enum` / `struct`; errors via `Result` / `Option` (no panic for expected paths).
+- Prefer borrowing; comments explain **why**.
+- After edits: `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
+
+## Optimization (evidence first)
+
+1. Readability before cleverness.
+2. Don’t optimize without a hotspot / measurement.
+3. Hot paths (REPL read / lex / parse / exec): reuse buffers; prefer contiguous data; avoid `Box<dyn Trait>` in inner loops.
+4. Prefer fewer passes over extra `collect()`s.
+5. No `#[inline(always)]` by default.
+
+## Shell / Minishell conventions
+
+- Pipeline: **lex → parse → exec**.
+- Prompt `$> ` only on TTY stdin.
+- Errors on **stderr**; program I/O failure exit **84**.
+- External not-found → `127` + `{cmd}: Command not found.`
+- Propagate child exit status; EOF returns last status.
+- Do **not** commit PDFs or `/target/`.
+
+## Git workflow (agent)
+
+- Implement on `feature|fix|chore|…` branches from `develop`.
+- **Do not** push or merge unless the user asks; when they do it themselves, give exact commands only.
+- PR base is always **`develop`** (merge commit / `--merge`, not squash), never commit straight to `main`.

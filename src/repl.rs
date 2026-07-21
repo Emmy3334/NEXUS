@@ -1,25 +1,34 @@
-//! Read–eval–print loop (Minishell1: prompt + read + lex).
+//! Read–eval–print loop (Minishell1: prompt → lex → parse → exec).
 //!
-//! Dragon Book pipeline so far: acquire line → lexical analysis.
-//! Parsing and execution arrive in later feature slices.
+//! Dragon Book pipeline: acquire line → lexical analysis → simple parse →
+//! external execution. Builtins arrive in a later slice.
 
+use crate::exec;
 use crate::lex;
+use crate::parse;
 
 use std::io::{self, BufRead, Write};
 
 const PROMPT: &str = "$> ";
 const SUCCESS_EXIT: u8 = 0;
 
-/// Run the interactive (or piped) read loop.
+/// Run the interactive (or piped) read–eval loop.
 ///
 /// - Prints [`PROMPT`] only when `interactive` is true (TTY stdin).
 /// - Blank lines re-prompt.
-/// - EOF (Ctrl-D / end of pipe) returns [`SUCCESS_EXIT`].
-/// - Non-blank lines are tokenized; execution is not wired yet.
-pub fn run(mut stdin: impl BufRead, mut stdout: impl Write, interactive: bool) -> io::Result<u8> {
-    // Hot path: reuse one line buffer and one token buffer across iterations.
+/// - EOF returns the last command’s status (or `0` if none ran).
+/// - External commands propagate their exit status; not-found → `127`.
+pub fn run(
+    mut stdin: impl BufRead,
+    mut stdout: impl Write,
+    mut stderr: impl Write,
+    interactive: bool,
+) -> io::Result<u8> {
+    // Hot path: reuse line, token, and owned-argv buffers across iterations.
     let mut line_buffer = String::new();
     let mut tokens = Vec::new();
+    let mut argv = Vec::new();
+    let mut last_status = SUCCESS_EXIT;
 
     loop {
         write_prompt(&mut stdout, interactive)?;
@@ -27,7 +36,7 @@ pub fn run(mut stdin: impl BufRead, mut stdout: impl Write, interactive: bool) -
         line_buffer.clear();
         let bytes_read = stdin.read_line(&mut line_buffer)?;
         if bytes_read == 0 {
-            return Ok(SUCCESS_EXIT);
+            return Ok(last_status);
         }
 
         if is_blank_line(&line_buffer) {
@@ -36,8 +45,14 @@ pub fn run(mut stdin: impl BufRead, mut stdout: impl Write, interactive: bool) -
 
         let command_line = trim_line_ending(&line_buffer);
         lex::tokenize_into(command_line, &mut tokens);
-        // Slice boundary: tokens ready for parse/exec next.
         debug_assert!(tokens_are_well_formed(command_line, &tokens));
+
+        parse::fill_argv(command_line, &tokens, &mut argv);
+        if argv.is_empty() {
+            continue;
+        }
+
+        last_status = exec::execute_external(&argv, &mut stderr)?;
     }
 }
 
@@ -71,34 +86,60 @@ mod tests {
     use super::*;
     use std::io::Cursor;
 
-    fn run_piped(input: &str) -> (u8, Vec<u8>) {
+    fn run_piped(input: &str) -> (u8, Vec<u8>, Vec<u8>) {
         let mut stdin = Cursor::new(input);
         let mut stdout = Vec::new();
-        let code = run(&mut stdin, &mut stdout, false).unwrap();
-        (code, stdout)
+        let mut stderr = Vec::new();
+        let code = run(&mut stdin, &mut stdout, &mut stderr, false).unwrap();
+        (code, stdout, stderr)
     }
 
     #[test]
     fn eof_exits_zero_without_prompt_noise() {
-        let (code, stdout) = run_piped("");
+        let (code, stdout, stderr) = run_piped("");
         assert_eq!(code, SUCCESS_EXIT);
         assert!(stdout.is_empty());
+        assert!(stderr.is_empty());
     }
 
     #[test]
-    fn blank_and_nonblank_lines_then_eof() {
-        let (code, stdout) = run_piped("\n   \nls\n");
-        assert_eq!(code, SUCCESS_EXIT);
+    fn blank_lines_then_true_exits_zero() {
+        let (code, stdout, stderr) = run_piped("\n   \ntrue\n");
+        assert_eq!(code, 0);
         assert!(stdout.is_empty());
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn false_propagates_exit_status() {
+        let (code, _, stderr) = run_piped("false\n");
+        assert_eq!(code, 1);
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn missing_command_writes_stderr_and_returns_127() {
+        let (code, _, stderr) = run_piped("nexus_no_such_command_42\n");
+        assert_eq!(code, 127);
+        let message = String::from_utf8(stderr).unwrap();
+        assert!(message.contains("Command not found"));
+    }
+
+    #[test]
+    fn last_status_wins_across_commands() {
+        let (code, _, _) = run_piped("true\nfalse\n");
+        assert_eq!(code, 1);
+        let (code, _, _) = run_piped("false\ntrue\n");
+        assert_eq!(code, 0);
     }
 
     #[test]
     fn interactive_prints_prompt_before_each_read() {
-        let mut stdin = Cursor::new("\nls\n");
+        let mut stdin = Cursor::new("\ntrue\n");
         let mut stdout = Vec::new();
-        let code = run(&mut stdin, &mut stdout, true).unwrap();
-        assert_eq!(code, SUCCESS_EXIT);
-        // prompt → blank → prompt → "ls" → prompt → EOF
+        let mut stderr = Vec::new();
+        let code = run(&mut stdin, &mut stdout, &mut stderr, true).unwrap();
+        assert_eq!(code, 0);
         let out = String::from_utf8(stdout).unwrap();
         assert_eq!(out.matches(PROMPT).count(), 3);
     }
