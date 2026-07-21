@@ -62,7 +62,7 @@ pub(super) fn execute_piped_stages(
         let mut argv = Vec::with_capacity(command.argv.len());
         for word in &command.argv {
             match crate::expand::expand_word_for_exec(word, shell_env, last_status) {
-                Ok(expanded) => argv.push(expanded),
+                Ok(expanded) => argv.extend(crate::glob::expand_globs(&expanded)),
                 Err(err) => {
                     writeln!(stderr, "{}", err.message())?;
                     return Ok(CommandResult::Status(1));

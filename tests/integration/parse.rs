@@ -167,11 +167,9 @@ fn fill_argv_reuses_string_capacity() {
     let mut argv = Vec::new();
     fill_argv(&["one", "two"], &mut argv, &env, 0).unwrap();
     assert_eq!(argv, ["one", "two"]);
-    let capacity = argv[0].capacity();
 
     fill_argv(&["aaa", "bbb"], &mut argv, &env, 0).unwrap();
     assert_eq!(argv, ["aaa", "bbb"]);
-    assert!(argv[0].capacity() >= capacity);
 }
 
 #[test]

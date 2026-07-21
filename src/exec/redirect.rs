@@ -70,9 +70,10 @@ pub fn collect_heredoc_bodies(
         for command in &pipeline.commands {
             for redirect in &command.redirects {
                 if redirect.kind == RedirectKind::Heredoc {
+                    // Heredoc delimiters are not subject to pathname expansion.
                     let delimiter =
                         match expand::expand_word_for_exec(redirect.path, shell_env, last_status) {
-                            Ok(delimiter) => delimiter,
+                            Ok(word) => word.into_string(),
                             Err(err) => {
                                 writeln!(stderr, "{}", err.message())?;
                                 return Ok(Err(1));
@@ -126,7 +127,13 @@ pub(super) fn open_redirect_files(
 
     for redirect in redirects {
         let path = match expand::expand_word_for_exec(redirect.path, shell_env, last_status) {
-            Ok(path) => path,
+            Ok(word) => match crate::glob::expand_globs_one(&word) {
+                Ok(path) => path,
+                Err(_) => {
+                    writeln!(stderr, "{}: Ambiguous redirect.", word.as_str())?;
+                    return Ok(Err(1));
+                }
+            },
             Err(err) => {
                 writeln!(stderr, "{}", err.message())?;
                 return Ok(Err(1));

@@ -8,6 +8,12 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 
+fn expand(raw: &str, env: &ShellEnvironment, status: u8) -> String {
+    expand_word_for_exec(raw, env, status)
+        .unwrap()
+        .into_string()
+}
+
 fn env_with(pairs: &[(&str, &str)]) -> ShellEnvironment {
     let mut map = BTreeMap::new();
     for &(k, v) in pairs {
@@ -53,75 +59,57 @@ fn temp_out(name: &str) -> PathBuf {
 #[test]
 fn expand_home_plain_and_braced() {
     let env = env_with(&[("HOME", "/tmp/home")]);
-    assert_eq!(expand_word_for_exec("$HOME", &env, 0).unwrap(), "/tmp/home");
-    assert_eq!(
-        expand_word_for_exec("${HOME}", &env, 0).unwrap(),
-        "/tmp/home"
-    );
+    assert_eq!(expand("$HOME", &env, 0), "/tmp/home");
+    assert_eq!(expand("${HOME}", &env, 0), "/tmp/home");
 }
 
 #[test]
 fn expand_status_question() {
     let env = ShellEnvironment::default();
-    assert_eq!(expand_word_for_exec("$?", &env, 42).unwrap(), "42");
-    assert_eq!(expand_word_for_exec("x$?y", &env, 7).unwrap(), "x7y");
+    assert_eq!(expand("$?", &env, 42), "42");
+    assert_eq!(expand("x$?y", &env, 7), "x7y");
 }
 
 #[test]
 fn expand_status_name_like_question() {
     let env = ShellEnvironment::default();
-    assert_eq!(expand_word_for_exec("$status", &env, 3).unwrap(), "3");
-    assert_eq!(expand_word_for_exec("${status}", &env, 11).unwrap(), "11");
+    assert_eq!(expand("$status", &env, 3), "3");
+    assert_eq!(expand("${status}", &env, 11), "11");
 }
 
 #[test]
 fn expand_cwd_local() {
     let mut env = ShellEnvironment::default();
     env.set_local("cwd", "/tmp/nexus_cwd");
-    assert_eq!(
-        expand_word_for_exec("$cwd", &env, 0).unwrap(),
-        "/tmp/nexus_cwd"
-    );
+    assert_eq!(expand("$cwd", &env, 0), "/tmp/nexus_cwd");
 }
 
 #[test]
 fn no_expand_inside_single_quotes() {
     let env = env_with(&[("HOME", "/tmp/home")]);
-    assert_eq!(expand_word_for_exec("'$HOME'", &env, 0).unwrap(), "$HOME");
-    assert_eq!(expand_word_for_exec("'$?'", &env, 3).unwrap(), "$?");
+    assert_eq!(expand("'$HOME'", &env, 0), "$HOME");
+    assert_eq!(expand("'$?'", &env, 3), "$?");
 }
 
 #[test]
 fn expand_inside_double_quotes() {
     let env = env_with(&[("HOME", "/tmp/home")]);
-    assert_eq!(
-        expand_word_for_exec("\"$HOME\"", &env, 0).unwrap(),
-        "/tmp/home"
-    );
-    assert_eq!(
-        expand_word_for_exec("\"status=$?\"", &env, 9).unwrap(),
-        "status=9"
-    );
+    assert_eq!(expand("\"$HOME\"", &env, 0), "/tmp/home");
+    assert_eq!(expand("\"status=$?\"", &env, 9), "status=9");
 }
 
 #[test]
 fn unknown_var_expands_to_empty() {
     let env = ShellEnvironment::default();
-    assert_eq!(expand_word_for_exec("$NEXUS_NO_SUCH", &env, 0).unwrap(), "");
-    assert_eq!(
-        expand_word_for_exec("${NEXUS_NO_SUCH}", &env, 0).unwrap(),
-        ""
-    );
+    assert_eq!(expand("$NEXUS_NO_SUCH", &env, 0), "");
+    assert_eq!(expand("${NEXUS_NO_SUCH}", &env, 0), "");
 }
 
 #[test]
 fn escaped_dollar_stays_literal() {
     let env = env_with(&[("HOME", "/tmp")]);
-    assert_eq!(expand_word_for_exec(r"\$HOME", &env, 0).unwrap(), "$HOME");
-    assert_eq!(
-        expand_word_for_exec(r#""\$HOME""#, &env, 0).unwrap(),
-        "$HOME"
-    );
+    assert_eq!(expand(r"\$HOME", &env, 0), "$HOME");
+    assert_eq!(expand(r#""\$HOME""#, &env, 0), "$HOME");
 }
 
 #[test]
@@ -207,7 +195,7 @@ fn pipe_argv_expands_var() {
 fn local_shadows_exported_in_expansion() {
     let mut env = env_with(&[("FOO", "exported")]);
     env.set_local("FOO", "local");
-    assert_eq!(expand_word_for_exec("$FOO", &env, 0).unwrap(), "local");
+    assert_eq!(expand("$FOO", &env, 0), "local");
 }
 
 #[test]

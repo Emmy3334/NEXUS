@@ -1,19 +1,85 @@
-//! Word expansion for execution: quotes/escapes, then `$` parameters.
+//! Quote-aware word expansion: escapes, `$` parameters, then pathname globbing.
 //!
-//! Quote rules match [`crate::lex::expand_word`]. Dollar expansion runs in
-//! normal and double-quoted regions only (not inside `'…'`).
+//! Dollar expansion runs in normal and double-quoted regions (not `'…'`).
+//! Glob metacharacters (`*`, `?`, `[…]`) are active only when unquoted (and
+//! for unquoted `$` expansions whose values contain those characters).
 
 use crate::env::ShellEnvironment;
 use crate::lex::LexError;
 
-/// Expand a raw word for argv / redirects: strip quotes, apply escapes, expand
-/// `$VAR`, `${VAR}`, `$?`, and `$status`.
+/// Result of quote / `$` expansion, with per-character glob activity flags.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ExpandedWord {
+    text: String,
+    /// Parallel to `text.chars()`: whether that character is an active glob meta.
+    glob_meta: Vec<bool>,
+}
+
+impl ExpandedWord {
+    /// Expanded text (quotes already stripped).
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.text
+    }
+
+    /// Consume into an owned string (drops glob flags).
+    #[must_use]
+    pub fn into_string(self) -> String {
+        self.text
+    }
+
+    /// Whether any active glob metacharacter is present.
+    #[must_use]
+    pub fn has_active_glob(&self) -> bool {
+        self.glob_meta.iter().any(|&m| m)
+    }
+
+    /// Borrow the parallel glob-activity flags (one per Unicode scalar in `text`).
+    #[must_use]
+    pub fn glob_meta(&self) -> &[bool] {
+        &self.glob_meta
+    }
+
+    fn clear(&mut self) {
+        self.text.clear();
+        self.glob_meta.clear();
+    }
+
+    fn push_literal(&mut self, c: char) {
+        self.text.push(c);
+        self.glob_meta.push(false);
+    }
+
+    fn push_glob_meta(&mut self, c: char) {
+        debug_assert!(matches!(c, '*' | '?' | '['));
+        self.text.push(c);
+        self.glob_meta.push(true);
+    }
+
+    fn push_str_literal(&mut self, s: &str) {
+        for c in s.chars() {
+            self.push_literal(c);
+        }
+    }
+
+    /// Unquoted expansion: `*`, `?`, `[` in the value become active metas.
+    fn push_str_globable(&mut self, s: &str) {
+        for c in s.chars() {
+            match c {
+                '*' | '?' | '[' => self.push_glob_meta(c),
+                _ => self.push_literal(c),
+            }
+        }
+    }
+}
+
+/// Expand a raw word: strip quotes, apply escapes, expand `$` / `$?` / `$status`.
 pub fn expand_word_for_exec(
     raw: &str,
     env: &ShellEnvironment,
     last_status: u8,
-) -> Result<String, LexError> {
-    let mut out = String::with_capacity(raw.len());
+) -> Result<ExpandedWord, LexError> {
+    let mut out = ExpandedWord::default();
     expand_word_for_exec_into(raw, env, last_status, &mut out)?;
     Ok(out)
 }
@@ -23,7 +89,7 @@ pub fn expand_word_for_exec_into(
     raw: &str,
     env: &ShellEnvironment,
     last_status: u8,
-    out: &mut String,
+    out: &mut ExpandedWord,
 ) -> Result<(), LexError> {
     out.clear();
     let mut chars = raw.chars().peekable();
@@ -36,32 +102,34 @@ pub fn expand_word_for_exec_into(
                 '"' => state = QuoteState::Double,
                 '\\' => {
                     if let Some(next) = chars.next() {
-                        out.push(next);
+                        out.push_literal(next);
                     }
                 }
-                '$' => push_parameter(&mut chars, env, last_status, out),
-                _ => out.push(ch),
+                '*' | '?' | '[' => out.push_glob_meta(ch),
+                '$' => push_parameter(&mut chars, env, last_status, out, true),
+                _ => out.push_literal(ch),
             },
             QuoteState::Single => {
                 if ch == '\'' {
                     state = QuoteState::Normal;
                 } else {
-                    out.push(ch);
+                    out.push_literal(ch);
                 }
             }
             QuoteState::Double => match ch {
                 '"' => state = QuoteState::Normal,
                 '\\' => match chars.next() {
-                    // Escaped `$` stays literal (do not expand).
-                    Some(next) if matches!(next, '"' | '\\' | '$' | '`' | '\n') => out.push(next),
+                    Some(next) if matches!(next, '"' | '\\' | '$' | '`' | '\n') => {
+                        out.push_literal(next);
+                    }
                     Some(next) => {
-                        out.push('\\');
-                        out.push(next);
+                        out.push_literal('\\');
+                        out.push_literal(next);
                     }
                     None => {}
                 },
-                '$' => push_parameter(&mut chars, env, last_status, out),
-                _ => out.push(ch),
+                '$' => push_parameter(&mut chars, env, last_status, out, false),
+                _ => out.push_literal(ch),
             },
         }
     }
@@ -83,12 +151,15 @@ fn push_parameter(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
     env: &ShellEnvironment,
     last_status: u8,
-    out: &mut String,
+    out: &mut ExpandedWord,
+    globable: bool,
 ) {
     match chars.peek().copied() {
         Some('?') => {
             chars.next();
-            let _ = std::fmt::Write::write_fmt(out, format_args!("{last_status}"));
+            let mut buf = String::new();
+            let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("{last_status}"));
+            out.push_str_literal(&buf);
         }
         Some('{') => {
             chars.next();
@@ -102,17 +173,15 @@ fn push_parameter(
                 name.push(ch);
             }
             if !closed {
-                // Unclosed `${` — treat as literal `${` + gathered text.
-                out.push('$');
-                out.push('{');
-                out.push_str(&name);
+                out.push_literal('$');
+                out.push_literal('{');
+                out.push_str_literal(&name);
                 return;
             }
             if name.is_empty() {
-                // `${}` → empty
                 return;
             }
-            push_named_parameter(&name, env, last_status, out);
+            push_named_parameter(&name, env, last_status, out, globable);
         }
         Some(c) if is_name_start(c) => {
             let mut name = String::new();
@@ -125,19 +194,32 @@ fn push_parameter(
                 name.push(c);
                 chars.next();
             }
-            push_named_parameter(&name, env, last_status, out);
+            push_named_parameter(&name, env, last_status, out, globable);
         }
-        _ => out.push('$'),
+        _ => out.push_literal('$'),
     }
 }
 
-fn push_named_parameter(name: &str, env: &ShellEnvironment, last_status: u8, out: &mut String) {
+fn push_named_parameter(
+    name: &str,
+    env: &ShellEnvironment,
+    last_status: u8,
+    out: &mut ExpandedWord,
+    globable: bool,
+) {
     if name == "status" {
-        let _ = std::fmt::Write::write_fmt(out, format_args!("{last_status}"));
+        let mut buf = String::new();
+        let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("{last_status}"));
+        out.push_str_literal(&buf);
         return;
     }
-    if let Some(value) = env.lookup(name) {
-        out.push_str(value);
+    let Some(value) = env.lookup(name) else {
+        return;
+    };
+    if globable {
+        out.push_str_globable(value);
+    } else {
+        out.push_str_literal(value);
     }
 }
 
