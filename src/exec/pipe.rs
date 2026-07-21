@@ -15,7 +15,38 @@ use crate::lex;
 use crate::parse::{Pipeline, Redirect};
 
 use std::io::{self, Write};
-use std::process::{Child, Stdio};
+use std::process::{Child, ChildStdout, Stdio};
+
+/// What to do after a pipeline stage fails to spawn.
+enum AfterSpawnFail {
+    /// Skip this stage; later stages still run (no pipefail).
+    Continue,
+    /// This was the last stage — pipeline status is the spawn failure code.
+    Done(CommandResult),
+}
+
+/// Report spawn failure, drain unused pipe input, then continue or finish.
+fn after_spawn_failure(
+    name: &str,
+    err: &io::Error,
+    stderr: &mut impl Write,
+    is_last: bool,
+    prev_stdout: &mut Option<ChildStdout>,
+    buffered_out: &mut Option<Vec<u8>>,
+    children: &mut Vec<Child>,
+) -> io::Result<AfterSpawnFail> {
+    let code = report_spawn_failure(name, err, stderr)?;
+    // Prior writers may still be on the pipe — drain so they can exit.
+    if let Some(mut reader) = prev_stdout.take() {
+        let _ = io::copy(&mut reader, &mut io::sink());
+    }
+    let _ = buffered_out.take();
+    if is_last {
+        let _ = wait_children(children)?;
+        return Ok(AfterSpawnFail::Done(CommandResult::Status(code)));
+    }
+    Ok(AfterSpawnFail::Continue)
+}
 
 /// Multi-stage `|` pipeline. Status is the last stage’s status.
 pub(super) fn execute_piped_stages(
@@ -131,17 +162,18 @@ pub(super) fn execute_piped_stages(
                     let mut child = match command.spawn() {
                         Ok(child) => child,
                         Err(err) => {
-                            let code = report_spawn_failure(name, &err, stderr)?;
-                            // Prior writers may still be on the pipe — drain so they can exit.
-                            if let Some(mut reader) = prev_stdout.take() {
-                                let _ = io::copy(&mut reader, &mut io::sink());
+                            match after_spawn_failure(
+                                name,
+                                &err,
+                                stderr,
+                                is_last,
+                                &mut prev_stdout,
+                                &mut buffered_out,
+                                &mut children,
+                            )? {
+                                AfterSpawnFail::Continue => continue,
+                                AfterSpawnFail::Done(result) => return Ok(result),
                             }
-                            if is_last {
-                                let _ = wait_children(&mut children)?;
-                                return Ok(CommandResult::Status(code));
-                            }
-                            // Skip this stage; later stages still run (no pipefail).
-                            continue;
                         }
                     };
                     if let Some(mut stdin) = child.stdin.take() {
@@ -179,17 +211,18 @@ pub(super) fn execute_piped_stages(
                 children.push(child);
             }
             Err(err) => {
-                let code = report_spawn_failure(name, &err, stderr)?;
-                if let Some(mut reader) = prev_stdout.take() {
-                    let _ = io::copy(&mut reader, &mut io::sink());
+                match after_spawn_failure(
+                    name,
+                    &err,
+                    stderr,
+                    is_last,
+                    &mut prev_stdout,
+                    &mut buffered_out,
+                    &mut children,
+                )? {
+                    AfterSpawnFail::Continue => continue,
+                    AfterSpawnFail::Done(result) => return Ok(result),
                 }
-                let _ = buffered_out.take();
-                if is_last {
-                    let _ = wait_children(&mut children)?;
-                    return Ok(CommandResult::Status(code));
-                }
-                // Missing mid/left stage: keep going so `plop | ls` still lists.
-                continue;
             }
         }
     }
