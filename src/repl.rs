@@ -49,6 +49,17 @@ pub fn run(
         lex::tokenize_into(command_line, &mut tokens);
         debug_assert!(tokens_are_well_formed(command_line, &tokens));
 
+        // Operators are lexed now; parse/exec for lists, pipes, and
+        // redirections land in later Minishell2 slices.
+        if tokens.iter().any(|token| token.kind.is_operator()) {
+            writeln!(
+                stderr,
+                "nexus: ';', '|', and redirections are not implemented yet."
+            )?;
+            last_status = 1;
+            continue;
+        }
+
         parse::fill_argv(command_line, &tokens, &mut argv);
         if argv.is_empty() {
             continue;
@@ -160,6 +171,14 @@ mod tests {
         assert_eq!(code, 0);
         let out = String::from_utf8(stdout).unwrap();
         assert_eq!(out.matches(PROMPT).count(), 3);
+    }
+
+    #[test]
+    fn operators_are_rejected_until_parse_slice() {
+        let (code, _, stderr) = run_piped("ls | wc\n");
+        assert_eq!(code, 1);
+        let message = String::from_utf8(stderr).unwrap();
+        assert!(message.contains("not implemented yet"));
     }
 
     #[test]
