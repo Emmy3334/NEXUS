@@ -7,15 +7,15 @@ use crate::exec::redirect::RedirectFiles;
 use crate::exec::{run_builtin_status, CommandResult};
 
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 
 /// Run a builtin stage. Returns `Some(result)` when the pipeline should stop
 /// (this was the last stage); `None` to continue to the next stage.
-pub(super) fn run_builtin_stage<O: Write, E: Write>(
+pub(super) fn run_builtin_stage<I: BufRead, O: Write, E: Write>(
     stage: &[String],
     files: RedirectFiles,
     is_last: bool,
-    ctx: &mut StageCtx<'_, O, E>,
+    ctx: &mut StageCtx<'_, I, O, E>,
     state: &mut PipeState,
 ) -> io::Result<Option<CommandResult>> {
     state.drain_pending();

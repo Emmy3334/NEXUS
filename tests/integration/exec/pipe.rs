@@ -17,6 +17,7 @@ fn pipe_uses_last_command_status() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -31,6 +32,7 @@ fn pipe_uses_last_command_status() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -52,6 +54,7 @@ fn multipipe_status_is_last_stage() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -73,6 +76,7 @@ fn exit_in_pipeline_does_not_kill_shell() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -95,6 +99,7 @@ fn builtin_env_can_feed_pipe() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -117,6 +122,7 @@ fn semicolon_then_pipe() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -138,6 +144,7 @@ fn missing_left_stage_still_runs_right() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -162,6 +169,7 @@ fn missing_right_stage_status_is_127() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )

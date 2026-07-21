@@ -220,4 +220,17 @@ fn unclosed_quote_is_error() {
         tokenize_into("echo 'hi", &mut tokens),
         Err(LexError::UnclosedQuote)
     );
+    assert_eq!(
+        tokenize_into("echo `hi", &mut tokens),
+        Err(LexError::UnclosedQuote)
+    );
+}
+
+#[test]
+fn backticks_keep_inner_spaces_as_one_word() {
+    assert_eq!(lexemes("echo `printf a b`"), vec!["echo", "`printf a b`"]);
+    assert_eq!(
+        kinds("echo `ls | wc`"),
+        vec![TokenKind::Word, TokenKind::Word]
+    );
 }

@@ -5,6 +5,7 @@
 //! spaces and operators inside quotes stay part of the word.
 
 mod expand;
+mod quote;
 mod scan;
 
 pub use expand::{expand_word, expand_word_into};
@@ -71,8 +72,10 @@ impl Token {
 /// Why tokenization or word expansion failed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LexError {
-    /// A `'` or `"` was opened and never closed on this line.
+    /// A `'`, `"`, or `` ` `` was opened and never closed on this line.
     UnclosedQuote,
+    /// Command substitution (`` `…` ``) failed to run.
+    CommandSubstitution,
 }
 
 impl LexError {
@@ -81,6 +84,7 @@ impl LexError {
     pub const fn message(self) -> &'static str {
         match self {
             Self::UnclosedQuote => "Unmatched quote.",
+            Self::CommandSubstitution => "Command substitution failed.",
         }
     }
 }
@@ -92,4 +96,6 @@ enum QuoteState {
     Normal,
     Single,
     Double,
+    /// `` `…` `` — command substitution span (keeps spaces/operators inside).
+    Backtick,
 }

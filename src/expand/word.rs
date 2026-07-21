@@ -33,11 +33,6 @@ impl ExpandedWord {
         &self.glob_meta
     }
 
-    pub(super) fn clear(&mut self) {
-        self.text.clear();
-        self.glob_meta.clear();
-    }
-
     pub(super) fn push_literal(&mut self, c: char) {
         self.text.push(c);
         self.glob_meta.push(false);

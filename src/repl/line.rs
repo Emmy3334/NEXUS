@@ -109,6 +109,7 @@ pub(super) fn run_ready_command<I: BufRead, O: Write, E: Write>(
         shell_env,
         last_status,
         heredoc_bodies,
+        io.stdin,
         io.stdout,
         io.stderr,
     )

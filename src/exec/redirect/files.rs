@@ -2,11 +2,12 @@
 
 use super::heredoc::HeredocState;
 use crate::env::ShellEnvironment;
+use crate::exec::StdoutMode;
 use crate::expand;
 use crate::parse::{Redirect, RedirectKind};
 
 use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 use std::process::{Command, Stdio};
 
 pub(in crate::exec) enum StdinSource {
@@ -26,6 +27,7 @@ pub(in crate::exec) fn open_redirect_files(
     heredocs: &mut HeredocState,
     shell_env: &ShellEnvironment,
     last_status: u8,
+    stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> io::Result<Result<RedirectFiles, u8>> {
     let mut files = RedirectFiles {
@@ -42,7 +44,7 @@ pub(in crate::exec) fn open_redirect_files(
             continue;
         }
 
-        let path = match resolve_redirect_path(redirect, shell_env, last_status, stderr)? {
+        let path = match resolve_redirect_path(redirect, shell_env, last_status, stdin, stderr)? {
             Ok(path) => path,
             Err(code) => return Ok(Err(code)),
         };
@@ -58,16 +60,30 @@ fn resolve_redirect_path(
     redirect: &Redirect<'_>,
     shell_env: &ShellEnvironment,
     last_status: u8,
+    stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> io::Result<Result<String, u8>> {
-    match expand::expand_word_for_exec(redirect.path, shell_env, last_status) {
-        Ok(word) => match crate::glob::expand_globs_one(&word) {
-            Ok(path) => Ok(Ok(path)),
-            Err(_) => {
-                writeln!(stderr, "{}: Ambiguous redirect.", word.as_str())?;
-                Ok(Err(1))
+    let mut fields = Vec::new();
+    let mut capture = |body: &str| {
+        crate::exec::capture_command_output(body, shell_env, last_status, stdin, stderr)
+    };
+    match expand::expand_word_fields_into(
+        redirect.path,
+        shell_env,
+        last_status,
+        &mut fields,
+        &mut capture,
+    ) {
+        Ok(()) => {
+            let word = fields.into_iter().next().unwrap_or_default();
+            match crate::glob::expand_globs_one(&word) {
+                Ok(path) => Ok(Ok(path)),
+                Err(_) => {
+                    writeln!(stderr, "{}: Ambiguous redirect.", word.as_str())?;
+                    Ok(Err(1))
+                }
             }
-        },
+        }
         Err(err) => {
             writeln!(stderr, "{}", err.message())?;
             Ok(Err(1))
@@ -126,10 +142,11 @@ pub(in crate::exec) fn apply_stdout_for_stage(
     command: &mut Command,
     stdout_file: Option<File>,
     is_last: bool,
+    stdout_mode: StdoutMode,
 ) {
     if let Some(file) = stdout_file {
         command.stdout(Stdio::from(file));
-    } else if !is_last {
+    } else if !is_last || stdout_mode == StdoutMode::Capture {
         command.stdout(Stdio::piped());
     }
 }

@@ -20,6 +20,8 @@ pub fn expand_word_into(raw: &str, out: &mut String) -> Result<(), LexError> {
             QuoteState::Normal => expand_normal_char(ch, &mut chars, out),
             QuoteState::Single => expand_single_char(ch, out),
             QuoteState::Double => expand_double_char(ch, &mut chars, out),
+            // Lex-only strip keeps inner text; runtime `` ` `` runs in `crate::expand`.
+            QuoteState::Backtick => expand_backtick_char(ch, &mut chars, out),
         };
     }
 
@@ -33,6 +35,7 @@ fn expand_normal_char(ch: char, chars: &mut std::str::Chars<'_>, out: &mut Strin
     match ch {
         '\'' => QuoteState::Single,
         '"' => QuoteState::Double,
+        '`' => QuoteState::Backtick,
         '\\' => {
             if let Some(next) = chars.next() {
                 out.push(next);
@@ -42,6 +45,22 @@ fn expand_normal_char(ch: char, chars: &mut std::str::Chars<'_>, out: &mut Strin
         _ => {
             out.push(ch);
             QuoteState::Normal
+        }
+    }
+}
+
+fn expand_backtick_char(ch: char, chars: &mut std::str::Chars<'_>, out: &mut String) -> QuoteState {
+    match ch {
+        '`' => QuoteState::Normal,
+        '\\' => {
+            if let Some(next) = chars.next() {
+                out.push(next);
+            }
+            QuoteState::Backtick
+        }
+        _ => {
+            out.push(ch);
+            QuoteState::Backtick
         }
     }
 }
