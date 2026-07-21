@@ -1,5 +1,5 @@
 ---
-description: NEXUS standing rules — clean code, optimization, structure, git, shell
+description: NEXUS standing rules — clean code, optimization, structure, git, shell, RCRG
 alwaysApply: true
 ---
 
@@ -10,10 +10,49 @@ Follow these sources on every Rust change in this repo:
 1. **Clean code** — https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce
 2. **Optimization** — https://gist.github.com/jFransham/369a86eff00e5f280ed25121454acec1
 3. **Project structure** — https://dev.to/ghost/rust-project-structure-example-step-by-step-3ee
-4. **Git-flow** — https://nvie.com/posts/a-successful-git-branching-model/
-5. **Git hygiene / push** — `Git_Mistakes.pdf` (Conventional Commits, `feature|fix|…/kebab-case`, never push straight to `main`/`develop`, rebase only private branches, `push -u` first time, `--force-with-lease` after rebase)
-6. **Language processor** — `Dragon Book.pdf` (lex → parse → IR/exec)
-7. **Product slices** — `Minishell 1.pdf` (then later 42sh-class features)
+4. **Code review (RCRG)** — https://github.com/ZhangHanDong/rust-code-review-guidelines
+5. **Git-flow** — https://nvie.com/posts/a-successful-git-branching-model/
+6. **Git hygiene / push** — `Git_Mistakes.pdf` (Conventional Commits, `feature|fix|…/kebab-case`, never push straight to `main`/`develop`, rebase only private branches, `push -u` first time, `--force-with-lease` after rebase)
+7. **Language processor** — `Dragon Book.pdf` (lex → parse → IR/exec)
+8. **Product slices** — `Minishell 1.pdf` (then later 42sh-class features)
+
+## Rust Code Review Guidelines (mandatory before finishing a slice)
+
+Before calling a feature done, self-review against [RCRG](https://github.com/ZhangHanDong/rust-code-review-guidelines):
+
+### Correctness
+- Compiles with **no warnings** (`clippy -D warnings`).
+- Business logic + edge cases covered; errors via `Result`/`Option`.
+- No `unsafe` unless unavoidable, documented, and reviewed.
+
+### Readability
+- Clear names; consistent `rustfmt` style; comments explain **why**.
+- Logic split into focused functions/modules.
+
+### Maintainability
+- No duplicated logic; SRP; tests on key paths and edges.
+- Docs on public APIs; avoid over-abstraction.
+
+### Safety & security
+- No panic on expected input; validate builtin args; careful with paths/`cd`.
+- Children inherit only the **owned** shell env (`env_clear` + shell map).
+- No secrets in repo; pin/trust deps deliberately.
+
+### Performance
+- No unnecessary allocs on hot paths (reuse buffers); measure before clever opts.
+
+### API design
+- Library surface (`lib` modules) consistent and minimal; thin `bin`.
+
+### Debuggability
+- Clear stderr messages for shell errors; meaningful exit codes.
+
+### Observability / CI
+- Prefer code that is easy to test in CI (`cargo test`, clippy, fmt).
+- Heavier monitoring/tracing later when the cloud shell needs it — don’t fake it.
+
+### Others
+- Keep Unix-first Minishell behavior explicit; note platform assumptions in tests.
 
 ## Project layout (structure guide stage: lib + bin)
 
@@ -24,7 +63,7 @@ src/
   lex.rs | lex/       # grow file → folder when needed
   parse.rs | parse/
   exec.rs | exec/
-  repl.rs
+  env.rs | builtins.rs | repl.rs
 ```
 
 - Domain logic lives in the **library**.
@@ -63,3 +102,4 @@ src/
 - Implement on `feature|fix|chore|…` branches from `develop`.
 - **Do not** push or merge unless the user asks; when they do it themselves, give exact commands only.
 - PR base is always **`develop`** (merge commit / `--merge`, not squash), never commit straight to `main`.
+- Before suggesting commit: run an RCRG pass on the diff.
