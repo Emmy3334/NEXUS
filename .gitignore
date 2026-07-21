@@ -2,9 +2,6 @@
 /target/
 **/*.rs.bk
 
-# ── Cursor (local agent rules only) ─────────────────
-.cursor/
-
 # ── Reference PDFs (keep local, do not commit) ──────
 *.pdf
 
