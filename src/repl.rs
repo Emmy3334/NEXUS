@@ -1,9 +1,8 @@
 //! Read–eval–print loop (prompt → lex → parse → exec/builtins).
 //!
 //! Dragon Book pipeline: acquire line → lexical analysis → list/pipeline
-//! parse → execute (builtin or external) against an owned environment copy.
-//! List and pipe *execution* land in later Minishell2 slices; this slice
-//! still runs only a single simple command.
+//! parse → execute against an owned environment copy. Semicolon lists run
+//! in order; pipe execution lands in a later Minishell2 slice.
 
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
@@ -61,19 +60,14 @@ pub fn run(
             }
         };
 
-        let Some(simple) = command_list.as_single_command() else {
-            // Parsed lists/pipelines; exec arrives in later slices.
-            writeln!(stderr, "nexus: lists and pipes are not executed yet.")?;
-            last_status = 1;
-            continue;
-        };
-
-        parse::fill_argv(&simple.argv, &mut argv);
-        if argv.is_empty() {
-            continue;
-        }
-
-        match exec::execute_command(&argv, &mut shell_env, last_status, &mut stdout, &mut stderr)? {
+        match exec::execute_list(
+            &command_list,
+            &mut argv,
+            &mut shell_env,
+            last_status,
+            &mut stdout,
+            &mut stderr,
+        )? {
             CommandResult::Status(code) => last_status = code,
             CommandResult::Exit(code) => return Ok(code),
         }
@@ -182,16 +176,29 @@ mod tests {
     }
 
     #[test]
-    fn lists_and_pipes_parsed_but_not_executed_yet() {
+    fn semicolon_lists_execute_in_order() {
+        let (code, _, stderr) = run_piped("false ; true\n");
+        assert_eq!(code, 0);
+        assert!(stderr.is_empty());
+
         let (code, _, stderr) = run_piped("true ; false\n");
         assert_eq!(code, 1);
-        let message = String::from_utf8(stderr).unwrap();
-        assert!(message.contains("lists and pipes are not executed yet"));
+        assert!(stderr.is_empty());
+    }
 
+    #[test]
+    fn pipes_are_not_executed_yet() {
         let (code, _, stderr) = run_piped("true | false\n");
         assert_eq!(code, 1);
         let message = String::from_utf8(stderr).unwrap();
-        assert!(message.contains("lists and pipes are not executed yet"));
+        assert!(message.contains("pipes are not executed yet"));
+    }
+
+    #[test]
+    fn exit_in_semicolon_list_ends_shell() {
+        let (code, _, stderr) = run_piped("exit 9 ; false\n");
+        assert_eq!(code, 9);
+        assert!(stderr.is_empty());
     }
 
     #[test]
