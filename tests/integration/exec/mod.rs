@@ -5,3 +5,4 @@ mod external;
 mod list;
 mod pipe;
 mod redirect;
+mod subshell;

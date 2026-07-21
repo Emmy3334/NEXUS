@@ -5,10 +5,11 @@ use crate::lex::{Token, TokenKind};
 use crate::parse::{CommandList, ParseError};
 
 impl<'src, 'tok> Parser<'src, 'tok> {
-    pub(super) fn can_start_simple(&self) -> bool {
+    pub(super) fn can_start_command(&self) -> bool {
         matches!(
             self.peek_kind(),
             Some(TokenKind::Word)
+                | Some(TokenKind::LParen)
                 | Some(TokenKind::RedirectOut)
                 | Some(TokenKind::RedirectAppend)
                 | Some(TokenKind::RedirectIn)
@@ -20,6 +21,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
         match self.peek_kind() {
             Some(kind) if super::is_redirect(kind) => Err(ParseError::UnexpectedToken),
             Some(TokenKind::Pipe) => Err(ParseError::NullCommand),
+            Some(TokenKind::RParen) => Err(ParseError::UnexpectedToken),
             _ => Err(ParseError::UnexpectedToken),
         }
     }
