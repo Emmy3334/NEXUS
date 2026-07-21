@@ -6,6 +6,8 @@ rust-version = "1.75"
 description = "NEXUS — The Self-Healing Cloud Shell"
 license = "LicenseRef-Proprietary"
 publish = false
+# One integration crate so rust-analyzer sees a single module tree.
+autotests = false
 
 [lib]
 name = "nexus"
@@ -14,5 +16,9 @@ path = "src/lib.rs"
 [[bin]]
 name = "nexus"
 path = "src/bin/nexus.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration/main.rs"
 
 [dependencies]
