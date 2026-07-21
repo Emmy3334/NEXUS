@@ -90,26 +90,48 @@ fn execute_pipeline(
 ) -> io::Result<CommandResult> {
     match pipeline.commands.as_slice() {
         [] => Ok(CommandResult::Status(last_status)),
-        [simple] => {
-            if let Err(err) = parse::fill_argv(&simple.argv, argv, shell_env, last_status) {
-                writeln!(stderr, "{}", err.message())?;
-                return Ok(CommandResult::Status(1));
-            }
-            if argv.is_empty() {
-                return Ok(CommandResult::Status(last_status));
-            }
-            redirect::execute_simple(
-                argv,
-                &simple.redirects,
-                heredocs,
-                shell_env,
-                last_status,
-                stdout,
-                stderr,
-            )
-        }
+        [simple] => run_simple_pipeline(
+            simple,
+            argv,
+            shell_env,
+            last_status,
+            heredocs,
+            stdout,
+            stderr,
+        ),
         _ => pipe::execute_piped_stages(pipeline, shell_env, last_status, heredocs, stdout, stderr),
     }
+}
+
+fn run_simple_pipeline(
+    simple: &parse::SimpleCommand<'_>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    heredocs: &mut redirect::HeredocState,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<CommandResult> {
+    if let Err(err) = parse::fill_argv(&simple.argv, argv, shell_env, last_status) {
+        writeln!(stderr, "{}", err.message())?;
+        return Ok(CommandResult::Status(1));
+    }
+    if let Err(err) = crate::alias::apply_aliases(argv, shell_env, last_status) {
+        writeln!(stderr, "{}", err.message())?;
+        return Ok(CommandResult::Status(1));
+    }
+    if argv.is_empty() {
+        return Ok(CommandResult::Status(last_status));
+    }
+    redirect::execute_simple(
+        argv,
+        &simple.redirects,
+        heredocs,
+        shell_env,
+        last_status,
+        stdout,
+        stderr,
+    )
 }
 
 /// Dispatch a simple command through builtins or an external spawn.
