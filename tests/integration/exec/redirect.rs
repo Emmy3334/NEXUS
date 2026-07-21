@@ -26,6 +26,7 @@ fn redirect_stdout_write_captures_env() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -53,6 +54,7 @@ fn redirect_stdout_append() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -80,6 +82,7 @@ fn redirect_stdin_from_file() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -104,6 +107,7 @@ fn redirect_missing_input_file_is_error() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -129,6 +133,7 @@ fn redirect_overrides_pipe_stdout() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -156,6 +161,7 @@ fn heredoc_feeds_cat_stdin() {
         &mut env,
         0,
         bodies,
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -183,6 +189,7 @@ fn heredoc_overrides_pipe_stdin() {
         &mut env,
         0,
         bodies,
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )

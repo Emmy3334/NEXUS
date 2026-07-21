@@ -17,6 +17,7 @@ fn semicolon_list_runs_in_sequence() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -39,6 +40,7 @@ fn semicolon_list_keeps_last_status() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -60,6 +62,7 @@ fn exit_in_list_stops_remaining_commands() {
         &mut env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )

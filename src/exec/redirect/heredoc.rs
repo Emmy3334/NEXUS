@@ -52,14 +52,16 @@ pub fn collect_heredoc_bodies(
             for redirect in &command.redirects {
                 if redirect.kind == RedirectKind::Heredoc {
                     // Heredoc delimiters are not subject to pathname expansion.
-                    let delimiter =
-                        match expand::expand_word_for_exec(redirect.path, shell_env, last_status) {
-                            Ok(word) => word.into_string(),
-                            Err(err) => {
-                                writeln!(stderr, "{}", err.message())?;
-                                return Ok(Err(1));
-                            }
-                        };
+                    let delimiter = match expand_heredoc_delimiter(
+                        redirect.path,
+                        shell_env,
+                        last_status,
+                        input,
+                        stderr,
+                    )? {
+                        Ok(d) => d,
+                        Err(code) => return Ok(Err(code)),
+                    };
                     bodies.push(read_heredoc_body(input, &delimiter, &mut line, stderr)?);
                 }
             }
@@ -67,6 +69,30 @@ pub fn collect_heredoc_bodies(
     }
 
     Ok(Ok(bodies))
+}
+
+fn expand_heredoc_delimiter(
+    raw: &str,
+    shell_env: &ShellEnvironment,
+    last_status: u8,
+    stdin: &mut impl BufRead,
+    stderr: &mut impl Write,
+) -> io::Result<Result<String, u8>> {
+    let mut fields = Vec::new();
+    let mut capture = |body: &str| {
+        crate::exec::capture_command_output(body, shell_env, last_status, stdin, stderr)
+    };
+    match expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut capture) {
+        Ok(()) => Ok(Ok(fields
+            .into_iter()
+            .next()
+            .unwrap_or_default()
+            .into_string())),
+        Err(err) => {
+            writeln!(stderr, "{}", err.message())?;
+            Ok(Err(1))
+        }
+    }
 }
 
 fn read_heredoc_body(

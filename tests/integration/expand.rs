@@ -45,6 +45,7 @@ fn run(source: &str, env: &mut ShellEnvironment, last_status: u8) -> (CommandRes
         env,
         last_status,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )
@@ -208,4 +209,90 @@ fn redirect_path_uses_braced_form() {
     assert!(err.is_empty());
     assert_eq!(fs::read_to_string(&path).unwrap(), "x\n");
     let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn backtick_unquoted_splits_on_whitespace() {
+    let out = temp_out("bt_split");
+    let _ = fs::remove_file(&out);
+    let out_s = out.to_str().expect("utf8 path");
+    let mut env = env_with(&[("OUT", out_s)]);
+    let (result, err) = run("printf '%s\\n' `printf 'a b c'` > $OUT", &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0));
+    assert!(err.is_empty());
+    assert_eq!(fs::read_to_string(&out).unwrap(), "a\nb\nc\n");
+    let _ = fs::remove_file(&out);
+}
+
+#[test]
+fn backtick_single_quoted_is_literal() {
+    let out = temp_out("bt_sq");
+    let _ = fs::remove_file(&out);
+    let out_s = out.to_str().expect("utf8 path");
+    let mut env = env_with(&[("OUT", out_s)]);
+    let (result, err) = run("printf '%s\\n' '`echo hi`' > $OUT", &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0));
+    assert!(err.is_empty());
+    assert_eq!(fs::read_to_string(&out).unwrap(), "`echo hi`\n");
+    let _ = fs::remove_file(&out);
+}
+
+#[test]
+fn backtick_double_quoted_keeps_blanks() {
+    let out = temp_out("bt_dq");
+    let _ = fs::remove_file(&out);
+    let out_s = out.to_str().expect("utf8 path");
+    let mut env = env_with(&[("OUT", out_s)]);
+    let (result, err) = run(r#"printf '%s\n' "`printf 'a b'`" > $OUT"#, &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0));
+    assert!(err.is_empty());
+    assert_eq!(fs::read_to_string(&out).unwrap(), "a b\n");
+    let _ = fs::remove_file(&out);
+}
+
+#[test]
+fn backtick_in_redirect_path() {
+    let path = temp_out("bt_redir");
+    let _ = fs::remove_file(&path);
+    let path_s = path.to_str().expect("utf8 path");
+    let mut env = env_with(&[]);
+    let cmd = format!("printf 'ok\\n' > `printf '{path_s}'`");
+    let (result, err) = run(&cmd, &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0), "{err}");
+    assert!(err.is_empty());
+    assert_eq!(fs::read_to_string(&path).unwrap(), "ok\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn backtick_unclosed_errors() {
+    let mut tokens = Vec::new();
+    assert_eq!(
+        nexus::lex::tokenize_into("echo `hi", &mut tokens),
+        Err(LexError::UnclosedQuote)
+    );
+    assert_eq!(
+        expand_word_for_exec("`hi", &ShellEnvironment::default(), 0).unwrap_err(),
+        LexError::UnclosedQuote
+    );
+}
+
+#[test]
+fn backtick_heredoc_reads_body_from_stdin() {
+    let env = env_with(&[]);
+    let mut argv = Vec::new();
+    let mut stderr = Vec::new();
+    let mut stdin = std::io::Cursor::new("hello from heredoc\nEND\n");
+    // Double-quoted so heredoc blanks are kept as one field.
+    nexus::parse::fill_argv(
+        &["\"`cat <<END`\""],
+        &mut argv,
+        &env,
+        0,
+        &mut stdin,
+        &mut stderr,
+    )
+    .unwrap();
+    assert!(stderr.is_empty(), "{:?}", String::from_utf8_lossy(&stderr));
+    assert_eq!(argv, ["hello from heredoc"]);
 }

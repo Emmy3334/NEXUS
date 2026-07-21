@@ -37,6 +37,7 @@ fn run(source: &str, env: &mut ShellEnvironment) -> (CommandResult, String) {
         env,
         0,
         Vec::new(),
+        &mut std::io::empty(),
         &mut stdout,
         &mut stderr,
     )

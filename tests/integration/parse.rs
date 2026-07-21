@@ -165,10 +165,27 @@ fn missing_redirect_target_is_error() {
 fn fill_argv_reuses_string_capacity() {
     let env = ShellEnvironment::default();
     let mut argv = Vec::new();
-    fill_argv(&["one", "two"], &mut argv, &env, 0).unwrap();
+    let mut stderr = Vec::new();
+    fill_argv(
+        &["one", "two"],
+        &mut argv,
+        &env,
+        0,
+        &mut std::io::empty(),
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(argv, ["one", "two"]);
 
-    fill_argv(&["aaa", "bbb"], &mut argv, &env, 0).unwrap();
+    fill_argv(
+        &["aaa", "bbb"],
+        &mut argv,
+        &env,
+        0,
+        &mut std::io::empty(),
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(argv, ["aaa", "bbb"]);
 }
 
@@ -176,6 +193,15 @@ fn fill_argv_reuses_string_capacity() {
 fn fill_argv_expands_quotes() {
     let env = ShellEnvironment::default();
     let mut argv = Vec::new();
-    fill_argv(&[r#""hello world""#, r"a\|b"], &mut argv, &env, 0).unwrap();
+    let mut stderr = Vec::new();
+    fill_argv(
+        &[r#""hello world""#, r"a\|b"],
+        &mut argv,
+        &env,
+        0,
+        &mut std::io::empty(),
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(argv, ["hello world", "a|b"]);
 }

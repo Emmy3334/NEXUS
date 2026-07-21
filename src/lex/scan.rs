@@ -1,6 +1,6 @@
 //! Splitting a source line into [`Token`] spans.
 
-use super::{LexError, QuoteState, Token, TokenKind};
+use super::{quote, LexError, QuoteState, Token, TokenKind};
 
 /// Tokenize `source` into `tokens`, reusing `tokens`' capacity.
 ///
@@ -70,50 +70,13 @@ fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
         if state == QuoteState::Normal && (ch.is_whitespace() || is_operator_char(ch)) {
             return Ok(from + rel);
         }
-        state = advance_quote_state(state, ch, &mut chars);
+        state = quote::advance(state, ch, &mut chars);
     }
 
     if state != QuoteState::Normal {
         return Err(LexError::UnclosedQuote);
     }
     Ok(source.len())
-}
-
-/// Advance the quote state by one character, consuming an escaped character
-/// from `chars` when `ch` is a backslash in an escapable position.
-fn advance_quote_state(
-    state: QuoteState,
-    ch: char,
-    chars: &mut std::str::CharIndices<'_>,
-) -> QuoteState {
-    match state {
-        QuoteState::Normal => match ch {
-            '\'' => QuoteState::Single,
-            '"' => QuoteState::Double,
-            '\\' => {
-                let _ = chars.next();
-                QuoteState::Normal
-            }
-            _ => QuoteState::Normal,
-        },
-        QuoteState::Single => {
-            if ch == '\'' {
-                QuoteState::Normal
-            } else {
-                QuoteState::Single
-            }
-        }
-        QuoteState::Double => {
-            if ch == '\\' {
-                let _ = chars.next();
-                QuoteState::Double
-            } else if ch == '"' {
-                QuoteState::Normal
-            } else {
-                QuoteState::Double
-            }
-        }
-    }
 }
 
 fn is_operator_char(ch: char) -> bool {
