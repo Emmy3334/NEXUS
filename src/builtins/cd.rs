@@ -52,7 +52,9 @@ pub(super) fn cd(
     }
 
     let new_pwd = process_env::current_dir().unwrap_or(target);
+    let pwd = new_pwd.to_string_lossy().into_owned();
     shell_env.set("OLDPWD", previous.to_string_lossy().into_owned());
-    shell_env.set("PWD", new_pwd.to_string_lossy().into_owned());
+    shell_env.set("PWD", pwd.clone());
+    shell_env.set_cwd(pwd);
     Ok(0)
 }

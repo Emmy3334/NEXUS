@@ -56,6 +56,10 @@ fn cd_changes_directory() {
         nested.canonicalize().unwrap()
     );
     assert!(Path::new(shell_env.get("PWD").unwrap()).exists());
+    assert_eq!(
+        shell_env.get_local("cwd"),
+        Some(shell_env.get("PWD").unwrap())
+    );
 
     let code = status_of(
         builtins::try_run(

@@ -68,6 +68,23 @@ fn expand_status_question() {
 }
 
 #[test]
+fn expand_status_name_like_question() {
+    let env = ShellEnvironment::default();
+    assert_eq!(expand_word_for_exec("$status", &env, 3).unwrap(), "3");
+    assert_eq!(expand_word_for_exec("${status}", &env, 11).unwrap(), "11");
+}
+
+#[test]
+fn expand_cwd_local() {
+    let mut env = ShellEnvironment::default();
+    env.set_local("cwd", "/tmp/nexus_cwd");
+    assert_eq!(
+        expand_word_for_exec("$cwd", &env, 0).unwrap(),
+        "/tmp/nexus_cwd"
+    );
+}
+
+#[test]
 fn no_expand_inside_single_quotes() {
     let env = env_with(&[("HOME", "/tmp/home")]);
     assert_eq!(expand_word_for_exec("'$HOME'", &env, 0).unwrap(), "$HOME");

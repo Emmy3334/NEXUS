@@ -3,5 +3,6 @@
 mod cd;
 mod env;
 mod exit;
+mod set;
 mod setenv;
 mod unsetenv;

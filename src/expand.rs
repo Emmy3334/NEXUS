@@ -7,7 +7,7 @@ use crate::env::ShellEnvironment;
 use crate::lex::LexError;
 
 /// Expand a raw word for argv / redirects: strip quotes, apply escapes, expand
-/// `$VAR`, `${VAR}`, and `$?`.
+/// `$VAR`, `${VAR}`, `$?`, and `$status`.
 pub fn expand_word_for_exec(
     raw: &str,
     env: &ShellEnvironment,
@@ -112,9 +112,7 @@ fn push_parameter(
                 // `${}` → empty
                 return;
             }
-            if let Some(value) = env.lookup(&name) {
-                out.push_str(value);
-            }
+            push_named_parameter(&name, env, last_status, out);
         }
         Some(c) if is_name_start(c) => {
             let mut name = String::new();
@@ -127,11 +125,19 @@ fn push_parameter(
                 name.push(c);
                 chars.next();
             }
-            if let Some(value) = env.lookup(&name) {
-                out.push_str(value);
-            }
+            push_named_parameter(&name, env, last_status, out);
         }
         _ => out.push('$'),
+    }
+}
+
+fn push_named_parameter(name: &str, env: &ShellEnvironment, last_status: u8, out: &mut String) {
+    if name == "status" {
+        let _ = std::fmt::Write::write_fmt(out, format_args!("{last_status}"));
+        return;
+    }
+    if let Some(value) = env.lookup(name) {
+        out.push_str(value);
     }
 }
 

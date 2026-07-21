@@ -27,3 +27,16 @@ fn lookup_falls_back_to_exported() {
     assert_eq!(env.lookup("BAR"), Some("from_env"));
     assert_eq!(env.lookup("MISSING"), None);
 }
+
+#[test]
+fn seed_specials_from_exported_and_cwd() {
+    let mut env = ShellEnvironment::default();
+    env.set("HOME", "/tmp/home");
+    env.set("USER", "nexus");
+    env.set("TERM", "xterm");
+    env.seed_specials();
+    assert_eq!(env.get_local("home"), Some("/tmp/home"));
+    assert_eq!(env.get_local("user"), Some("nexus"));
+    assert_eq!(env.get_local("term"), Some("xterm"));
+    assert!(env.get_local("cwd").is_some());
+}
