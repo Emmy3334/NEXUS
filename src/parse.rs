@@ -6,10 +6,10 @@
 //! list     → pipeline ( ';' pipeline )* [ ';' ]
 //! pipeline → simple ( '|' simple )*
 //! simple   → ( WORD | redirect )+   # at least one WORD
-//! redirect → ( '>' | '<' | '>>' ) WORD
+//! redirect → ( '>' | '<' | '>>' | '<<' ) WORD
 //! ```
 //!
-//! Heredoc (`<<`) is lexed but rejected until the heredoc slice.
+//! Heredoc body lines are collected by the REPL after parse (not on this line).
 //! Empty commands around `|` are errors; a trailing `;` is allowed.
 
 use crate::lex::{Token, TokenKind};
@@ -37,21 +37,24 @@ pub struct Pipeline<'a> {
     pub commands: Vec<SimpleCommand<'a>>,
 }
 
-/// A simple command: argv plus optional file redirections.
+/// A simple command: argv plus optional file / heredoc redirections.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimpleCommand<'a> {
     pub argv: Vec<&'a str>,
     pub redirects: Vec<Redirect<'a>>,
 }
 
-/// One file redirection attached to a simple command.
+/// One redirection attached to a simple command.
+///
+/// For file redirects, [`Redirect::path`] is the file path. For heredoc,
+/// it is the end delimiter (body is collected later from the input stream).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Redirect<'a> {
     pub kind: RedirectKind,
     pub path: &'a str,
 }
 
-/// File redirection operator (`<<` is not parsed here).
+/// Redirection operator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RedirectKind {
     /// `<` — stdin from file.
@@ -60,6 +63,8 @@ pub enum RedirectKind {
     Write,
     /// `>>` — stdout append.
     Append,
+    /// `<<` — stdin from heredoc body until `path` delimiter line.
+    Heredoc,
 }
 
 /// Why `parse_line` failed.
@@ -67,8 +72,6 @@ pub enum RedirectKind {
 pub enum ParseError {
     /// Missing command where one is required (e.g. leading/trailing `|`).
     NullCommand,
-    /// `<<` before the heredoc slice is implemented.
-    HeredocNotImplemented,
     /// Redirect operator without a following word.
     MissingRedirectTarget,
     /// Token that cannot start or continue the current construct.
@@ -81,7 +84,6 @@ impl ParseError {
     pub const fn message(self) -> &'static str {
         match self {
             Self::NullCommand => "Invalid null command.",
-            Self::HeredocNotImplemented => "nexus: heredoc is not implemented yet.",
             Self::MissingRedirectTarget => "Missing name for redirect.",
             Self::UnexpectedToken => "Syntax error.",
         }
@@ -138,9 +140,6 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             if self.peek_kind() == Some(TokenKind::Pipe) {
                 return Err(ParseError::NullCommand);
             }
-            if self.peek_kind() == Some(TokenKind::Heredoc) {
-                return Err(ParseError::HeredocNotImplemented);
-            }
             if !self.can_start_simple() {
                 return Err(ParseError::UnexpectedToken);
             }
@@ -167,9 +166,6 @@ impl<'src, 'tok> Parser<'src, 'tok> {
         commands.push(self.parse_simple()?);
 
         while self.consume(TokenKind::Pipe) {
-            if self.peek_kind() == Some(TokenKind::Heredoc) {
-                return Err(ParseError::HeredocNotImplemented);
-            }
             if self.can_start_simple() {
                 commands.push(self.parse_simple()?);
             } else {
@@ -190,8 +186,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                     let token = self.advance();
                     argv.push(token.lexeme(self.source));
                 }
-                Some(TokenKind::Heredoc) => return Err(ParseError::HeredocNotImplemented),
-                Some(kind) if is_file_redirect(kind) => {
+                Some(kind) if is_redirect(kind) => {
                     redirects.push(self.parse_redirect()?);
                 }
                 _ => break,
@@ -210,7 +205,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             TokenKind::RedirectOut => RedirectKind::Write,
             TokenKind::RedirectAppend => RedirectKind::Append,
             TokenKind::RedirectIn => RedirectKind::Read,
-            TokenKind::Heredoc => return Err(ParseError::HeredocNotImplemented),
+            TokenKind::Heredoc => RedirectKind::Heredoc,
             _ => return Err(ParseError::UnexpectedToken),
         };
 
@@ -228,13 +223,13 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                 | Some(TokenKind::RedirectOut)
                 | Some(TokenKind::RedirectAppend)
                 | Some(TokenKind::RedirectIn)
+                | Some(TokenKind::Heredoc)
         )
     }
 
     fn unexpected_remainder(&self) -> Result<Option<CommandList<'src>>, ParseError> {
         match self.peek_kind() {
-            Some(TokenKind::Heredoc) => Err(ParseError::HeredocNotImplemented),
-            Some(kind) if is_file_redirect(kind) => Err(ParseError::UnexpectedToken),
+            Some(kind) if is_redirect(kind) => Err(ParseError::UnexpectedToken),
             Some(TokenKind::Pipe) => Err(ParseError::NullCommand),
             _ => Err(ParseError::UnexpectedToken),
         }
@@ -268,9 +263,12 @@ impl<'src, 'tok> Parser<'src, 'tok> {
     }
 }
 
-const fn is_file_redirect(kind: TokenKind) -> bool {
+const fn is_redirect(kind: TokenKind) -> bool {
     matches!(
         kind,
-        TokenKind::RedirectOut | TokenKind::RedirectAppend | TokenKind::RedirectIn
+        TokenKind::RedirectOut
+            | TokenKind::RedirectAppend
+            | TokenKind::RedirectIn
+            | TokenKind::Heredoc
     )
 }

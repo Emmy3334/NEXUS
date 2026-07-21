@@ -115,6 +115,20 @@ fn file_redirects_parse_on_simple_command() {
 }
 
 #[test]
+fn heredoc_parses_on_simple_command() {
+    let list = parse("cat << EOF").unwrap().unwrap();
+    let cmd = list.as_single_command().unwrap();
+    assert_eq!(argv_of(cmd), vec!["cat"]);
+    assert_eq!(
+        cmd.redirects,
+        vec![Redirect {
+            kind: RedirectKind::Heredoc,
+            path: "EOF",
+        }]
+    );
+}
+
+#[test]
 fn redirect_before_command_word() {
     let list = parse("> out echo hi").unwrap().unwrap();
     let cmd = list.as_single_command().unwrap();
@@ -140,13 +154,9 @@ fn missing_redirect_target_is_error() {
         parse("cat <").unwrap_err(),
         ParseError::MissingRedirectTarget
     );
-}
-
-#[test]
-fn heredoc_still_rejected() {
     assert_eq!(
-        parse("cmd << END").unwrap_err(),
-        ParseError::HeredocNotImplemented
+        parse("cat <<").unwrap_err(),
+        ParseError::MissingRedirectTarget
     );
 }
 

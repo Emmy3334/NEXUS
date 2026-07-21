@@ -11,7 +11,16 @@ fn semicolon_list_runs_in_sequence() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(0));
     assert!(stderr.is_empty());
 }
@@ -24,7 +33,16 @@ fn semicolon_list_keeps_last_status() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(1));
 }
 
@@ -36,6 +54,15 @@ fn exit_in_list_stops_remaining_commands() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Exit(7));
 }

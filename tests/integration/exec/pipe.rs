@@ -11,12 +11,30 @@ fn pipe_uses_last_command_status() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(1));
 
     let source = "false | true";
     let list = parse_list(source);
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(0));
 }
 
@@ -28,7 +46,16 @@ fn multipipe_status_is_last_stage() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(1));
 }
 
@@ -40,7 +67,16 @@ fn exit_in_pipeline_does_not_kill_shell() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(0));
 }
 
@@ -53,7 +89,16 @@ fn builtin_env_can_feed_pipe() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(0));
     assert!(stderr.is_empty());
 }
@@ -66,6 +111,15 @@ fn semicolon_then_pipe() {
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap();
     assert_eq!(result, CommandResult::Status(1));
 }
