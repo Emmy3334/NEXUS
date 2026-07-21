@@ -32,8 +32,8 @@ pub(super) fn run_builtin_stage<I: BufRead, O: Write, E: Write>(
             ctx.stdout,
             ctx.stderr,
         )?;
-        let _ = state.finish()?;
-        return Ok(Some(CommandResult::Status(status)));
+        state.terminal_status = Some(status);
+        return Ok(None);
     }
 
     buffer_builtin_output(

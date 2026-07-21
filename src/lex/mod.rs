@@ -1,6 +1,6 @@
 //! Lexical analysis for shell command lines (Dragon Book Ch. 3).
 //!
-//! Recognizes [`TokenKind::Word`] and operators: `;`, `|`, `>`, `<`, `>>`,
+//! Recognizes [`TokenKind::Word`] and operators: `;`, `|`, `&`, `>`, `<`, `>>`,
 //! `<<`, `(`, `)`. Words may contain `'…'`, `"…"`, and `` `…` `` / `\` escapes
 //! so that spaces and operators inside quotes stay part of the word.
 
@@ -17,6 +17,8 @@ pub enum TokenKind {
     Word,
     Semicolon,
     Pipe,
+    /// `&` — background the preceding pipeline.
+    Ampersand,
     RedirectOut,
     RedirectAppend,
     RedirectIn,

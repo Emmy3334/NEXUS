@@ -111,6 +111,16 @@ fn semicolon_and_pipe() {
 }
 
 #[test]
+fn ampersand_is_operator() {
+    assert_eq!(
+        kinds("sleep 1 &"),
+        vec![TokenKind::Word, TokenKind::Word, TokenKind::Ampersand]
+    );
+    assert_eq!(lexemes("true&"), vec!["true", "&"]);
+    assert!(TokenKind::Ampersand.is_operator());
+}
+
+#[test]
 fn parentheses_are_operators() {
     assert_eq!(
         kinds("(ls)"),

@@ -1,4 +1,4 @@
-//! Shell builtins: Minishell1 plus 42sh locals, aliases, and history.
+//! Shell builtins: Minishell1 plus 42sh locals, aliases, history, and jobs.
 //!
 //! Each command lives in its own module; this file dispatches by `argv[0]`.
 
@@ -7,6 +7,7 @@ mod cd;
 mod env;
 mod exit;
 mod history;
+mod jobs;
 mod set;
 mod setenv;
 mod unalias;
@@ -41,6 +42,9 @@ pub fn is_builtin(name: &str) -> bool {
             | "alias"
             | "unalias"
             | "history"
+            | "jobs"
+            | "fg"
+            | "bg"
     )
 }
 
@@ -66,6 +70,9 @@ pub fn try_run(
         "alias" => BuiltinResult::Status(alias::alias(argv, shell_env, stdout, stderr)?),
         "unalias" => BuiltinResult::Status(unalias::unalias(argv, shell_env, stderr)?),
         "history" => BuiltinResult::Status(history::history_cmd(argv, shell_env, stdout, stderr)?),
+        "jobs" => BuiltinResult::Status(jobs::jobs_cmd(argv, shell_env, stdout, stderr)?),
+        "fg" => BuiltinResult::Status(jobs::fg_cmd(argv, shell_env, stderr)?),
+        "bg" => BuiltinResult::Status(jobs::bg_cmd(argv, shell_env, stderr)?),
         "exit" => exit::exit_cmd(argv, last_status, stderr)?,
         _ => return Ok(None),
     };

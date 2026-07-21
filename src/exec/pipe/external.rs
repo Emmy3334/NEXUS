@@ -1,9 +1,9 @@
 //! Running an external command as one stage of a `|` pipeline.
 
-use super::state::{after_spawn_failure, AfterSpawnFail, PipeState};
+use super::state::PipeState;
 use super::StageCtx;
 use crate::exec::redirect::{apply_stdout_for_stage, RedirectFiles, StdinSource};
-use crate::exec::{build_external_command, wait_children, CommandResult};
+use crate::exec::{build_external_command, report_spawn_failure, CommandResult};
 
 use std::fs::File;
 use std::io::{self, BufRead, Write};
@@ -31,29 +31,49 @@ pub(super) fn run_external_stage<I: BufRead, O: Write, E: Write>(
     let mut command = build_external_command(stage, ctx.shell_env);
     let stdout_redirected = files.stdout.is_some();
     let capturing = ctx.stdout_mode == crate::exec::StdoutMode::Capture;
-
     let stdin = resolve_stage_stdin(files.stdin, state);
     let stdin_bytes = apply_stage_stdin(&mut command, stdin);
     apply_stdout_for_stage(&mut command, files.stdout, is_last, ctx.stdout_mode);
-
+    state.prepare_command(&mut command);
     match spawn_and_feed(&mut command, stdin_bytes)? {
-        Ok(mut child) => {
-            state.prev_stdout = if !stdout_redirected && (!is_last || capturing) {
-                child.stdout.take()
-            } else {
-                None
-            };
-            if is_last {
-                return finish_last_external(child, ctx.stdout, state);
-            }
-            state.children.push(child);
-            Ok(None)
-        }
-        Err(err) => match after_spawn_failure(name, &err, ctx.stderr, is_last, state)? {
-            AfterSpawnFail::Continue => Ok(None),
-            AfterSpawnFail::Done(result) => Ok(Some(result)),
-        },
+        Ok(child) => take_spawned(child, stdout_redirected, capturing, is_last, ctx, state),
+        Err(err) => note_spawn_failure(name, &err, is_last, ctx, state),
     }
+}
+
+fn take_spawned<I: BufRead, O: Write, E: Write>(
+    mut child: Child,
+    stdout_redirected: bool,
+    capturing: bool,
+    is_last: bool,
+    ctx: &mut StageCtx<'_, I, O, E>,
+    state: &mut PipeState,
+) -> io::Result<Option<CommandResult>> {
+    state.prev_stdout = if !stdout_redirected && (!is_last || capturing) {
+        child.stdout.take()
+    } else {
+        None
+    };
+    if is_last {
+        return finish_last_external(child, ctx.stdout, state);
+    }
+    state.push_child(child);
+    Ok(None)
+}
+
+fn note_spawn_failure<I: BufRead, O: Write, E: Write>(
+    name: &str,
+    err: &io::Error,
+    is_last: bool,
+    ctx: &mut StageCtx<'_, I, O, E>,
+    state: &mut PipeState,
+) -> io::Result<Option<CommandResult>> {
+    let code = report_spawn_failure(name, err, ctx.stderr)?;
+    state.drain_pending();
+    if is_last {
+        state.terminal_status = Some(code);
+    }
+    Ok(None)
 }
 
 fn finish_last_external(
@@ -64,9 +84,8 @@ fn finish_last_external(
     if let Some(mut reader) = state.prev_stdout.take() {
         io::copy(&mut reader, stdout)?;
     }
-    state.children.push(child);
-    let status = wait_children(&mut state.children)?;
-    Ok(Some(CommandResult::Status(status)))
+    state.push_child(child);
+    Ok(None)
 }
 
 fn resolve_stage_stdin(files_stdin: Option<StdinSource>, state: &mut PipeState) -> StageStdin {

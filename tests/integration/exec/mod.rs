@@ -2,6 +2,7 @@
 
 mod common;
 mod external;
+mod jobs;
 mod list;
 mod pipe;
 mod redirect;

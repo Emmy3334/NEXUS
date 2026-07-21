@@ -22,3 +22,4 @@ name = "integration"
 path = "tests/integration/main.rs"
 
 [dependencies]
+nix = { version = "0.29", default-features = false, features = ["fs", "process", "signal", "term"] }

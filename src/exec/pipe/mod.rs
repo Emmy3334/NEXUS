@@ -20,6 +20,7 @@ use super::redirect::{open_redirect_files, HeredocState};
 use super::{abandon_children, wait_children, CommandResult};
 use crate::builtins;
 use crate::env::ShellEnvironment;
+use crate::jobs::{FgWait, JobState};
 use crate::parse::{Pipeline, Redirect};
 
 use std::io::{self, BufRead, Write};
@@ -38,7 +39,7 @@ pub(super) struct StageCtx<'a, I, O, E> {
 /// Multi-stage `|` pipeline. Status is the last stage’s status.
 pub(super) fn execute_piped_stages<I: BufRead, O: Write, E: Write>(
     pipeline: &Pipeline<'_>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     heredocs: &mut HeredocState,
     io: &mut ExecIo<'_, I, O, E>,
@@ -47,8 +48,22 @@ pub(super) fn execute_piped_stages<I: BufRead, O: Write, E: Write>(
         Ok(stages) => stages,
         Err(result) => return Ok(result),
     };
-    let stdout_mode = io.stdout_mode;
     let mut state = PipeState::new();
+    if let Some(result) = run_stages(&stages, shell_env, last_status, heredocs, io, &mut state)? {
+        return Ok(result);
+    }
+    state.drain_pending();
+    finish_pipeline(pipeline, shell_env, state, io.stderr)
+}
+
+fn run_stages<I: BufRead, O: Write, E: Write>(
+    stages: &[PreparedStage<'_>],
+    shell_env: &ShellEnvironment,
+    last_status: u8,
+    heredocs: &mut HeredocState,
+    io: &mut ExecIo<'_, I, O, E>,
+    state: &mut PipeState,
+) -> io::Result<Option<CommandResult>> {
     let mut argv_scratch = Vec::new();
     let mut ctx = StageCtx {
         shell_env,
@@ -57,18 +72,41 @@ pub(super) fn execute_piped_stages<I: BufRead, O: Write, E: Write>(
         stdin: io.stdin,
         stdout: io.stdout,
         stderr: io.stderr,
-        stdout_mode,
+        stdout_mode: io.stdout_mode,
     };
     let last_index = stages.len().saturating_sub(1);
     for (index, stage) in stages.iter().enumerate() {
-        let is_last = index == last_index;
-        if let Some(result) = run_prepared(stage, is_last, &mut ctx, &mut state, &mut argv_scratch)?
-        {
-            return Ok(result);
+        if let Some(result) = run_prepared(
+            stage,
+            index == last_index,
+            &mut ctx,
+            state,
+            &mut argv_scratch,
+        )? {
+            return Ok(Some(result));
         }
     }
-    state.drain_pending();
-    Ok(CommandResult::Status(state.finish()?))
+    Ok(None)
+}
+
+fn finish_pipeline(
+    pipeline: &Pipeline<'_>,
+    shell_env: &mut ShellEnvironment,
+    mut state: PipeState,
+    stderr: &mut impl Write,
+) -> io::Result<CommandResult> {
+    match state.finish()? {
+        FgWait::Done(status) => Ok(CommandResult::Status(status)),
+        FgWait::Stopped => {
+            let command = super::render::render_pipeline(pipeline);
+            let children = std::mem::take(&mut state.children);
+            let (id, _) = shell_env
+                .jobs
+                .add(command.clone(), children, JobState::Stopped);
+            writeln!(stderr, "[{id}]+  Suspended                 {command}")?;
+            Ok(CommandResult::Status(crate::jobs::sigtstp_status()))
+        }
+    }
 }
 
 fn run_prepared<I: BufRead, O: Write, E: Write>(

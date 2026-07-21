@@ -17,7 +17,7 @@ impl HeredocState {
         Self { bodies, index: 0 }
     }
 
-    pub(super) fn take_next(
+    pub(in crate::exec) fn take_next(
         &mut self,
         stderr: &mut impl Write,
     ) -> std::io::Result<Result<String, u8>> {

@@ -5,6 +5,7 @@
 //! Aliases and command history are shell-only (never exported to children).
 //! Special locals (`cwd`, `home`, `user`, `term`) are seeded at capture time.
 //! The process environ is not rewritten except for the working directory (`cd`).
+//! Background jobs live here but are cleared when the env is cloned (subshells).
 
 mod access;
 mod aliases;
@@ -12,11 +13,12 @@ mod mutate;
 mod specials;
 
 use crate::history::History;
+use crate::jobs::JobTable;
 
 use std::collections::BTreeMap;
 
-/// Live shell environment: exported vars, locals, aliases, and history.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// Live shell environment: exported vars, locals, aliases, history, and jobs.
+#[derive(Debug, Default)]
 pub struct ShellEnvironment {
     /// Exported / environ copy — inherited by children.
     pub(super) vars: BTreeMap<String, String>,
@@ -26,7 +28,33 @@ pub struct ShellEnvironment {
     pub(super) aliases: BTreeMap<String, String>,
     /// Session command history for `!` events and `history`.
     pub history: History,
+    /// Background jobs for `&` / `jobs` / `fg` / `bg`.
+    pub jobs: JobTable,
 }
+
+impl Clone for ShellEnvironment {
+    fn clone(&self) -> Self {
+        Self {
+            vars: self.vars.clone(),
+            locals: self.locals.clone(),
+            aliases: self.aliases.clone(),
+            history: self.history.clone(),
+            // Subshells must not inherit live child processes.
+            jobs: JobTable::default(),
+        }
+    }
+}
+
+impl PartialEq for ShellEnvironment {
+    fn eq(&self, other: &Self) -> bool {
+        self.vars == other.vars
+            && self.locals == other.locals
+            && self.aliases == other.aliases
+            && self.history == other.history
+    }
+}
+
+impl Eq for ShellEnvironment {}
 
 impl ShellEnvironment {
     /// Snapshot the current process environment and seed special locals.
@@ -38,6 +66,7 @@ impl ShellEnvironment {
             locals: BTreeMap::new(),
             aliases: BTreeMap::new(),
             history: History::default(),
+            jobs: JobTable::default(),
         };
         env.seed_specials();
         env
@@ -52,6 +81,7 @@ impl ShellEnvironment {
             locals: BTreeMap::new(),
             aliases: BTreeMap::new(),
             history: History::default(),
+            jobs: JobTable::default(),
         }
     }
 }

@@ -1,5 +1,6 @@
 //! Running one simple command (builtin or external) against resolved redirect files.
 
+use super::child_io::run_with_io;
 use super::files::{open_redirect_files, RedirectFiles, StdinSource};
 use super::heredoc::HeredocState;
 use crate::builtins;
@@ -86,7 +87,7 @@ fn execute_builtin_with_files<I: BufRead, O: Write, E: Write>(
 fn execute_external_with_files(
     stdout_mode: StdoutMode,
     argv: &[String],
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     files: RedirectFiles,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
@@ -96,8 +97,18 @@ fn execute_external_with_files(
     };
     let mut command = Command::new(program);
     command.args(args).env_clear().envs(shell_env.iter());
+    crate::jobs::prepare_child_command(&mut command);
     let (stdin_bytes, copy_out) = configure_stdio(&mut command, files, stdout_mode);
-    run_configured(&mut command, stdin_bytes, copy_out, program, stdout, stderr)
+    run_configured(
+        &mut command,
+        stdin_bytes,
+        copy_out,
+        program,
+        argv,
+        shell_env,
+        stdout,
+        stderr,
+    )
 }
 
 fn configure_stdio(
@@ -130,34 +141,51 @@ fn configure_stdio(
     (stdin_bytes, copy_out)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_configured(
     command: &mut Command,
     stdin_bytes: Option<Vec<u8>>,
     copy_out: bool,
     program: &str,
+    argv: &[String],
+    shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
+    if stdin_bytes.is_none() && !copy_out && crate::jobs::job_control_enabled() {
+        crate::jobs::prepare_process_group(command, None);
+        return spawn_job_control(command, program, argv, shell_env, stderr);
+    }
     if stdin_bytes.is_none() && !copy_out {
         return match command.status() {
             Ok(status) => Ok(exit_status_code(status)),
             Err(err) => Ok(report_spawn_failure(program, &err, stderr)?),
         };
     }
-    match command.spawn() {
-        Ok(mut child) => {
-            if let Some(bytes) = stdin_bytes {
-                if let Some(mut stdin) = child.stdin.take() {
-                    stdin.write_all(&bytes)?;
-                }
-            }
-            if copy_out {
-                if let Some(mut pipe) = child.stdout.take() {
-                    io::copy(&mut pipe, stdout)?;
-                }
-            }
-            Ok(exit_status_code(child.wait()?))
+    run_with_io(command, stdin_bytes, copy_out, program, stdout, stderr)
+}
+
+fn spawn_job_control(
+    command: &mut Command,
+    program: &str,
+    argv: &[String],
+    shell_env: &mut ShellEnvironment,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(err) => return report_spawn_failure(program, &err, stderr),
+    };
+    match crate::jobs::wait_foreground(&mut child)? {
+        crate::jobs::FgWait::Done(code) => Ok(code),
+        crate::jobs::FgWait::Stopped => {
+            let command = argv.join(" ");
+            let (id, _) =
+                shell_env
+                    .jobs
+                    .add(command.clone(), vec![child], crate::jobs::JobState::Stopped);
+            writeln!(stderr, "[{id}]+  Suspended                 {command}")?;
+            Ok(crate::jobs::sigtstp_status())
         }
-        Err(err) => Ok(report_spawn_failure(program, &err, stderr)?),
     }
 }

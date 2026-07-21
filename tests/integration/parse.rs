@@ -207,6 +207,27 @@ fn empty_or_unbalanced_parentheses_are_errors() {
 }
 
 #[test]
+fn ampersand_marks_pipeline_background() {
+    let list = parse("sleep 1 &").unwrap().unwrap();
+    assert_eq!(list.pipelines.len(), 1);
+    assert!(list.pipelines[0].background);
+    assert!(list.as_single_command().is_none());
+}
+
+#[test]
+fn ampersand_separates_pipelines() {
+    let list = parse("true & false").unwrap().unwrap();
+    assert_eq!(list.pipelines.len(), 2);
+    assert!(list.pipelines[0].background);
+    assert!(!list.pipelines[1].background);
+}
+
+#[test]
+fn leading_ampersand_is_null_command() {
+    assert_eq!(parse("& true").unwrap_err(), ParseError::NullCommand);
+}
+
+#[test]
 fn missing_redirect_target_is_error() {
     assert_eq!(
         parse("ls >").unwrap_err(),
