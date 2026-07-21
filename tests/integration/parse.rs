@@ -7,7 +7,7 @@ use nexus::parse::{
 
 fn tokens_of(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    tokenize_into(source, &mut tokens);
+    tokenize_into(source, &mut tokens).expect("lex ok");
     tokens
 }
 
@@ -163,11 +163,18 @@ fn missing_redirect_target_is_error() {
 #[test]
 fn fill_argv_reuses_string_capacity() {
     let mut argv = Vec::new();
-    fill_argv(&["one", "two"], &mut argv);
+    fill_argv(&["one", "two"], &mut argv).unwrap();
     assert_eq!(argv, ["one", "two"]);
     let capacity = argv[0].capacity();
 
-    fill_argv(&["aaa", "bbb"], &mut argv);
+    fill_argv(&["aaa", "bbb"], &mut argv).unwrap();
     assert_eq!(argv, ["aaa", "bbb"]);
     assert!(argv[0].capacity() >= capacity);
+}
+
+#[test]
+fn fill_argv_expands_quotes() {
+    let mut argv = Vec::new();
+    fill_argv(&[r#""hello world""#, r"a\|b"], &mut argv).unwrap();
+    assert_eq!(argv, ["hello world", "a|b"]);
 }

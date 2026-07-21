@@ -1,10 +1,10 @@
 //! Integration tests for the lexer.
 
-use nexus::lex::{tokenize_into, Token, TokenKind};
+use nexus::lex::{expand_word, tokenize_into, LexError, Token, TokenKind};
 
 fn tokenize(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    tokenize_into(source, &mut tokens);
+    tokenize_into(source, &mut tokens).expect("lex ok");
     tokens
 }
 
@@ -17,6 +17,14 @@ fn lexemes(source: &str) -> Vec<&str> {
 
 fn kinds(source: &str) -> Vec<TokenKind> {
     tokenize(source).iter().map(|token| token.kind).collect()
+}
+
+fn expanded(source: &str) -> Vec<String> {
+    tokenize(source)
+        .iter()
+        .filter(|token| token.kind == TokenKind::Word)
+        .map(|token| expand_word(token.lexeme(source)).expect("expand ok"))
+        .collect()
 }
 
 #[test]
@@ -43,11 +51,11 @@ fn multiple_words_collapse_whitespace() {
 #[test]
 fn tokenize_into_reuses_buffer() {
     let mut tokens = Vec::with_capacity(4);
-    tokenize_into("one two", &mut tokens);
+    tokenize_into("one two", &mut tokens).unwrap();
     assert_eq!(tokens.len(), 2);
     let capacity_after_first = tokens.capacity();
 
-    tokenize_into("a b c", &mut tokens);
+    tokenize_into("a b c", &mut tokens).unwrap();
     assert_eq!(
         tokens
             .iter()
@@ -59,13 +67,12 @@ fn tokenize_into_reuses_buffer() {
 }
 
 #[test]
-fn words_are_non_empty_and_whitespace_free() {
+fn words_are_non_empty() {
     let source = "  cmd  -a  ./path  ";
     let tokens = tokenize(source);
     for token in &tokens {
         let lexeme = token.lexeme(source);
         assert!(!lexeme.is_empty());
-        assert!(!lexeme.chars().any(char::is_whitespace));
         assert_eq!(token.kind, TokenKind::Word);
     }
 }
@@ -166,4 +173,51 @@ fn operator_kinds_report_is_operator() {
     assert!(TokenKind::RedirectAppend.is_operator());
     assert!(TokenKind::RedirectIn.is_operator());
     assert!(TokenKind::Heredoc.is_operator());
+}
+
+#[test]
+fn double_quotes_keep_spaces_and_pipes_literal() {
+    assert_eq!(
+        kinds(r#"echo -e "ls /dev | cat""#),
+        vec![TokenKind::Word, TokenKind::Word, TokenKind::Word]
+    );
+    assert_eq!(
+        expanded(r#"echo -e "ls /dev | cat""#),
+        vec!["echo", "-e", "ls /dev | cat"]
+    );
+}
+
+#[test]
+fn single_quotes_are_literal() {
+    assert_eq!(expanded("echo 'a|b;c'"), vec!["echo", "a|b;c"]);
+    assert_eq!(expanded(r"echo '\$HOME'"), vec!["echo", r"\$HOME"]);
+}
+
+#[test]
+fn backslash_escapes_operator_outside_quotes() {
+    assert_eq!(kinds(r"echo a\|b"), vec![TokenKind::Word, TokenKind::Word]);
+    assert_eq!(expanded(r"echo a\|b"), vec!["echo", "a|b"]);
+}
+
+#[test]
+fn adjacent_quoted_fragments_concatenate() {
+    assert_eq!(expanded(r#"echo "a""b"c"#), vec!["echo", "abc"]);
+}
+
+#[test]
+fn double_quote_backslash_specials() {
+    assert_eq!(expanded(r#"echo "a\"b\\c""#), vec!["echo", r#"a"b\c"#]);
+}
+
+#[test]
+fn unclosed_quote_is_error() {
+    let mut tokens = Vec::new();
+    assert_eq!(
+        tokenize_into("echo \"hi", &mut tokens),
+        Err(LexError::UnclosedQuote)
+    );
+    assert_eq!(
+        tokenize_into("echo 'hi", &mut tokens),
+        Err(LexError::UnclosedQuote)
+    );
 }

@@ -122,6 +122,30 @@ fn parse_errors_go_to_stderr() {
 }
 
 #[test]
+fn unclosed_quote_goes_to_stderr() {
+    let (code, _, stderr) = run_piped("echo \"hi\n");
+    assert_eq!(code, 1);
+    assert!(String::from_utf8(stderr)
+        .unwrap()
+        .contains("Unmatched quote"));
+}
+
+#[test]
+fn quoted_pipe_is_literal_argument() {
+    let path =
+        std::env::temp_dir().join(format!("nexus_repl_quoted_pipe_{}.txt", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    // Writes the literal string (with pipes) to a file — not a multi-stage pipeline.
+    let input = format!("echo -e \"ls /dev | cat\" > {}\n", path.display());
+    let (code, _, stderr) = run_piped(&input);
+    assert_eq!(code, 0);
+    assert!(stderr.is_empty());
+    let contents = std::fs::read_to_string(&path).unwrap();
+    assert!(contents.contains("ls /dev | cat"));
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
 fn heredoc_feeds_stdin_in_repl() {
     let path = std::env::temp_dir().join(format!("nexus_repl_heredoc_{}.txt", std::process::id()));
     let _ = std::fs::remove_file(&path);

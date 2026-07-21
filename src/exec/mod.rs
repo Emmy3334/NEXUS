@@ -87,7 +87,10 @@ fn execute_pipeline(
     match pipeline.commands.as_slice() {
         [] => Ok(CommandResult::Status(last_status)),
         [simple] => {
-            parse::fill_argv(&simple.argv, argv);
+            if let Err(err) = parse::fill_argv(&simple.argv, argv) {
+                writeln!(stderr, "{}", err.message())?;
+                return Ok(CommandResult::Status(1));
+            }
             if argv.is_empty() {
                 return Ok(CommandResult::Status(last_status));
             }

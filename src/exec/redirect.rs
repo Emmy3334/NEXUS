@@ -7,6 +7,7 @@
 use super::{exit_status_code, report_spawn_failure, CommandResult};
 use crate::builtins;
 use crate::env::ShellEnvironment;
+use crate::lex;
 use crate::parse::{CommandList, Redirect, RedirectKind};
 
 use std::fs::{File, OpenOptions};
@@ -51,13 +52,15 @@ impl HeredocState {
 /// Read heredoc bodies for every `<<` in `list`, left-to-right.
 ///
 /// Each body is the input lines up to (but not including) a line whose content
-/// equals the delimiter. On EOF before the delimiter, the partial body is kept
-/// and a warning is written to `stderr`.
+/// equals the (quote-expanded) delimiter. On EOF before the delimiter, the
+/// partial body is kept and a warning is written to `stderr`.
+///
+/// Returns `Ok(Err(code))` when quote expansion of a delimiter fails.
 pub fn collect_heredoc_bodies(
     list: &CommandList<'_>,
     input: &mut impl BufRead,
     stderr: &mut impl Write,
-) -> io::Result<Vec<String>> {
+) -> io::Result<Result<Vec<String>, u8>> {
     let mut bodies = Vec::new();
     let mut line = String::new();
 
@@ -65,13 +68,20 @@ pub fn collect_heredoc_bodies(
         for command in &pipeline.commands {
             for redirect in &command.redirects {
                 if redirect.kind == RedirectKind::Heredoc {
-                    bodies.push(read_heredoc_body(input, redirect.path, &mut line, stderr)?);
+                    let delimiter = match lex::expand_word(redirect.path) {
+                        Ok(delimiter) => delimiter,
+                        Err(err) => {
+                            writeln!(stderr, "{}", err.message())?;
+                            return Ok(Err(1));
+                        }
+                    };
+                    bodies.push(read_heredoc_body(input, &delimiter, &mut line, stderr)?);
                 }
             }
         }
     }
 
-    Ok(bodies)
+    Ok(Ok(bodies))
 }
 
 fn read_heredoc_body(
@@ -110,30 +120,34 @@ pub(super) fn open_redirect_files(
     let mut stdout = None;
 
     for redirect in redirects {
+        let path = match lex::expand_word(redirect.path) {
+            Ok(path) => path,
+            Err(err) => {
+                writeln!(stderr, "{}", err.message())?;
+                return Ok(Err(1));
+            }
+        };
+
         match redirect.kind {
-            RedirectKind::Read => match File::open(redirect.path) {
+            RedirectKind::Read => match File::open(&path) {
                 Ok(file) => stdin = Some(StdinSource::File(file)),
                 Err(err) => {
-                    writeln!(stderr, "{}: {err}", redirect.path)?;
+                    writeln!(stderr, "{path}: {err}")?;
                     return Ok(Err(1));
                 }
             },
-            RedirectKind::Write => match File::create(redirect.path) {
+            RedirectKind::Write => match File::create(&path) {
                 Ok(file) => stdout = Some(file),
                 Err(err) => {
-                    writeln!(stderr, "{}: {err}", redirect.path)?;
+                    writeln!(stderr, "{path}: {err}")?;
                     return Ok(Err(1));
                 }
             },
             RedirectKind::Append => {
-                match OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(redirect.path)
-                {
+                match OpenOptions::new().create(true).append(true).open(&path) {
                     Ok(file) => stdout = Some(file),
                     Err(err) => {
-                        writeln!(stderr, "{}: {err}", redirect.path)?;
+                        writeln!(stderr, "{path}: {err}")?;
                         return Ok(Err(1));
                     }
                 }
