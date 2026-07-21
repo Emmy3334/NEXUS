@@ -4,6 +4,7 @@
 
 mod builtins;
 mod exec;
+mod expand;
 mod lex;
 mod parse;
 mod repl;

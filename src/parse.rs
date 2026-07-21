@@ -105,18 +105,23 @@ pub fn parse_line<'a>(
     parser.parse_list()
 }
 
-/// Fill `argv` from raw word lexemes, expanding quotes/escapes.
+/// Fill `argv` from raw word lexemes: quotes/escapes and `$` parameters.
 ///
 /// Reuses each `String`'s capacity when possible (hot path: clear + expand
 /// into the same buffer).
-pub fn fill_argv(words: &[&str], argv: &mut Vec<String>) -> Result<(), crate::lex::LexError> {
+pub fn fill_argv(
+    words: &[&str],
+    argv: &mut Vec<String>,
+    env: &crate::env::ShellEnvironment,
+    last_status: u8,
+) -> Result<(), crate::lex::LexError> {
     while argv.len() < words.len() {
         argv.push(String::new());
     }
     argv.truncate(words.len());
 
     for (slot, word) in argv.iter_mut().zip(words.iter()) {
-        crate::lex::expand_word_into(word, slot)?;
+        crate::expand::expand_word_for_exec_into(word, env, last_status, slot)?;
     }
     Ok(())
 }

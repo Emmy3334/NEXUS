@@ -11,7 +11,6 @@ use super::{
 };
 use crate::builtins;
 use crate::env::ShellEnvironment;
-use crate::lex;
 use crate::parse::{Pipeline, Redirect};
 
 use std::io::{self, Write};
@@ -62,7 +61,7 @@ pub(super) fn execute_piped_stages(
     for command in &pipeline.commands {
         let mut argv = Vec::with_capacity(command.argv.len());
         for word in &command.argv {
-            match lex::expand_word(word) {
+            match crate::expand::expand_word_for_exec(word, shell_env, last_status) {
                 Ok(expanded) => argv.push(expanded),
                 Err(err) => {
                     writeln!(stderr, "{}", err.message())?;
@@ -85,7 +84,8 @@ pub(super) fn execute_piped_stages(
             return Ok(CommandResult::Status(0));
         };
 
-        let files = match open_redirect_files(redirects, heredocs, stderr)? {
+        let files = match open_redirect_files(redirects, heredocs, shell_env, last_status, stderr)?
+        {
             Ok(files) => files,
             Err(code) => {
                 abandon_children(&mut children);
