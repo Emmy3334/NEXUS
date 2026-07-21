@@ -1,7 +1,11 @@
 //! Command execution: builtins first, then external programs.
+//!
+//! Walks a [`CommandList`] for `;`-separated simple commands. Pipe execution
+//! lands in a later Minishell2 slice.
 
 use crate::builtins::{self, BuiltinResult};
 use crate::env::ShellEnvironment;
+use crate::parse::{self, CommandList};
 
 use std::ffi::OsStr;
 use std::io::{self, Write};
@@ -27,6 +31,40 @@ impl From<BuiltinResult> for CommandResult {
             BuiltinResult::Exit(code) => Self::Exit(code),
         }
     }
+}
+
+/// Run a command list: each `;`-separated pipeline in order.
+///
+/// Pipelines with `|` are rejected until pipe exec is implemented.
+/// `exit` stops the list immediately. Reuses `argv` across commands.
+pub fn execute_list(
+    list: &CommandList<'_>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    mut last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<CommandResult> {
+    if list.contains_pipe() {
+        writeln!(stderr, "nexus: pipes are not executed yet.")?;
+        return Ok(CommandResult::Status(1));
+    }
+
+    for pipeline in &list.pipelines {
+        // Pipe-free pipelines are exactly one simple command.
+        let simple = &pipeline.commands[0];
+        parse::fill_argv(&simple.argv, argv);
+        if argv.is_empty() {
+            continue;
+        }
+
+        match execute_command(argv, shell_env, last_status, stdout, stderr)? {
+            CommandResult::Status(code) => last_status = code,
+            CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
+        }
+    }
+
+    Ok(CommandResult::Status(last_status))
 }
 
 /// Dispatch a simple command through builtins or an external spawn.
@@ -188,5 +226,65 @@ mod tests {
         assert!(String::from_utf8(stderr)
             .unwrap()
             .contains("Command not found"));
+    }
+
+    #[test]
+    fn semicolon_list_runs_in_sequence() {
+        let source = "false ; true";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(0));
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn semicolon_list_keeps_last_status() {
+        let source = "true ; false";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(1));
+    }
+
+    #[test]
+    fn exit_in_list_stops_remaining_commands() {
+        let source = "exit 7 ; false";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Exit(7));
+    }
+
+    #[test]
+    fn pipes_in_list_are_rejected() {
+        let source = "true | false";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(1));
+        assert!(String::from_utf8(stderr)
+            .unwrap()
+            .contains("pipes are not executed yet"));
+    }
+
+    fn parse_list(source: &str) -> CommandList<'_> {
+        let mut tokens = Vec::new();
+        crate::lex::tokenize_into(source, &mut tokens);
+        crate::parse::parse_line(source, &tokens)
+            .expect("parse ok")
+            .expect("non-empty list")
     }
 }
