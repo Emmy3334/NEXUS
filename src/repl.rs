@@ -1,7 +1,9 @@
-//! Read–eval–print loop (Minishell1: prompt → lex → parse → exec/builtins).
+//! Read–eval–print loop (prompt → lex → parse → exec/builtins).
 //!
-//! Dragon Book pipeline: acquire line → lexical analysis → simple parse →
-//! execute (builtin or external) against an owned environment copy.
+//! Dragon Book pipeline: acquire line → lexical analysis → list/pipeline
+//! parse → execute (builtin or external) against an owned environment copy.
+//! List and pipe *execution* land in later Minishell2 slices; this slice
+//! still runs only a single simple command.
 
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
@@ -49,18 +51,24 @@ pub fn run(
         lex::tokenize_into(command_line, &mut tokens);
         debug_assert!(tokens_are_well_formed(command_line, &tokens));
 
-        // Operators are lexed now; parse/exec for lists, pipes, and
-        // redirections land in later Minishell2 slices.
-        if tokens.iter().any(|token| token.kind.is_operator()) {
-            writeln!(
-                stderr,
-                "nexus: ';', '|', and redirections are not implemented yet."
-            )?;
+        let command_list = match parse::parse_line(command_line, &tokens) {
+            Ok(Some(list)) => list,
+            Ok(None) => continue,
+            Err(error) => {
+                writeln!(stderr, "{}", error.message())?;
+                last_status = 1;
+                continue;
+            }
+        };
+
+        let Some(simple) = command_list.as_single_command() else {
+            // Parsed lists/pipelines; exec arrives in later slices.
+            writeln!(stderr, "nexus: lists and pipes are not executed yet.")?;
             last_status = 1;
             continue;
-        }
+        };
 
-        parse::fill_argv(command_line, &tokens, &mut argv);
+        parse::fill_argv(&simple.argv, &mut argv);
         if argv.is_empty() {
             continue;
         }
@@ -174,11 +182,38 @@ mod tests {
     }
 
     #[test]
-    fn operators_are_rejected_until_parse_slice() {
-        let (code, _, stderr) = run_piped("ls | wc\n");
+    fn lists_and_pipes_parsed_but_not_executed_yet() {
+        let (code, _, stderr) = run_piped("true ; false\n");
         assert_eq!(code, 1);
         let message = String::from_utf8(stderr).unwrap();
-        assert!(message.contains("not implemented yet"));
+        assert!(message.contains("lists and pipes are not executed yet"));
+
+        let (code, _, stderr) = run_piped("true | false\n");
+        assert_eq!(code, 1);
+        let message = String::from_utf8(stderr).unwrap();
+        assert!(message.contains("lists and pipes are not executed yet"));
+    }
+
+    #[test]
+    fn parse_errors_go_to_stderr() {
+        let (code, _, stderr) = run_piped("| true\n");
+        assert_eq!(code, 1);
+        assert!(String::from_utf8(stderr)
+            .unwrap()
+            .contains("Invalid null command"));
+
+        let (code, _, stderr) = run_piped("true > out\n");
+        assert_eq!(code, 1);
+        assert!(String::from_utf8(stderr)
+            .unwrap()
+            .contains("redirections are not implemented"));
+    }
+
+    #[test]
+    fn trailing_semicolon_still_runs_simple_command() {
+        let (code, _, stderr) = run_piped("true;\n");
+        assert_eq!(code, 0);
+        assert!(stderr.is_empty());
     }
 
     #[test]
