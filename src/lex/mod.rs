@@ -1,8 +1,8 @@
 //! Lexical analysis for shell command lines (Dragon Book Ch. 3).
 //!
-//! Recognizes [`TokenKind::Word`] and Minishell2 operators: `;`, `|`, `>`,
-//! `<`, `>>`, `<<`. Words may contain `'…'`, `"…"`, and `\` escapes so that
-//! spaces and operators inside quotes stay part of the word.
+//! Recognizes [`TokenKind::Word`] and operators: `;`, `|`, `>`, `<`, `>>`,
+//! `<<`, `(`, `)`. Words may contain `'…'`, `"…"`, and `` `…` `` / `\` escapes
+//! so that spaces and operators inside quotes stay part of the word.
 
 mod expand;
 mod quote;
@@ -21,10 +21,14 @@ pub enum TokenKind {
     RedirectAppend,
     RedirectIn,
     Heredoc,
+    /// `(` — start of a subshell / grouping.
+    LParen,
+    /// `)` — end of a subshell / grouping.
+    RParen,
 }
 
 impl TokenKind {
-    /// Whether this kind is a Minishell2 operator (not a word).
+    /// Whether this kind is a shell operator (not a word).
     #[must_use]
     pub const fn is_operator(self) -> bool {
         !matches!(self, Self::Word)

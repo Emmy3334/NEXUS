@@ -13,6 +13,7 @@ mod pipe;
 mod process;
 mod redirect;
 mod stdout_mode;
+mod subshell;
 
 pub(crate) use capture::capture_command_output;
 pub(crate) use command::execute_command_mode;

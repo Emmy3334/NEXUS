@@ -4,9 +4,10 @@ use super::io::ExecIo;
 use super::pipe;
 use super::redirect::{self, HeredocState};
 use super::stdout_mode::StdoutMode;
+use super::subshell;
 use super::CommandResult;
 use crate::env::ShellEnvironment;
-use crate::parse::{self, CommandList, Pipeline, SimpleCommand};
+use crate::parse::{self, CommandList, Pipeline, PipelineCommand, SimpleCommand};
 
 use std::io::{self, BufRead, Write};
 
@@ -28,7 +29,8 @@ pub fn execute_list(
         stderr,
         stdout_mode: StdoutMode::Inherit,
     };
-    execute_list_with(list, argv, shell_env, last_status, heredoc_bodies, &mut io)
+    let mut heredocs = HeredocState::new(heredoc_bodies);
+    execute_list_with(list, argv, shell_env, last_status, &mut heredocs, &mut io)
 }
 
 /// Run a command list piping external stdout into `stdout` (`` `…` ``).
@@ -49,20 +51,20 @@ pub(crate) fn execute_list_captured(
         stderr,
         stdout_mode: StdoutMode::Capture,
     };
-    execute_list_with(list, argv, shell_env, last_status, heredoc_bodies, &mut io)
+    let mut heredocs = HeredocState::new(heredoc_bodies);
+    execute_list_with(list, argv, shell_env, last_status, &mut heredocs, &mut io)
 }
 
-fn execute_list_with<I: BufRead, O: Write, E: Write>(
+pub(super) fn execute_list_with<I: BufRead, O: Write, E: Write>(
     list: &CommandList<'_>,
     argv: &mut Vec<String>,
     shell_env: &mut ShellEnvironment,
     mut last_status: u8,
-    heredoc_bodies: Vec<String>,
+    heredocs: &mut HeredocState,
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
-    let mut heredocs = HeredocState::new(heredoc_bodies);
     for pipeline in &list.pipelines {
-        match execute_pipeline(pipeline, argv, shell_env, last_status, &mut heredocs, io)? {
+        match execute_pipeline(pipeline, argv, shell_env, last_status, heredocs, io)? {
             CommandResult::Status(code) => last_status = code,
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
         }
@@ -80,7 +82,12 @@ fn execute_pipeline<I: BufRead, O: Write, E: Write>(
 ) -> io::Result<CommandResult> {
     match pipeline.commands.as_slice() {
         [] => Ok(CommandResult::Status(last_status)),
-        [simple] => run_simple(simple, argv, shell_env, last_status, heredocs, io),
+        [PipelineCommand::Simple(simple)] => {
+            run_simple(simple, argv, shell_env, last_status, heredocs, io)
+        }
+        [PipelineCommand::Subshell { list, redirects }] => {
+            subshell::run_subshell(list, redirects, argv, shell_env, last_status, heredocs, io)
+        }
         _ => pipe::execute_piped_stages(pipeline, shell_env, last_status, heredocs, io),
     }
 }

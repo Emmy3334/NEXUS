@@ -3,7 +3,7 @@
 use nexus::env::ShellEnvironment;
 use nexus::lex::{tokenize_into, Token};
 use nexus::parse::{
-    fill_argv, parse_line, CommandList, ParseError, Redirect, RedirectKind, SimpleCommand,
+    fill_argv, parse_line, CommandList, ParseError, PipelineCommand, Redirect, RedirectKind,
 };
 
 fn tokens_of(source: &str) -> Vec<Token> {
@@ -16,8 +16,18 @@ fn parse(source: &str) -> Result<Option<CommandList<'_>>, ParseError> {
     parse_line(source, &tokens_of(source))
 }
 
-fn argv_of<'a>(command: &SimpleCommand<'a>) -> Vec<&'a str> {
-    command.argv.clone()
+fn argv_of<'a>(command: &PipelineCommand<'a>) -> Vec<&'a str> {
+    match command {
+        PipelineCommand::Simple(cmd) => cmd.argv.clone(),
+        PipelineCommand::Subshell { .. } => panic!("expected simple command"),
+    }
+}
+
+fn simple_of<'a>(command: &'a PipelineCommand<'a>) -> &'a nexus::parse::SimpleCommand<'a> {
+    match command {
+        PipelineCommand::Simple(cmd) => cmd,
+        PipelineCommand::Subshell { .. } => panic!("expected simple command"),
+    }
 }
 
 #[test]
@@ -32,7 +42,7 @@ fn empty_input_yields_none() {
 fn single_simple_command() {
     let list = parse("ls -l /tmp").unwrap().unwrap();
     let cmd = list.as_single_command().unwrap();
-    assert_eq!(argv_of(cmd), vec!["ls", "-l", "/tmp"]);
+    assert_eq!(cmd.argv, vec!["ls", "-l", "/tmp"]);
     assert!(cmd.redirects.is_empty());
 }
 
@@ -48,7 +58,7 @@ fn semicolon_separates_pipelines() {
 #[test]
 fn trailing_semicolon_is_allowed() {
     let list = parse("true;").unwrap().unwrap();
-    assert_eq!(argv_of(list.as_single_command().unwrap()), vec!["true"]);
+    assert_eq!(list.as_single_command().unwrap().argv, vec!["true"]);
 }
 
 #[test]
@@ -88,7 +98,7 @@ fn null_command_around_pipe_is_error() {
 fn file_redirects_parse_on_simple_command() {
     let list = parse("ls > out").unwrap().unwrap();
     let cmd = list.as_single_command().unwrap();
-    assert_eq!(argv_of(cmd), vec!["ls"]);
+    assert_eq!(cmd.argv, vec!["ls"]);
     assert_eq!(
         cmd.redirects,
         vec![Redirect {
@@ -99,7 +109,7 @@ fn file_redirects_parse_on_simple_command() {
 
     let list = parse("cat < in >> log").unwrap().unwrap();
     let cmd = list.as_single_command().unwrap();
-    assert_eq!(argv_of(cmd), vec!["cat"]);
+    assert_eq!(cmd.argv, vec!["cat"]);
     assert_eq!(
         cmd.redirects,
         vec![
@@ -119,7 +129,7 @@ fn file_redirects_parse_on_simple_command() {
 fn heredoc_parses_on_simple_command() {
     let list = parse("cat << EOF").unwrap().unwrap();
     let cmd = list.as_single_command().unwrap();
-    assert_eq!(argv_of(cmd), vec!["cat"]);
+    assert_eq!(cmd.argv, vec!["cat"]);
     assert_eq!(
         cmd.redirects,
         vec![Redirect {
@@ -133,7 +143,7 @@ fn heredoc_parses_on_simple_command() {
 fn redirect_before_command_word() {
     let list = parse("> out echo hi").unwrap().unwrap();
     let cmd = list.as_single_command().unwrap();
-    assert_eq!(argv_of(cmd), vec!["echo", "hi"]);
+    assert_eq!(cmd.argv, vec!["echo", "hi"]);
     assert_eq!(cmd.redirects[0].kind, RedirectKind::Write);
     assert_eq!(cmd.redirects[0].path, "out");
 }
@@ -141,8 +151,59 @@ fn redirect_before_command_word() {
 #[test]
 fn redirect_in_pipeline_stage() {
     let list = parse("ls > out | wc").unwrap().unwrap();
-    assert_eq!(list.pipelines[0].commands[0].redirects.len(), 1);
-    assert_eq!(list.pipelines[0].commands[1].argv, vec!["wc"]);
+    assert_eq!(list.pipelines[0].commands[0].redirects().len(), 1);
+    assert_eq!(simple_of(&list.pipelines[0].commands[1]).argv, vec!["wc"]);
+}
+
+#[test]
+fn parentheses_parse_as_subshell() {
+    let list = parse("(ls ; pwd)").unwrap().unwrap();
+    assert!(list.as_single_command().is_none());
+    match &list.pipelines[0].commands[0] {
+        PipelineCommand::Subshell { list, redirects } => {
+            assert!(redirects.is_empty());
+            assert_eq!(list.pipelines.len(), 2);
+            assert_eq!(argv_of(&list.pipelines[0].commands[0]), vec!["ls"]);
+            assert_eq!(argv_of(&list.pipelines[1].commands[0]), vec!["pwd"]);
+        }
+        PipelineCommand::Simple(_) => panic!("expected subshell"),
+    }
+}
+
+#[test]
+fn parentheses_with_group_redirect() {
+    let list = parse("(echo hi) > out").unwrap().unwrap();
+    match &list.pipelines[0].commands[0] {
+        PipelineCommand::Subshell { list, redirects } => {
+            assert_eq!(argv_of(&list.pipelines[0].commands[0]), vec!["echo", "hi"]);
+            assert_eq!(
+                redirects,
+                &vec![Redirect {
+                    kind: RedirectKind::Write,
+                    path: "out",
+                }]
+            );
+        }
+        PipelineCommand::Simple(_) => panic!("expected subshell"),
+    }
+}
+
+#[test]
+fn parentheses_in_pipeline() {
+    let list = parse("(echo a) | cat").unwrap().unwrap();
+    assert_eq!(list.pipelines[0].commands.len(), 2);
+    assert!(matches!(
+        list.pipelines[0].commands[0],
+        PipelineCommand::Subshell { .. }
+    ));
+    assert_eq!(argv_of(&list.pipelines[0].commands[1]), vec!["cat"]);
+}
+
+#[test]
+fn empty_or_unbalanced_parentheses_are_errors() {
+    assert_eq!(parse("()").unwrap_err(), ParseError::NullCommand);
+    assert_eq!(parse("(ls").unwrap_err(), ParseError::UnexpectedToken);
+    assert_eq!(parse("ls)").unwrap_err(), ParseError::UnexpectedToken);
 }
 
 #[test]

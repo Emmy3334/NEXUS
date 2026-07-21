@@ -1,10 +1,11 @@
 //! Syntax analysis for command lists and pipelines (Dragon Book Ch. 4).
 //!
-//! Grammar (Minishell2):
+//! Grammar (42sh parentheses):
 //! ```text
 //! line     → list
 //! list     → pipeline ( ';' pipeline )* [ ';' ]
-//! pipeline → simple ( '|' simple )*
+//! pipeline → command ( '|' command )*
+//! command  → simple | '(' list ')' redirect*
 //! simple   → ( WORD | redirect )+   # at least one WORD
 //! redirect → ( '>' | '<' | '>>' | '<<' ) WORD
 //! ```
@@ -23,20 +24,44 @@ pub struct CommandList<'a> {
 }
 
 impl<'a> CommandList<'a> {
-    /// A list that is exactly one simple command (no `;` or `|`).
+    /// A list that is exactly one simple command (no `;`, `|`, or subshell).
     #[must_use]
     pub fn as_single_command(&self) -> Option<&SimpleCommand<'a>> {
         match self.pipelines.as_slice() {
-            [pipeline] if pipeline.commands.len() == 1 => Some(&pipeline.commands[0]),
+            [pipeline] => match pipeline.commands.as_slice() {
+                [PipelineCommand::Simple(cmd)] => Some(cmd),
+                _ => None,
+            },
             _ => None,
         }
     }
 }
 
-/// One or more simple commands connected by `|`.
+/// One or more commands connected by `|`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pipeline<'a> {
-    pub commands: Vec<SimpleCommand<'a>>,
+    pub commands: Vec<PipelineCommand<'a>>,
+}
+
+/// One stage of a pipeline: a simple command or a `( … )` subshell.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PipelineCommand<'a> {
+    Simple(SimpleCommand<'a>),
+    Subshell {
+        list: CommandList<'a>,
+        redirects: Vec<Redirect<'a>>,
+    },
+}
+
+impl<'a> PipelineCommand<'a> {
+    /// Redirects attached to this stage (simple or group).
+    #[must_use]
+    pub fn redirects(&self) -> &[Redirect<'a>] {
+        match self {
+            Self::Simple(cmd) => &cmd.redirects,
+            Self::Subshell { redirects, .. } => redirects,
+        }
+    }
 }
 
 /// A simple command: argv plus optional file / heredoc redirections.
@@ -46,7 +71,7 @@ pub struct SimpleCommand<'a> {
     pub redirects: Vec<Redirect<'a>>,
 }
 
-/// One redirection attached to a simple command.
+/// One redirection attached to a simple command or subshell group.
 ///
 /// For file redirects, [`Redirect::path`] is the file path. For heredoc,
 /// it is the end delimiter (body is collected later from the input stream).

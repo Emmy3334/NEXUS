@@ -111,6 +111,25 @@ fn semicolon_and_pipe() {
 }
 
 #[test]
+fn parentheses_are_operators() {
+    assert_eq!(
+        kinds("(ls)"),
+        vec![TokenKind::LParen, TokenKind::Word, TokenKind::RParen]
+    );
+    assert_eq!(lexemes("(echo hi)"), vec!["(", "echo", "hi", ")"]);
+    assert_eq!(
+        kinds("a(b)c"),
+        vec![
+            TokenKind::Word,
+            TokenKind::LParen,
+            TokenKind::Word,
+            TokenKind::RParen,
+            TokenKind::Word
+        ]
+    );
+}
+
+#[test]
 fn single_and_double_redirects() {
     assert_eq!(
         kinds("cat < in > out"),
@@ -173,6 +192,8 @@ fn operator_kinds_report_is_operator() {
     assert!(TokenKind::RedirectAppend.is_operator());
     assert!(TokenKind::RedirectIn.is_operator());
     assert!(TokenKind::Heredoc.is_operator());
+    assert!(TokenKind::LParen.is_operator());
+    assert!(TokenKind::RParen.is_operator());
 }
 
 #[test]

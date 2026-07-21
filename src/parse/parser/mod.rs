@@ -1,7 +1,9 @@
 //! Grammar-level parsing: turns a token stream into the [`super`] AST.
 //!
 //! Token-cursor primitives (peek/consume/advance) live in [`cursor`].
+//! Subshell / command dispatch lives in [`command`].
 
+mod command;
 mod cursor;
 
 use super::{CommandList, ParseError, Pipeline, Redirect, RedirectKind, SimpleCommand};
@@ -23,17 +25,25 @@ impl<'src, 'tok> Parser<'src, 'tok> {
     }
 
     pub(super) fn parse_list(&mut self) -> Result<Option<CommandList<'src>>, ParseError> {
+        self.parse_list_stopping_at(None)
+    }
+
+    /// Parse a list, stopping before `stop` (e.g. `)` inside a subshell) if set.
+    pub(super) fn parse_list_stopping_at(
+        &mut self,
+        stop: Option<TokenKind>,
+    ) -> Result<Option<CommandList<'src>>, ParseError> {
         let mut pipelines = Vec::new();
 
         loop {
             self.skip_semicolons();
-            if self.is_at_end() {
+            if self.is_at_end() || self.peek_kind() == stop {
                 break;
             }
             if self.peek_kind() == Some(TokenKind::Pipe) {
                 return Err(ParseError::NullCommand);
             }
-            if !self.can_start_simple() {
+            if !self.can_start_command() {
                 return Err(ParseError::UnexpectedToken);
             }
 
@@ -41,7 +51,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             if self.consume(TokenKind::Semicolon) {
                 continue;
             }
-            if self.is_at_end() {
+            if self.is_at_end() || self.peek_kind() == stop {
                 break;
             }
             return self.unexpected_remainder();
@@ -56,11 +66,11 @@ impl<'src, 'tok> Parser<'src, 'tok> {
 
     fn parse_pipeline(&mut self) -> Result<Pipeline<'src>, ParseError> {
         let mut commands = Vec::new();
-        commands.push(self.parse_simple()?);
+        commands.push(self.parse_command()?);
 
         while self.consume(TokenKind::Pipe) {
-            if self.can_start_simple() {
-                commands.push(self.parse_simple()?);
+            if self.can_start_command() {
+                commands.push(self.parse_command()?);
             } else {
                 return Err(ParseError::NullCommand);
             }
@@ -69,7 +79,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
         Ok(Pipeline { commands })
     }
 
-    fn parse_simple(&mut self) -> Result<SimpleCommand<'src>, ParseError> {
+    pub(super) fn parse_simple(&mut self) -> Result<SimpleCommand<'src>, ParseError> {
         let mut argv = Vec::new();
         let mut redirects = Vec::new();
 
@@ -93,7 +103,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
         }
     }
 
-    fn parse_redirect(&mut self) -> Result<Redirect<'src>, ParseError> {
+    pub(super) fn parse_redirect(&mut self) -> Result<Redirect<'src>, ParseError> {
         let kind = match self.advance().kind {
             TokenKind::RedirectOut => RedirectKind::Write,
             TokenKind::RedirectAppend => RedirectKind::Append,
@@ -110,7 +120,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
     }
 }
 
-const fn is_redirect(kind: TokenKind) -> bool {
+pub(super) const fn is_redirect(kind: TokenKind) -> bool {
     matches!(
         kind,
         TokenKind::RedirectOut
