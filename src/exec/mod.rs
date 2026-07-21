@@ -2,11 +2,10 @@
 //!
 //! - [`execute_list`] walks `;`-separated pipelines
 //! - [`pipe`] connects stages with OS pipes
-//! - File redirections (`<` / `>` / `>>`) are lexed/parsed as errors today;
-//!   their apply path will live in a dedicated `redirect` module when that
-//!   Minishell2 slice lands.
+//! - [`redirect`] applies `<` / `>` / `>>` (overrides a pipe on that fd)
 
 mod pipe;
+mod redirect;
 
 use crate::builtins::{self, BuiltinResult};
 use crate::env::ShellEnvironment;
@@ -75,7 +74,14 @@ fn execute_pipeline(
             if argv.is_empty() {
                 return Ok(CommandResult::Status(last_status));
             }
-            execute_command(argv, shell_env, last_status, stdout, stderr)
+            redirect::execute_simple(
+                argv,
+                &simple.redirects,
+                shell_env,
+                last_status,
+                stdout,
+                stderr,
+            )
         }
         _ => pipe::execute_piped_stages(pipeline, shell_env, last_status, stdout, stderr),
     }

@@ -22,6 +22,7 @@ Follow these sources on every Rust change in this repo:
 1. **Load** `.cursor/skills/rust-code-review/SKILL.md` and apply its workflow, gates, checklist, and output format.
 2. Use `references/` under that skill for deep dives (ownership, errors, unsafe, etc.).
 3. Also self-review against [RCRG](https://github.com/ZhangHanDong/rust-code-review-guidelines):
+4. **Before commit / PR on a feature branch:** paste an explicit review using the skill’s finding format (or state “No Critical/Major findings” plus gates). Do not skip this step.
 
 ### Correctness
 - Compiles with **no warnings** (`clippy -D warnings`).

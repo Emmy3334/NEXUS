@@ -1,7 +1,9 @@
 //! Integration tests for the parser.
 
 use nexus::lex::{tokenize_into, Token};
-use nexus::parse::{fill_argv, parse_line, CommandList, ParseError, SimpleCommand};
+use nexus::parse::{
+    fill_argv, parse_line, CommandList, ParseError, Redirect, RedirectKind, SimpleCommand,
+};
 
 fn tokens_of(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
@@ -28,10 +30,9 @@ fn empty_input_yields_none() {
 #[test]
 fn single_simple_command() {
     let list = parse("ls -l /tmp").unwrap().unwrap();
-    assert_eq!(
-        argv_of(list.as_single_command().unwrap()),
-        vec!["ls", "-l", "/tmp"]
-    );
+    let cmd = list.as_single_command().unwrap();
+    assert_eq!(argv_of(cmd), vec!["ls", "-l", "/tmp"]);
+    assert!(cmd.redirects.is_empty());
 }
 
 #[test]
@@ -83,22 +84,69 @@ fn null_command_around_pipe_is_error() {
 }
 
 #[test]
-fn redirects_rejected_until_later_slice() {
+fn file_redirects_parse_on_simple_command() {
+    let list = parse("ls > out").unwrap().unwrap();
+    let cmd = list.as_single_command().unwrap();
+    assert_eq!(argv_of(cmd), vec!["ls"]);
     assert_eq!(
-        parse("ls > out").unwrap_err(),
-        ParseError::RedirectNotImplemented
+        cmd.redirects,
+        vec![Redirect {
+            kind: RedirectKind::Write,
+            path: "out",
+        }]
+    );
+
+    let list = parse("cat < in >> log").unwrap().unwrap();
+    let cmd = list.as_single_command().unwrap();
+    assert_eq!(argv_of(cmd), vec!["cat"]);
+    assert_eq!(
+        cmd.redirects,
+        vec![
+            Redirect {
+                kind: RedirectKind::Read,
+                path: "in",
+            },
+            Redirect {
+                kind: RedirectKind::Append,
+                path: "log",
+            },
+        ]
+    );
+}
+
+#[test]
+fn redirect_before_command_word() {
+    let list = parse("> out echo hi").unwrap().unwrap();
+    let cmd = list.as_single_command().unwrap();
+    assert_eq!(argv_of(cmd), vec!["echo", "hi"]);
+    assert_eq!(cmd.redirects[0].kind, RedirectKind::Write);
+    assert_eq!(cmd.redirects[0].path, "out");
+}
+
+#[test]
+fn redirect_in_pipeline_stage() {
+    let list = parse("ls > out | wc").unwrap().unwrap();
+    assert_eq!(list.pipelines[0].commands[0].redirects.len(), 1);
+    assert_eq!(list.pipelines[0].commands[1].argv, vec!["wc"]);
+}
+
+#[test]
+fn missing_redirect_target_is_error() {
+    assert_eq!(
+        parse("ls >").unwrap_err(),
+        ParseError::MissingRedirectTarget
     );
     assert_eq!(
-        parse("cat < in").unwrap_err(),
-        ParseError::RedirectNotImplemented
+        parse("cat <").unwrap_err(),
+        ParseError::MissingRedirectTarget
     );
-    assert_eq!(
-        parse("cmd >> log").unwrap_err(),
-        ParseError::RedirectNotImplemented
-    );
+}
+
+#[test]
+fn heredoc_still_rejected() {
     assert_eq!(
         parse("cmd << END").unwrap_err(),
-        ParseError::RedirectNotImplemented
+        ParseError::HeredocNotImplemented
     );
 }
 

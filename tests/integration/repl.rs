@@ -120,11 +120,23 @@ fn parse_errors_go_to_stderr() {
         .unwrap()
         .contains("Invalid null command"));
 
-    let (code, _, stderr) = run_piped("true > out\n");
+    let (code, _, stderr) = run_piped("cmd << END\n");
     assert_eq!(code, 1);
     assert!(String::from_utf8(stderr)
         .unwrap()
-        .contains("redirections are not implemented"));
+        .contains("heredoc is not implemented"));
+}
+
+#[test]
+fn redirect_stdout_runs_in_repl() {
+    let path = std::env::temp_dir().join(format!("nexus_repl_redir_{}.txt", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let input = format!("true > {}\n", path.display());
+    let (code, _, stderr) = run_piped(&input);
+    assert_eq!(code, 0);
+    assert!(stderr.is_empty());
+    assert!(path.is_file());
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]
