@@ -1,11 +1,13 @@
-//! Shell builtins for Minishell1: `cd`, `setenv`, `unsetenv`, `env`, `exit`.
+//! Shell builtins: Minishell1 plus 42sh `set` / `unset` for locals.
 //!
 //! Each command lives in its own module; this file dispatches by `argv[0]`.
 
 mod cd;
 mod env;
 mod exit;
+mod set;
 mod setenv;
+mod unset;
 mod unsetenv;
 
 use crate::env::ShellEnvironment;
@@ -22,10 +24,13 @@ pub enum BuiltinResult {
     Exit(u8),
 }
 
-/// Whether `name` is a Minishell builtin.
+/// Whether `name` is a shell builtin.
 #[must_use]
 pub fn is_builtin(name: &str) -> bool {
-    matches!(name, "cd" | "setenv" | "unsetenv" | "env" | "exit")
+    matches!(
+        name,
+        "cd" | "setenv" | "unsetenv" | "env" | "exit" | "set" | "unset"
+    )
 }
 
 /// Run a builtin if `argv[0]` matches one; otherwise return `Ok(None)`.
@@ -45,6 +50,8 @@ pub fn try_run(
         "setenv" => BuiltinResult::Status(setenv::setenv(argv, shell_env, stdout, stderr)?),
         "unsetenv" => BuiltinResult::Status(unsetenv::unsetenv(argv, shell_env, stderr)?),
         "env" => BuiltinResult::Status(env::env_cmd(argv, shell_env, stdout, stderr)?),
+        "set" => BuiltinResult::Status(set::set(argv, shell_env, stdout, stderr)?),
+        "unset" => BuiltinResult::Status(unset::unset(argv, shell_env, stderr)?),
         "exit" => exit::exit_cmd(argv, last_status, stderr)?,
         _ => return Ok(None),
     };
