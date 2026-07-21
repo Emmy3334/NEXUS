@@ -2,6 +2,7 @@
 //!
 //! Every test file under `tests/integration/` is reached from this module tree.
 
+mod advanced;
 mod builtins;
 mod exec;
 mod expand;

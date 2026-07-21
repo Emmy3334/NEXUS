@@ -3,22 +3,26 @@
 //! - [`execute_list`] walks `;`-separated pipelines
 //! - [`pipe`] connects stages with OS pipes
 //! - [`redirect`] applies `<` / `>` / `>>` / `<<` (overrides a pipe on that fd)
+//! - [`process`] holds the child-process helpers shared by the above
 
 mod pipe;
+mod process;
 mod redirect;
 
 pub use redirect::collect_heredoc_bodies;
 
-use crate::builtins::{self, BuiltinResult};
+pub(crate) use process::{
+    abandon_children, build_external_command, exit_status_code, report_spawn_failure,
+    run_builtin_status, wait_children,
+};
+
+use crate::builtins;
 use crate::env::ShellEnvironment;
 use crate::parse::{self, CommandList, Pipeline};
 
 use std::ffi::OsStr;
 use std::io::{self, Write};
-use std::process::{Child, Command, ExitStatus};
-
-#[cfg(unix)]
-use std::os::unix::process::ExitStatusExt;
+use std::process::Command;
 
 /// Outcome of running one simple command or a list/pipeline.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,11 +34,11 @@ pub enum CommandResult {
     Exit(u8),
 }
 
-impl From<BuiltinResult> for CommandResult {
-    fn from(result: BuiltinResult) -> Self {
+impl From<builtins::BuiltinResult> for CommandResult {
+    fn from(result: builtins::BuiltinResult) -> Self {
         match result {
-            BuiltinResult::Status(code) => Self::Status(code),
-            BuiltinResult::Exit(code) => Self::Exit(code),
+            builtins::BuiltinResult::Status(code) => Self::Status(code),
+            builtins::BuiltinResult::Exit(code) => Self::Exit(code),
         }
     }
 }
@@ -150,80 +154,5 @@ pub fn execute_external<S: AsRef<OsStr>>(
             let name = program.as_ref().to_string_lossy();
             Ok(report_spawn_failure(&name, &err, stderr)?)
         }
-    }
-}
-
-pub(crate) fn report_spawn_failure(
-    program: &str,
-    err: &io::Error,
-    stderr: &mut impl Write,
-) -> io::Result<u8> {
-    match err.kind() {
-        io::ErrorKind::NotFound => {
-            writeln!(stderr, "{program}: Command not found.")?;
-            Ok(127)
-        }
-        io::ErrorKind::PermissionDenied => {
-            writeln!(stderr, "{program}: Permission denied.")?;
-            Ok(126)
-        }
-        _ => {
-            writeln!(stderr, "{program}: {err}")?;
-            Ok(1)
-        }
-    }
-}
-
-pub(crate) fn exit_status_code(status: ExitStatus) -> u8 {
-    if let Some(code) = status.code() {
-        return code as u8;
-    }
-
-    #[cfg(unix)]
-    if let Some(signal) = status.signal() {
-        return 128u8.saturating_add(signal as u8);
-    }
-
-    1
-}
-
-pub(crate) fn build_external_command(argv: &[String], shell_env: &ShellEnvironment) -> Command {
-    let mut command = Command::new(&argv[0]);
-    if argv.len() > 1 {
-        command.args(&argv[1..]);
-    }
-    command.env_clear().envs(shell_env.iter());
-    command
-}
-
-pub(crate) fn abandon_children(children: &mut [Child]) {
-    for child in children.iter_mut() {
-        let _ = child.kill();
-    }
-}
-
-pub(crate) fn wait_children(children: &mut Vec<Child>) -> io::Result<u8> {
-    let count = children.len();
-    let mut last_status = 0u8;
-    for (index, mut child) in children.drain(..).enumerate() {
-        let status = child.wait()?;
-        if index + 1 == count {
-            last_status = exit_status_code(status);
-        }
-    }
-    Ok(last_status)
-}
-
-/// Run a builtin and map `exit` to a status (pipeline / subshell semantics).
-pub(crate) fn run_builtin_status(
-    argv: &[String],
-    shell_env: &mut ShellEnvironment,
-    last_status: u8,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> io::Result<u8> {
-    match builtins::try_run(argv, shell_env, last_status, stdout, stderr)? {
-        Some(BuiltinResult::Status(code) | BuiltinResult::Exit(code)) => Ok(code),
-        None => Ok(0),
     }
 }
