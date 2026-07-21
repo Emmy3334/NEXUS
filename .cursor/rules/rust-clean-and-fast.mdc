@@ -1,0 +1,41 @@
+---
+description: Rust clean code + optimization standards for NEXUS
+alwaysApply: true
+---
+
+# Rust Clean Code & Optimization (NEXUS)
+
+Always follow these two sources when writing or reviewing Rust in this repo:
+
+1. **Clean code** — https://dev.to/mbayoun95/rust-clean-code-crafting-elegant-efficient-and-maintainable-software-27ce
+2. **Optimization** — https://gist.github.com/jFransham/369a86eff00e5f280ed25121454acec1
+
+## Clean code (always)
+
+- Meaningful names; no cryptic `x` / `f` / `tmp` for domain values.
+- Single responsibility: each function does one thing; split complex flows.
+- Prefer simplicity — no premature abstractions or unused params “for later” unless the next slice already needs them.
+- Model domain with `enum` / `struct` / traits instead of magic ints/strings.
+- Errors via `Result` / `Option`; no `panic!` for expected failure paths.
+- Comments explain **why**, not what; use `///` on public APIs.
+- Prefer borrowing (`&T`, `&str`, `&[T]`) over unnecessary owned clones.
+- Prefer `match` and idiomatic `Option`/`Result` combinators over noisy `if`/`unwrap`.
+- After edits: run `cargo fmt` and `cargo clippy`; keep tests green with `cargo test`.
+
+## Optimization (profile before cleverness)
+
+From jFransham — apply in this order:
+
+1. **Don't optimize blindly** — readability first unless a real hotspot exists.
+2. **Never optimize without evidence** — prefer algorithm fixes and `clippy` over micro-hacks.
+3. **Skip one-shot costs** — hot paths (REPL read/lex/parse/exec) matter more than startup chrome.
+4. **Prefer better algorithms / fewer passes** — avoid extra `collect()` loops when one pass works.
+5. **Reduce allocations on hot paths** — reuse buffers (`String`/`Vec` cleared in place); prefer stack/`arrayvec`-style when sizes are bounded; avoid `Box<dyn Trait>` in inner loops.
+6. **Keep hot data compact and contiguous** — cache-friendly layouts for ASTs/tokens later.
+7. **No `#[inline(always)]` by default**; consider LTO only when measuring release builds.
+
+## NEXUS-specific mapping
+
+- Shell command language follows Dragon Book phases: **lex → parse → IR/exec**.
+- REPL I/O must stay allocation-light (reuse the line buffer).
+- Minishell errors go to **stderr**; program failure exit code **84** (Epitech convention).
