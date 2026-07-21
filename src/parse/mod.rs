@@ -1,9 +1,9 @@
 //! Syntax analysis for command lists and pipelines (Dragon Book Ch. 4).
 //!
-//! Grammar (42sh parentheses):
+//! Grammar (42sh parentheses + job control):
 //! ```text
 //! line     → list
-//! list     → pipeline ( ';' pipeline )* [ ';' ]
+//! list     → pipeline ( (';' | '&') pipeline )* [ ';' | '&' ]
 //! pipeline → command ( '|' command )*
 //! command  → simple | '(' list ')' redirect*
 //! simple   → ( WORD | redirect )+   # at least one WORD
@@ -11,7 +11,7 @@
 //! ```
 //!
 //! Heredoc body lines are collected by the REPL after parse (not on this line).
-//! Empty commands around `|` are errors; a trailing `;` is allowed.
+//! Empty commands around `|` are errors; a trailing `;` or `&` is allowed.
 
 mod parser;
 
@@ -24,11 +24,11 @@ pub struct CommandList<'a> {
 }
 
 impl<'a> CommandList<'a> {
-    /// A list that is exactly one simple command (no `;`, `|`, or subshell).
+    /// A list that is exactly one foreground simple command (no `;`, `|`, `&`, or subshell).
     #[must_use]
     pub fn as_single_command(&self) -> Option<&SimpleCommand<'a>> {
         match self.pipelines.as_slice() {
-            [pipeline] => match pipeline.commands.as_slice() {
+            [pipeline] if !pipeline.background => match pipeline.commands.as_slice() {
                 [PipelineCommand::Simple(cmd)] => Some(cmd),
                 _ => None,
             },
@@ -41,6 +41,8 @@ impl<'a> CommandList<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pipeline<'a> {
     pub commands: Vec<PipelineCommand<'a>>,
+    /// True when this pipeline was terminated with `&`.
+    pub background: bool,
 }
 
 /// One stage of a pipeline: a simple command or a `( … )` subshell.

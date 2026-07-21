@@ -1,9 +1,10 @@
 //! Mutable state threaded through a multi-stage pipeline run.
 
-use crate::exec::{report_spawn_failure, wait_children, CommandResult};
+use crate::exec::wait_children;
+use crate::jobs::{self, FgWait};
 
-use std::io::{self, Write};
-use std::process::{Child, ChildStdout};
+use std::io;
+use std::process::{Child, ChildStdout, Command};
 
 /// Children spawned so far, the previous stage's readable stdout (when piped),
 /// and a builtin's buffered stdout (when the next stage needs to consume it).
@@ -11,6 +12,8 @@ pub(super) struct PipeState {
     pub(super) children: Vec<Child>,
     pub(super) prev_stdout: Option<ChildStdout>,
     pub(super) buffered_out: Option<Vec<u8>>,
+    pub(super) terminal_status: Option<u8>,
+    pgid: Option<i32>,
 }
 
 impl PipeState {
@@ -19,6 +22,8 @@ impl PipeState {
             children: Vec::new(),
             prev_stdout: None,
             buffered_out: None,
+            terminal_status: None,
+            pgid: None,
         }
     }
 
@@ -31,32 +36,30 @@ impl PipeState {
         let _ = self.buffered_out.take();
     }
 
-    pub(super) fn finish(&mut self) -> io::Result<u8> {
-        wait_children(&mut self.children)
+    pub(super) fn prepare_command(&self, command: &mut Command) {
+        jobs::prepare_process_group(command, self.pgid);
     }
-}
 
-/// What to do after a pipeline stage fails to spawn.
-pub(super) enum AfterSpawnFail {
-    /// Skip this stage; later stages still run (no pipefail).
-    Continue,
-    /// This was the last stage — pipeline status is the spawn failure code.
-    Done(CommandResult),
-}
-
-/// Report spawn failure, drain unused pipe input, then continue or finish.
-pub(super) fn after_spawn_failure(
-    name: &str,
-    err: &io::Error,
-    stderr: &mut impl Write,
-    is_last: bool,
-    state: &mut PipeState,
-) -> io::Result<AfterSpawnFail> {
-    let code = report_spawn_failure(name, err, stderr)?;
-    state.drain_pending();
-    if is_last {
-        let _ = state.finish()?;
-        return Ok(AfterSpawnFail::Done(CommandResult::Status(code)));
+    pub(super) fn push_child(&mut self, child: Child) {
+        if jobs::job_control_enabled() {
+            self.pgid = Some(jobs::assign_process_group(child.id(), self.pgid));
+        }
+        self.children.push(child);
     }
-    Ok(AfterSpawnFail::Continue)
+
+    pub(super) fn finish(&mut self) -> io::Result<FgWait> {
+        let Some(pgid) = self.pgid else {
+            let status = wait_children(&mut self.children)?;
+            return Ok(FgWait::Done(self.terminal_status.unwrap_or(status)));
+        };
+        let outcome = jobs::wait_pipeline(&mut self.children, pgid)?;
+        if let FgWait::Done(status) = outcome {
+            for child in &mut self.children {
+                let _ = child.try_wait();
+            }
+            self.children.clear();
+            return Ok(FgWait::Done(self.terminal_status.unwrap_or(status)));
+        }
+        Ok(outcome)
+    }
 }

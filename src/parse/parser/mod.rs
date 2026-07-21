@@ -40,7 +40,9 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             if self.is_at_end() || self.peek_kind() == stop {
                 break;
             }
-            if self.peek_kind() == Some(TokenKind::Pipe) {
+            if self.peek_kind() == Some(TokenKind::Pipe)
+                || self.peek_kind() == Some(TokenKind::Ampersand)
+            {
                 return Err(ParseError::NullCommand);
             }
             if !self.can_start_command() {
@@ -48,6 +50,12 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             }
 
             pipelines.push(self.parse_pipeline()?);
+            if self.consume(TokenKind::Ampersand) {
+                if let Some(last) = pipelines.last_mut() {
+                    last.background = true;
+                }
+                continue;
+            }
             if self.consume(TokenKind::Semicolon) {
                 continue;
             }
@@ -76,7 +84,10 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             }
         }
 
-        Ok(Pipeline { commands })
+        Ok(Pipeline {
+            commands,
+            background: false,
+        })
     }
 
     pub(super) fn parse_simple(&mut self) -> Result<SimpleCommand<'src>, ParseError> {

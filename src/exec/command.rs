@@ -5,6 +5,7 @@ use super::stdout_mode::StdoutMode;
 use super::CommandResult;
 use crate::builtins;
 use crate::env::ShellEnvironment;
+use crate::jobs::{self, FgWait, JobState};
 
 use std::ffi::OsStr;
 use std::io::{self, Write};
@@ -51,7 +52,7 @@ pub(crate) fn execute_command_mode(
 /// Run an external program with the shell's environment copy.
 pub fn execute_external<S: AsRef<OsStr>>(
     argv: &[S],
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
@@ -61,7 +62,7 @@ pub fn execute_external<S: AsRef<OsStr>>(
 pub(crate) fn execute_external_mode<S: AsRef<OsStr>>(
     stdout_mode: StdoutMode,
     argv: &[S],
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
@@ -70,16 +71,61 @@ pub(crate) fn execute_external_mode<S: AsRef<OsStr>>(
     };
     let mut command = Command::new(program);
     command.args(args).env_clear().envs(shell_env.iter());
+    jobs::prepare_child_command(&mut command);
     match stdout_mode {
-        StdoutMode::Inherit => match command.status() {
-            Ok(status) => Ok(exit_status_code(status)),
-            Err(err) => {
-                let name = program.as_ref().to_string_lossy();
-                report_spawn_failure(&name, &err, stderr)
-            }
-        },
+        StdoutMode::Inherit => {
+            jobs::prepare_process_group(&mut command, None);
+            spawn_inherit(&mut command, program.as_ref(), argv, shell_env, stderr)
+        }
         StdoutMode::Capture => spawn_captured(&mut command, program.as_ref(), stdout, stderr),
     }
+}
+
+fn spawn_inherit<S: AsRef<OsStr>>(
+    command: &mut Command,
+    program: &OsStr,
+    argv: &[S],
+    shell_env: &mut ShellEnvironment,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    if !jobs::job_control_enabled() {
+        return match command.status() {
+            Ok(status) => Ok(exit_status_code(status)),
+            Err(err) => {
+                let name = program.to_string_lossy();
+                report_spawn_failure(&name, &err, stderr)
+            }
+        };
+    }
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(err) => {
+            let name = program.to_string_lossy();
+            return report_spawn_failure(&name, &err, stderr);
+        }
+    };
+    match jobs::wait_foreground(&mut child)? {
+        FgWait::Done(code) => Ok(code),
+        FgWait::Stopped => register_stopped_external(argv, child, shell_env, stderr),
+    }
+}
+
+fn register_stopped_external<S: AsRef<OsStr>>(
+    argv: &[S],
+    child: std::process::Child,
+    shell_env: &mut ShellEnvironment,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    let command = argv
+        .iter()
+        .map(|arg| arg.as_ref().to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let (id, _) = shell_env
+        .jobs
+        .add(command.clone(), vec![child], JobState::Stopped);
+    writeln!(stderr, "[{id}]+  Suspended                 {command}")?;
+    Ok(jobs::sigtstp_status())
 }
 
 fn spawn_captured(

@@ -4,6 +4,7 @@
 //! collected from the shell input stream after parse (see
 //! [`collect_heredoc_bodies`]).
 
+mod child_io;
 mod files;
 mod heredoc;
 mod stage;

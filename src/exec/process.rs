@@ -49,6 +49,7 @@ pub(crate) fn build_external_command(argv: &[String], shell_env: &ShellEnvironme
         command.args(&argv[1..]);
     }
     command.env_clear().envs(shell_env.iter());
+    crate::jobs::prepare_child_command(&mut command);
     command
 }
 

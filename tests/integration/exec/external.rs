@@ -8,32 +8,32 @@ use std::path::Path;
 
 #[test]
 fn true_exits_zero() {
-    let env = test_env();
+    let mut env = test_env();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let code = execute_external(&["true"], &env, &mut stdout, &mut stderr).unwrap();
+    let code = execute_external(&["true"], &mut env, &mut stdout, &mut stderr).unwrap();
     assert_eq!(code, 0);
     assert!(stderr.is_empty());
 }
 
 #[test]
 fn false_exits_one() {
-    let env = test_env();
+    let mut env = test_env();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let code = execute_external(&["false"], &env, &mut stdout, &mut stderr).unwrap();
+    let code = execute_external(&["false"], &mut env, &mut stdout, &mut stderr).unwrap();
     assert_eq!(code, 1);
     assert!(stderr.is_empty());
 }
 
 #[test]
 fn missing_command_is_127_with_message() {
-    let env = test_env();
+    let mut env = test_env();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let code = execute_external(
         &["nexus_no_such_command_42"],
-        &env,
+        &mut env,
         &mut stdout,
         &mut stderr,
     )
@@ -51,10 +51,10 @@ fn absolute_true_path() {
         .find(|path| Path::new(path).exists())
         .expect("system true binary");
 
-    let env = test_env();
+    let mut env = test_env();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let code = execute_external(&[true_path], &env, &mut stdout, &mut stderr).unwrap();
+    let code = execute_external(&[true_path], &mut env, &mut stdout, &mut stderr).unwrap();
     assert_eq!(code, 0);
     assert!(stderr.is_empty());
 }
@@ -79,10 +79,10 @@ fn exit_builtin_stops_shell() {
 fn external_inherits_shell_path_only_env() {
     let mut map = BTreeMap::new();
     map.insert("PATH".into(), "/nonexistent".into());
-    let env = ShellEnvironment::from_map(map);
+    let mut env = ShellEnvironment::from_map(map);
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let code = execute_external(&["true"], &env, &mut stdout, &mut stderr).unwrap();
+    let code = execute_external(&["true"], &mut env, &mut stdout, &mut stderr).unwrap();
     assert_eq!(code, 127);
     assert!(String::from_utf8(stderr)
         .unwrap()

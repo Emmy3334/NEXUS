@@ -80,6 +80,16 @@ fn execute_pipeline<I: BufRead, O: Write, E: Write>(
     heredocs: &mut HeredocState,
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
+    if pipeline.background {
+        return super::background::execute_background(
+            pipeline,
+            argv,
+            shell_env,
+            last_status,
+            heredocs,
+            io,
+        );
+    }
     match pipeline.commands.as_slice() {
         [] => Ok(CommandResult::Status(last_status)),
         [PipelineCommand::Simple(simple)] => {
@@ -117,6 +127,16 @@ fn run_simple<I: BufRead, O: Write, E: Write>(
 }
 
 fn expand_simple_argv<I: BufRead, O: Write, E: Write>(
+    words: &[&str],
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    io: &mut ExecIo<'_, I, O, E>,
+) -> io::Result<Result<(), u8>> {
+    expand_for_background(words, argv, shell_env, last_status, io)
+}
+
+pub(super) fn expand_for_background<I: BufRead, O: Write, E: Write>(
     words: &[&str],
     argv: &mut Vec<String>,
     shell_env: &mut ShellEnvironment,

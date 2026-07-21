@@ -5,7 +5,7 @@ mod invoke;
 use self::invoke::{call_parent, call_piped, feed_capture};
 use super::state::PipeState;
 use super::StageCtx;
-use crate::exec::{wait_children, CommandResult};
+use crate::exec::CommandResult;
 use crate::parse::{CommandList, Redirect};
 
 use std::io::{self, BufRead, Cursor, Write};
@@ -22,8 +22,11 @@ pub(super) fn run_subshell_stage<I: BufRead, O: Write, E: Write>(
     let pipe_in = take_pipe_bytes(state);
     if is_last {
         let result = run_last(list, redirects, pipe_in, ctx, argv_scratch)?;
-        let _ = wait_children(&mut state.children)?;
-        return Ok(Some(result));
+        let status = match result {
+            CommandResult::Status(code) | CommandResult::Exit(code) => code,
+        };
+        state.terminal_status = Some(status);
+        return Ok(None);
     }
     let mut buffer = Vec::new();
     let _ = feed_capture(list, redirects, pipe_in, ctx, &mut buffer, argv_scratch)?;

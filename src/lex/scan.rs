@@ -30,6 +30,7 @@ fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> Result<usi
     let (kind, end) = match first {
         b';' => (TokenKind::Semicolon, start + 1),
         b'|' => (TokenKind::Pipe, start + 1),
+        b'&' => (TokenKind::Ampersand, start + 1),
         b'(' => (TokenKind::LParen, start + 1),
         b')' => (TokenKind::RParen, start + 1),
         b'>' => {
@@ -82,5 +83,5 @@ fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
 }
 
 fn is_operator_char(ch: char) -> bool {
-    matches!(ch, ';' | '|' | '>' | '<' | '(' | ')')
+    matches!(ch, ';' | '|' | '&' | '>' | '<' | '(' | ')')
 }

@@ -31,6 +31,17 @@ struct ReplBuffers {
     argv: Vec<String>,
 }
 
+impl ReplBuffers {
+    fn new() -> Self {
+        Self {
+            line: String::new(),
+            expanded: String::new(),
+            tokens: Vec::new(),
+            argv: Vec::new(),
+        }
+    }
+}
+
 /// Outcome of one read–eval iteration.
 enum StepOutcome {
     /// Keep looping with this status as `last_status`.
@@ -52,14 +63,11 @@ pub fn run(
         stderr: &mut stderr,
     };
     let mut shell_env = ShellEnvironment::capture();
-    let mut buffers = ReplBuffers {
-        line: String::new(),
-        expanded: String::new(),
-        tokens: Vec::new(),
-        argv: Vec::new(),
-    };
+    let mut buffers = ReplBuffers::new();
     let mut last_status = SUCCESS_EXIT;
-
+    if interactive {
+        crate::jobs::install_interactive_handlers()?;
+    }
     loop {
         match step(
             &mut io,
@@ -82,6 +90,7 @@ fn step<I: BufRead, O: Write, E: Write>(
     shell_env: &mut ShellEnvironment,
     last_status: u8,
 ) -> io::Result<StepOutcome> {
+    notify_completed_jobs(io.stderr, shell_env)?;
     write_prompt(io.stdout, interactive)?;
     let command_list = match read_and_parse(
         io,
@@ -99,6 +108,16 @@ fn step<I: BufRead, O: Write, E: Write>(
         CommandResult::Status(code) => Ok(StepOutcome::Continue(code)),
         CommandResult::Exit(code) => Ok(StepOutcome::Stop(code)),
     }
+}
+
+fn notify_completed_jobs(
+    stderr: &mut impl Write,
+    shell_env: &mut ShellEnvironment,
+) -> io::Result<()> {
+    for (id, command, status) in shell_env.jobs.take_notifications() {
+        writeln!(stderr, "[{id}]  Done ({status})                 {command}")?;
+    }
+    Ok(())
 }
 
 fn write_prompt(stdout: &mut impl Write, interactive: bool) -> io::Result<()> {

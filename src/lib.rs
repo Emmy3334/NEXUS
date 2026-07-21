@@ -10,6 +10,7 @@ pub mod exec;
 pub mod expand;
 pub mod glob;
 pub mod history;
+pub mod jobs;
 pub mod lex;
 pub mod parse;
 pub mod repl;

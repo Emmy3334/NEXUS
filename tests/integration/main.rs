@@ -7,6 +7,7 @@ mod builtins;
 mod exec;
 mod expand;
 mod glob;
+mod jobs_signals;
 mod lex;
 mod parse;
 mod repl;

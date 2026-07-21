@@ -5,6 +5,7 @@
 //! - [`redirect`] applies `<` / `>` / `>>` / `<<` (overrides a pipe on that fd)
 //! - [`process`] holds the child-process helpers shared by the above
 
+mod background;
 mod capture;
 mod command;
 mod io;
@@ -12,6 +13,7 @@ mod list;
 mod pipe;
 mod process;
 mod redirect;
+mod render;
 mod stdout_mode;
 mod subshell;
 
