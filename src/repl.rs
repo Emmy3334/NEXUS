@@ -14,6 +14,34 @@ use std::io::{self, BufRead, Write};
 const PROMPT: &str = "$> ";
 const SUCCESS_EXIT: u8 = 0;
 
+/// The REPL's own I/O streams, bundled so helper functions don't need one
+/// parameter per stream.
+struct ReplIo<'a, I, O, E> {
+    stdin: &'a mut I,
+    stdout: &'a mut O,
+    stderr: &'a mut E,
+}
+
+/// Outcome of reading and parsing one line.
+enum ParseOutcome<'a> {
+    /// Stdin closed.
+    Eof,
+    /// Nothing to run (blank line, or only `;`).
+    Blank,
+    /// Lex or parse error; already reported to `stderr`.
+    Failed(u8),
+    /// A command list ready to execute.
+    Ready(parse::CommandList<'a>),
+}
+
+/// Outcome of one read–eval iteration.
+enum StepOutcome {
+    /// Keep looping with this status as `last_status`.
+    Continue(u8),
+    /// Stop the shell (EOF or `exit`) with this status.
+    Stop(u8),
+}
+
 /// Run the interactive (or piped) read–eval loop.
 ///
 /// - Prints [`PROMPT`] only when `interactive` is true (TTY stdin).
@@ -26,71 +54,119 @@ pub fn run(
     mut stderr: impl Write,
     interactive: bool,
 ) -> io::Result<u8> {
+    let mut io = ReplIo {
+        stdin: &mut stdin,
+        stdout: &mut stdout,
+        stderr: &mut stderr,
+    };
     let mut shell_env = ShellEnvironment::capture();
-    // Hot path: reuse line, token, and owned-argv buffers across iterations.
     let mut line_buffer = String::new();
     let mut tokens = Vec::new();
     let mut argv = Vec::new();
     let mut last_status = SUCCESS_EXIT;
 
     loop {
-        write_prompt(&mut stdout, interactive)?;
-
-        line_buffer.clear();
-        let bytes_read = stdin.read_line(&mut line_buffer)?;
-        if bytes_read == 0 {
-            return Ok(last_status);
-        }
-
-        if is_blank_line(&line_buffer) {
-            continue;
-        }
-
-        let command_line = trim_line_ending(&line_buffer);
-        if let Err(error) = lex::tokenize_into(command_line, &mut tokens) {
-            writeln!(stderr, "{}", error.message())?;
-            last_status = 1;
-            continue;
-        }
-        debug_assert!(tokens_are_well_formed(command_line, &tokens));
-
-        let command_list = match parse::parse_line(command_line, &tokens) {
-            Ok(Some(list)) => list,
-            Ok(None) => continue,
-            Err(error) => {
-                writeln!(stderr, "{}", error.message())?;
-                last_status = 1;
-                continue;
-            }
-        };
-
-        let heredoc_bodies = match exec::collect_heredoc_bodies(
-            &command_list,
-            &shell_env,
-            last_status,
-            &mut stdin,
-            &mut stderr,
-        )? {
-            Ok(bodies) => bodies,
-            Err(code) => {
-                last_status = code;
-                continue;
-            }
-        };
-
-        match exec::execute_list(
-            &command_list,
+        match step(
+            &mut io,
+            interactive,
+            &mut line_buffer,
+            &mut tokens,
             &mut argv,
             &mut shell_env,
             last_status,
-            heredoc_bodies,
-            &mut stdout,
-            &mut stderr,
         )? {
-            CommandResult::Status(code) => last_status = code,
-            CommandResult::Exit(code) => return Ok(code),
+            StepOutcome::Continue(status) => last_status = status,
+            StepOutcome::Stop(status) => return Ok(status),
         }
     }
+}
+
+/// One prompt → read → parse → execute iteration.
+fn step<I: BufRead, O: Write, E: Write>(
+    io: &mut ReplIo<'_, I, O, E>,
+    interactive: bool,
+    line_buffer: &mut String,
+    tokens: &mut Vec<lex::Token>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+) -> io::Result<StepOutcome> {
+    write_prompt(io.stdout, interactive)?;
+
+    let command_list = match read_and_parse(io, line_buffer, tokens)? {
+        ParseOutcome::Eof => return Ok(StepOutcome::Stop(last_status)),
+        ParseOutcome::Blank => return Ok(StepOutcome::Continue(last_status)),
+        ParseOutcome::Failed(code) => return Ok(StepOutcome::Continue(code)),
+        ParseOutcome::Ready(list) => list,
+    };
+
+    match run_ready_command(&command_list, io, argv, shell_env, last_status)? {
+        CommandResult::Status(code) => Ok(StepOutcome::Continue(code)),
+        CommandResult::Exit(code) => Ok(StepOutcome::Stop(code)),
+    }
+}
+
+/// Read one line, tokenize, and parse it. Borrows `line_buffer` for the
+/// lifetime of the returned [`ParseOutcome::Ready`] command list.
+fn read_and_parse<'a, I: BufRead, O: Write, E: Write>(
+    io: &mut ReplIo<'_, I, O, E>,
+    line_buffer: &'a mut String,
+    tokens: &mut Vec<lex::Token>,
+) -> io::Result<ParseOutcome<'a>> {
+    line_buffer.clear();
+    let bytes_read = io.stdin.read_line(line_buffer)?;
+    if bytes_read == 0 {
+        return Ok(ParseOutcome::Eof);
+    }
+    if line_buffer.trim().is_empty() {
+        return Ok(ParseOutcome::Blank);
+    }
+
+    let command_line = line_buffer.trim_end_matches(['\n', '\r']);
+    if let Err(error) = lex::tokenize_into(command_line, tokens) {
+        writeln!(io.stderr, "{}", error.message())?;
+        return Ok(ParseOutcome::Failed(1));
+    }
+    debug_assert!(tokens_are_well_formed(command_line, tokens));
+
+    match parse::parse_line(command_line, tokens) {
+        Ok(Some(list)) => Ok(ParseOutcome::Ready(list)),
+        Ok(None) => Ok(ParseOutcome::Blank),
+        Err(error) => {
+            writeln!(io.stderr, "{}", error.message())?;
+            Ok(ParseOutcome::Failed(1))
+        }
+    }
+}
+
+/// Collect heredoc bodies (if any) then execute the parsed command list.
+fn run_ready_command<I: BufRead, O: Write, E: Write>(
+    command_list: &parse::CommandList<'_>,
+    io: &mut ReplIo<'_, I, O, E>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+) -> io::Result<CommandResult> {
+    let heredoc_bodies = match exec::collect_heredoc_bodies(
+        command_list,
+        shell_env,
+        last_status,
+        io.stdin,
+        io.stderr,
+    )? {
+        Ok(bodies) => bodies,
+        Err(code) => return Ok(CommandResult::Status(code)),
+    };
+
+    exec::execute_list(
+        command_list,
+        argv,
+        shell_env,
+        last_status,
+        heredoc_bodies,
+        io.stdout,
+        io.stderr,
+    )
 }
 
 fn tokens_are_well_formed(source: &str, tokens: &[lex::Token]) -> bool {
@@ -108,12 +184,4 @@ fn write_prompt(stdout: &mut impl Write, interactive: bool) -> io::Result<()> {
     }
     write!(stdout, "{PROMPT}")?;
     stdout.flush()
-}
-
-fn is_blank_line(line: &str) -> bool {
-    line.trim().is_empty()
-}
-
-fn trim_line_ending(line: &str) -> &str {
-    line.trim_end_matches(['\n', '\r'])
 }

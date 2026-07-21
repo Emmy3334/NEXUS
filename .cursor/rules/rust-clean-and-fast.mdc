@@ -64,18 +64,16 @@ Follow these sources on every Rust change in this repo:
 src/
   lib.rs              # pub mod … library surface
   bin/nexus.rs        # thin main only
-  lex.rs | lex/       # grow file → folder when needed
-  parse.rs | parse/
-  exec/ | env.rs | builtins/ | repl.rs
+  lex/ parse/ expand/ glob/ exec/ env/ builtins/ repl.rs
 tests/                # ALL tests (one integration crate for rust-analyzer)
   integration/
     main.rs           # crate root — every test module hangs off this
-    builtins/ exec/ lex.rs parse.rs repl.rs shell_env.rs
+    builtins/ exec/ expand.rs glob.rs lex.rs parse.rs repl.rs shell_env.rs
 ```
 
 - Domain logic lives in the **library**.
 - Binary stays a thin driver.
-- Folders + `mod.rs` only when a module outgrows one file.
+- Folders + `mod.rs` when a module would exceed **35 lines/fn** or **7 fns/file** (or otherwise outgrow one file).
 - **Tests:** only under `tests/integration/` (reached from `main.rs`). Do not add `#[cfg(test)]` / `#[test]` inside `src/`.
 - Workspaces only when we truly need separate crates.
 - Binary name: **`nexus`**. `rust-version = "1.75"`, edition **2021**.
@@ -83,6 +81,7 @@ tests/                # ALL tests (one integration crate for rust-analyzer)
 ## Clean code (always)
 
 - Meaningful names; single-responsibility functions.
+- **Size limits (hard):** no function longer than **35 lines**; no source file with more than **7 functions** (including methods and private helpers). Split into modules/folders when a file would exceed either limit.
 - No unused `pub` APIs; no dead params “for later” unless the next slice needs them.
 - Model domain with `enum` / `struct`; errors via `Result` / `Option` (no panic for expected paths).
 - Prefer borrowing; comments explain **why**.
