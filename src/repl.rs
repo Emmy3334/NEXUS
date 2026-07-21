@@ -1,9 +1,10 @@
-//! Read–eval–print loop (Minishell1: prompt → lex → parse → exec).
+//! Read–eval–print loop (Minishell1: prompt → lex → parse → exec/builtins).
 //!
 //! Dragon Book pipeline: acquire line → lexical analysis → simple parse →
-//! external execution. Builtins arrive in a later slice.
+//! execute (builtin or external) against an owned environment copy.
 
-use crate::exec;
+use crate::env::ShellEnvironment;
+use crate::exec::{self, CommandResult};
 use crate::lex;
 use crate::parse;
 
@@ -17,13 +18,14 @@ const SUCCESS_EXIT: u8 = 0;
 /// - Prints [`PROMPT`] only when `interactive` is true (TTY stdin).
 /// - Blank lines re-prompt.
 /// - EOF returns the last command’s status (or `0` if none ran).
-/// - External commands propagate their exit status; not-found → `127`.
+/// - `exit` ends the shell immediately with the requested status.
 pub fn run(
     mut stdin: impl BufRead,
     mut stdout: impl Write,
     mut stderr: impl Write,
     interactive: bool,
 ) -> io::Result<u8> {
+    let mut shell_env = ShellEnvironment::capture();
     // Hot path: reuse line, token, and owned-argv buffers across iterations.
     let mut line_buffer = String::new();
     let mut tokens = Vec::new();
@@ -52,7 +54,10 @@ pub fn run(
             continue;
         }
 
-        last_status = exec::execute_external(&argv, &mut stderr)?;
+        match exec::execute_command(&argv, &mut shell_env, last_status, &mut stdout, &mut stderr)? {
+            CommandResult::Status(code) => last_status = code,
+            CommandResult::Exit(code) => return Ok(code),
+        }
     }
 }
 
@@ -131,6 +136,19 @@ mod tests {
         assert_eq!(code, 1);
         let (code, _, _) = run_piped("false\ntrue\n");
         assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn exit_builtin_ends_repl() {
+        let (code, _, stderr) = run_piped("false\nexit\ntrue\n");
+        assert_eq!(code, 1);
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn exit_with_explicit_status() {
+        let (code, _, _) = run_piped("exit 42\n");
+        assert_eq!(code, 42);
     }
 
     #[test]
