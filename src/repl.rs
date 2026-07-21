@@ -64,14 +64,19 @@ pub fn run(
             }
         };
 
-        let heredoc_bodies =
-            match exec::collect_heredoc_bodies(&command_list, &mut stdin, &mut stderr)? {
-                Ok(bodies) => bodies,
-                Err(code) => {
-                    last_status = code;
-                    continue;
-                }
-            };
+        let heredoc_bodies = match exec::collect_heredoc_bodies(
+            &command_list,
+            &shell_env,
+            last_status,
+            &mut stdin,
+            &mut stderr,
+        )? {
+            Ok(bodies) => bodies,
+            Err(code) => {
+                last_status = code;
+                continue;
+            }
+        };
 
         match exec::execute_list(
             &command_list,

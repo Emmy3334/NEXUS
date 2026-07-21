@@ -7,7 +7,7 @@
 use super::{exit_status_code, report_spawn_failure, CommandResult};
 use crate::builtins;
 use crate::env::ShellEnvironment;
-use crate::lex;
+use crate::expand;
 use crate::parse::{CommandList, Redirect, RedirectKind};
 
 use std::fs::{File, OpenOptions};
@@ -52,12 +52,14 @@ impl HeredocState {
 /// Read heredoc bodies for every `<<` in `list`, left-to-right.
 ///
 /// Each body is the input lines up to (but not including) a line whose content
-/// equals the (quote-expanded) delimiter. On EOF before the delimiter, the
+/// equals the (quote- and `$`-expanded) delimiter. On EOF before the delimiter, the
 /// partial body is kept and a warning is written to `stderr`.
 ///
 /// Returns `Ok(Err(code))` when quote expansion of a delimiter fails.
 pub fn collect_heredoc_bodies(
     list: &CommandList<'_>,
+    shell_env: &ShellEnvironment,
+    last_status: u8,
     input: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> io::Result<Result<Vec<String>, u8>> {
@@ -68,13 +70,14 @@ pub fn collect_heredoc_bodies(
         for command in &pipeline.commands {
             for redirect in &command.redirects {
                 if redirect.kind == RedirectKind::Heredoc {
-                    let delimiter = match lex::expand_word(redirect.path) {
-                        Ok(delimiter) => delimiter,
-                        Err(err) => {
-                            writeln!(stderr, "{}", err.message())?;
-                            return Ok(Err(1));
-                        }
-                    };
+                    let delimiter =
+                        match expand::expand_word_for_exec(redirect.path, shell_env, last_status) {
+                            Ok(delimiter) => delimiter,
+                            Err(err) => {
+                                writeln!(stderr, "{}", err.message())?;
+                                return Ok(Err(1));
+                            }
+                        };
                     bodies.push(read_heredoc_body(input, &delimiter, &mut line, stderr)?);
                 }
             }
@@ -114,13 +117,15 @@ fn read_heredoc_body(
 pub(super) fn open_redirect_files(
     redirects: &[Redirect<'_>],
     heredocs: &mut HeredocState,
+    shell_env: &ShellEnvironment,
+    last_status: u8,
     stderr: &mut impl Write,
 ) -> io::Result<Result<RedirectFiles, u8>> {
     let mut stdin = None;
     let mut stdout = None;
 
     for redirect in redirects {
-        let path = match lex::expand_word(redirect.path) {
+        let path = match expand::expand_word_for_exec(redirect.path, shell_env, last_status) {
             Ok(path) => path,
             Err(err) => {
                 writeln!(stderr, "{}", err.message())?;
@@ -188,7 +193,7 @@ pub(super) fn execute_simple(
         return super::execute_command(argv, shell_env, last_status, stdout, stderr);
     }
 
-    let files = match open_redirect_files(redirects, heredocs, stderr)? {
+    let files = match open_redirect_files(redirects, heredocs, shell_env, last_status, stderr)? {
         Ok(files) => files,
         Err(code) => return Ok(CommandResult::Status(code)),
     };

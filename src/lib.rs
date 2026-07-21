@@ -6,6 +6,7 @@
 pub mod builtins;
 pub mod env;
 pub mod exec;
+pub mod expand;
 pub mod lex;
 pub mod parse;
 pub mod repl;
