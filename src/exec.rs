@@ -12,6 +12,7 @@ use std::os::unix::process::ExitStatusExt;
 
 /// Outcome of running one simple command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[must_use = "shell exit vs continue must be handled by the REPL"]
 pub enum CommandResult {
     /// Keep the REPL running with this status.
     Status(u8),
@@ -62,7 +63,7 @@ pub fn execute_external<S: AsRef<OsStr>>(
     match Command::new(program)
         .args(args)
         .env_clear()
-        .envs(shell_env.command_envs())
+        .envs(shell_env.iter())
         .status()
     {
         Ok(status) => Ok(exit_status_code(status)),

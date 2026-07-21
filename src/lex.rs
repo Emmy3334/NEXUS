@@ -21,14 +21,26 @@ pub struct Token {
 }
 
 impl Token {
+    /// Borrow the lexeme from `source` if the span is in range.
+    pub fn try_lexeme<'a>(&self, source: &'a str) -> Option<&'a str> {
+        source.get(self.start..self.end)
+    }
+
     /// Borrow the lexeme from `source`.
     ///
     /// # Panics
     ///
-    /// Panics if `start..end` is not a valid char boundary range in `source`
+    /// Panics if `start..end` is not a valid byte range in `source`
     /// (caller must pass the same string that produced this token).
     pub fn lexeme<'a>(&self, source: &'a str) -> &'a str {
-        &source[self.start..self.end]
+        self.try_lexeme(source).unwrap_or_else(|| {
+            panic!(
+                "token span {}..{} is invalid for source of length {}",
+                self.start,
+                self.end,
+                source.len()
+            )
+        })
     }
 }
 
@@ -136,5 +148,24 @@ mod tests {
             assert!(!lexeme.chars().any(char::is_whitespace));
             assert_eq!(token.kind, TokenKind::Word);
         }
+    }
+
+    #[test]
+    fn try_lexeme_rejects_out_of_bounds() {
+        let token = Token {
+            kind: TokenKind::Word,
+            start: 0,
+            end: 99,
+        };
+        assert!(token.try_lexeme("hi").is_none());
+        assert_eq!(
+            Token {
+                kind: TokenKind::Word,
+                start: 0,
+                end: 2,
+            }
+            .try_lexeme("hi"),
+            Some("hi")
+        );
     }
 }
