@@ -1,5 +1,6 @@
 //! Integration tests for shell builtins.
 
+mod alias;
 mod cd;
 mod env;
 mod exit;

@@ -2,22 +2,26 @@
 //!
 //! Builtins mutate the exported map; external commands inherit only that map.
 //! Non-exported shell locals are consulted first during `$` expansion.
+//! Aliases are shell-only (never exported to children).
 //! Special locals (`cwd`, `home`, `user`, `term`) are seeded at capture time.
 //! The process environ is not rewritten except for the working directory (`cd`).
 
 mod access;
+mod aliases;
 mod mutate;
 mod specials;
 
 use std::collections::BTreeMap;
 
-/// Live shell environment: exported vars plus optional non-exported locals.
+/// Live shell environment: exported vars, locals, and aliases.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ShellEnvironment {
     /// Exported / environ copy — inherited by children.
-    vars: BTreeMap<String, String>,
+    pub(super) vars: BTreeMap<String, String>,
     /// Shell-local variables (not passed to children).
-    locals: BTreeMap<String, String>,
+    pub(super) locals: BTreeMap<String, String>,
+    /// Command aliases (not passed to children).
+    pub(super) aliases: BTreeMap<String, String>,
 }
 
 impl ShellEnvironment {
@@ -28,6 +32,7 @@ impl ShellEnvironment {
         let mut env = Self {
             vars: std::env::vars().collect(),
             locals: BTreeMap::new(),
+            aliases: BTreeMap::new(),
         };
         env.seed_specials();
         env
@@ -40,6 +45,7 @@ impl ShellEnvironment {
         Self {
             vars,
             locals: BTreeMap::new(),
+            aliases: BTreeMap::new(),
         }
     }
 }

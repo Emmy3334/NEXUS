@@ -52,6 +52,10 @@ fn build_stages<'a>(
                 }
             }
         }
+        if let Err(err) = crate::alias::apply_aliases(&mut argv, shell_env, last_status) {
+            writeln!(stderr, "{}", err.message())?;
+            return Ok(Err(CommandResult::Status(1)));
+        }
         stages.push((argv, command.redirects.as_slice()));
     }
     Ok(Ok(stages))
