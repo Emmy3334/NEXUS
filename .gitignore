@@ -1,0 +1,21 @@
+# ── Cargo / Rust ────────────────────────────────────
+/target/
+**/*.rs.bk
+
+# ── Reference PDFs (keep local, do not commit) ──────
+*.pdf
+
+# ── Logs and runtime ────────────────────────────────
+*.log
+
+# ── Environment ─────────────────────────────────────
+.env
+.env.*
+
+# ── Editor and OS noise ─────────────────────────────
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
