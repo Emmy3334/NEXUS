@@ -53,17 +53,3 @@ impl ShellEnvironment {
         self.vars.iter().map(|(k, v)| (k.as_str(), v.as_str()))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn set_get_unset() {
-        let mut env = ShellEnvironment::default();
-        env.set("FOO", "bar");
-        assert_eq!(env.get("FOO"), Some("bar"));
-        assert!(env.unset("FOO"));
-        assert_eq!(env.get("FOO"), None);
-    }
-}

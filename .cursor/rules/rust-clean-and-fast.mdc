@@ -51,7 +51,7 @@ Follow these sources on every Rust change in this repo:
 - Clear stderr messages for shell errors; meaningful exit codes.
 
 ### Observability / CI
-- Prefer code that is easy to test in CI (`cargo test`, clippy, fmt).
+- Prefer code that is easy to test in CI (`cargo test` against repo-root `tests/`, clippy, fmt).
 - Heavier monitoring/tracing later when the cloud shell needs it — don’t fake it.
 
 ### Others
@@ -65,13 +65,17 @@ src/
   bin/nexus.rs        # thin main only
   lex.rs | lex/       # grow file → folder when needed
   parse.rs | parse/
-  exec.rs | exec/
-  env.rs | builtins.rs | repl.rs
+  exec/ | env.rs | builtins/ | repl.rs
+tests/                # ALL tests (one integration crate for rust-analyzer)
+  integration/
+    main.rs           # crate root — every test module hangs off this
+    builtins/ exec/ lex.rs parse.rs repl.rs shell_env.rs
 ```
 
 - Domain logic lives in the **library**.
 - Binary stays a thin driver.
 - Folders + `mod.rs` only when a module outgrows one file.
+- **Tests:** only under `tests/integration/` (reached from `main.rs`). Do not add `#[cfg(test)]` / `#[test]` inside `src/`.
 - Workspaces only when we truly need separate crates.
 - Binary name: **`nexus`**. `rust-version = "1.75"`, edition **2021**.
 
