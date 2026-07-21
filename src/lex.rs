@@ -1,7 +1,8 @@
 //! Lexical analysis for shell command lines (Dragon Book Ch. 3).
 //!
 //! Recognizes [`TokenKind::Word`] and Minishell2 operators: `;`, `|`, `>`,
-//! `<`, `>>`, `<<`. Quotes and escapes arrive in later slices.
+//! `<`, `>>`, `<<`. Words may contain `'…'`, `"…"`, and `\` escapes so that
+//! spaces and operators inside quotes stay part of the word.
 
 /// What kind of lexeme a [`Token`] spans.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,8 +26,11 @@ impl TokenKind {
 
 /// A token stored as a byte span into the source line (no heap copy).
 ///
+/// Word spans may include quote and backslash characters. Use
+/// [`expand_word`] / [`expand_word_into`] to get the runtime argv text.
+///
 /// Call [`Token::lexeme`] with the same `source` that was tokenized to read
-/// the text. Spans are invalid after that source buffer is mutated.
+/// the raw span. Spans are invalid after that source buffer is mutated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
@@ -40,7 +44,7 @@ impl Token {
         source.get(self.start..self.end)
     }
 
-    /// Borrow the lexeme from `source`.
+    /// Borrow the raw lexeme from `source` (quotes/escapes not stripped).
     ///
     /// # Panics
     ///
@@ -58,12 +62,30 @@ impl Token {
     }
 }
 
+/// Why tokenization or word expansion failed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LexError {
+    /// A `'` or `"` was opened and never closed on this line.
+    UnclosedQuote,
+}
+
+impl LexError {
+    /// Human-readable message for stderr.
+    #[must_use]
+    pub const fn message(self) -> &'static str {
+        match self {
+            Self::UnclosedQuote => "Unmatched quote.",
+        }
+    }
+}
+
 /// Tokenize `source` into `tokens`, reusing `tokens`' capacity.
 ///
 /// Clears `tokens` first. One forward scan; no intermediate collections.
 /// Two-character operators (`>>`, `<<`) are preferred over single `>` / `<`.
-/// Operators split words even without surrounding whitespace (`ls|wc`).
-pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) {
+/// Operators split words only when outside quotes. `\` escapes the next
+/// character outside quotes (and a few insides `"…"`).
+pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) -> Result<(), LexError> {
     tokens.clear();
 
     let mut position = 0;
@@ -73,11 +95,72 @@ pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) {
         let Some(token_start) = next_non_whitespace(source, position) else {
             break;
         };
-        position = push_token(source, token_start, tokens);
+        position = push_token(source, token_start, tokens)?;
     }
+    Ok(())
 }
 
-fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> usize {
+/// Expand a raw word lexeme: strip quotes and apply backslash escapes.
+pub fn expand_word(raw: &str) -> Result<String, LexError> {
+    let mut out = String::with_capacity(raw.len());
+    expand_word_into(raw, &mut out)?;
+    Ok(out)
+}
+
+/// Expand `raw` into `out`, clearing `out` first and reusing its capacity.
+pub fn expand_word_into(raw: &str, out: &mut String) -> Result<(), LexError> {
+    out.clear();
+    let mut chars = raw.chars();
+    let mut state = QuoteState::Normal;
+
+    while let Some(ch) = chars.next() {
+        match state {
+            QuoteState::Normal => match ch {
+                '\'' => state = QuoteState::Single,
+                '"' => state = QuoteState::Double,
+                '\\' => {
+                    if let Some(next) = chars.next() {
+                        out.push(next);
+                    }
+                }
+                _ => out.push(ch),
+            },
+            QuoteState::Single => {
+                if ch == '\'' {
+                    state = QuoteState::Normal;
+                } else {
+                    out.push(ch);
+                }
+            }
+            QuoteState::Double => match ch {
+                '"' => state = QuoteState::Normal,
+                '\\' => match chars.next() {
+                    Some(next) if matches!(next, '"' | '\\' | '$' | '`' | '\n') => out.push(next),
+                    Some(next) => {
+                        out.push('\\');
+                        out.push(next);
+                    }
+                    None => {}
+                },
+                _ => out.push(ch),
+            },
+        }
+    }
+
+    if state != QuoteState::Normal {
+        return Err(LexError::UnclosedQuote);
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum QuoteState {
+    Normal,
+    Single,
+    Double,
+}
+
+fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> Result<usize, LexError> {
     let bytes = source.as_bytes();
     let first = bytes[start];
 
@@ -99,13 +182,13 @@ fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> usize {
             }
         }
         _ => {
-            let end = word_end(source, start);
+            let end = scan_word_end(source, start)?;
             (TokenKind::Word, end)
         }
     };
 
     tokens.push(Token { kind, start, end });
-    end
+    Ok(end)
 }
 
 fn next_non_whitespace(source: &str, from: usize) -> Option<usize> {
@@ -115,12 +198,46 @@ fn next_non_whitespace(source: &str, from: usize) -> Option<usize> {
         .map(|(offset, _)| from + offset)
 }
 
-fn word_end(source: &str, from: usize) -> usize {
-    source[from..]
-        .char_indices()
-        .find(|(_, ch)| ch.is_whitespace() || is_operator_char(*ch))
-        .map(|(offset, _)| from + offset)
-        .unwrap_or(source.len())
+/// Scan one word starting at `from` (must not be whitespace/operator).
+fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
+    let mut state = QuoteState::Normal;
+    let mut chars = source[from..].char_indices();
+
+    while let Some((rel, ch)) = chars.next() {
+        let abs = from + rel;
+        match state {
+            QuoteState::Normal => {
+                if ch.is_whitespace() || is_operator_char(ch) {
+                    return Ok(abs);
+                }
+                match ch {
+                    '\'' => state = QuoteState::Single,
+                    '"' => state = QuoteState::Double,
+                    '\\' => {
+                        let _ = chars.next();
+                    }
+                    _ => {}
+                }
+            }
+            QuoteState::Single => {
+                if ch == '\'' {
+                    state = QuoteState::Normal;
+                }
+            }
+            QuoteState::Double => {
+                if ch == '\\' {
+                    let _ = chars.next();
+                } else if ch == '"' {
+                    state = QuoteState::Normal;
+                }
+            }
+        }
+    }
+
+    if state != QuoteState::Normal {
+        return Err(LexError::UnclosedQuote);
+    }
+    Ok(source.len())
 }
 
 fn is_operator_char(ch: char) -> bool {

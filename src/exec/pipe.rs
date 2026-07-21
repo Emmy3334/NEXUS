@@ -11,6 +11,7 @@ use super::{
 };
 use crate::builtins;
 use crate::env::ShellEnvironment;
+use crate::lex;
 use crate::parse::{Pipeline, Redirect};
 
 use std::io::{self, Write};
@@ -25,18 +26,21 @@ pub(super) fn execute_piped_stages(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
-    let stages: Vec<(Vec<String>, &[Redirect<'_>])> = pipeline
-        .commands
-        .iter()
-        .map(|command| {
-            let argv = command
-                .argv
-                .iter()
-                .map(|word| (*word).to_string())
-                .collect();
-            (argv, command.redirects.as_slice())
-        })
-        .collect();
+    let mut stages: Vec<(Vec<String>, &[Redirect<'_>])> =
+        Vec::with_capacity(pipeline.commands.len());
+    for command in &pipeline.commands {
+        let mut argv = Vec::with_capacity(command.argv.len());
+        for word in &command.argv {
+            match lex::expand_word(word) {
+                Ok(expanded) => argv.push(expanded),
+                Err(err) => {
+                    writeln!(stderr, "{}", err.message())?;
+                    return Ok(CommandResult::Status(1));
+                }
+            }
+        }
+        stages.push((argv, command.redirects.as_slice()));
+    }
 
     let mut children: Vec<Child> = Vec::new();
     let mut prev_stdout: Option<std::process::ChildStdout> = None;
@@ -127,10 +131,17 @@ pub(super) fn execute_piped_stages(
                     let mut child = match command.spawn() {
                         Ok(child) => child,
                         Err(err) => {
-                            abandon_children(&mut children);
-                            return Ok(CommandResult::Status(report_spawn_failure(
-                                name, &err, stderr,
-                            )?));
+                            let code = report_spawn_failure(name, &err, stderr)?;
+                            // Prior writers may still be on the pipe — drain so they can exit.
+                            if let Some(mut reader) = prev_stdout.take() {
+                                let _ = io::copy(&mut reader, &mut io::sink());
+                            }
+                            if is_last {
+                                let _ = wait_children(&mut children)?;
+                                return Ok(CommandResult::Status(code));
+                            }
+                            // Skip this stage; later stages still run (no pipefail).
+                            continue;
                         }
                     };
                     if let Some(mut stdin) = child.stdin.take() {
@@ -168,10 +179,17 @@ pub(super) fn execute_piped_stages(
                 children.push(child);
             }
             Err(err) => {
-                abandon_children(&mut children);
-                return Ok(CommandResult::Status(report_spawn_failure(
-                    name, &err, stderr,
-                )?));
+                let code = report_spawn_failure(name, &err, stderr)?;
+                if let Some(mut reader) = prev_stdout.take() {
+                    let _ = io::copy(&mut reader, &mut io::sink());
+                }
+                let _ = buffered_out.take();
+                if is_last {
+                    let _ = wait_children(&mut children)?;
+                    return Ok(CommandResult::Status(code));
+                }
+                // Missing mid/left stage: keep going so `plop | ls` still lists.
+                continue;
             }
         }
     }

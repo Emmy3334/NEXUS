@@ -13,7 +13,7 @@ pub fn test_env() -> ShellEnvironment {
 
 pub fn parse_list(source: &str) -> CommandList<'_> {
     let mut tokens = Vec::new();
-    nexus::lex::tokenize_into(source, &mut tokens);
+    nexus::lex::tokenize_into(source, &mut tokens).expect("lex ok");
     nexus::parse::parse_line(source, &tokens)
         .expect("parse ok")
         .expect("non-empty list")

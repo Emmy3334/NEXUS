@@ -47,7 +47,11 @@ pub fn run(
         }
 
         let command_line = trim_line_ending(&line_buffer);
-        lex::tokenize_into(command_line, &mut tokens);
+        if let Err(error) = lex::tokenize_into(command_line, &mut tokens) {
+            writeln!(stderr, "{}", error.message())?;
+            last_status = 1;
+            continue;
+        }
         debug_assert!(tokens_are_well_formed(command_line, &tokens));
 
         let command_list = match parse::parse_line(command_line, &tokens) {
@@ -60,7 +64,14 @@ pub fn run(
             }
         };
 
-        let heredoc_bodies = exec::collect_heredoc_bodies(&command_list, &mut stdin, &mut stderr)?;
+        let heredoc_bodies =
+            match exec::collect_heredoc_bodies(&command_list, &mut stdin, &mut stderr)? {
+                Ok(bodies) => bodies,
+                Err(code) => {
+                    last_status = code;
+                    continue;
+                }
+            };
 
         match exec::execute_list(
             &command_list,
@@ -80,9 +91,9 @@ pub fn run(
 fn tokens_are_well_formed(source: &str, tokens: &[lex::Token]) -> bool {
     tokens.iter().all(|token| {
         token.start <= token.end
-            && token.try_lexeme(source).is_some_and(|lexeme| {
-                !lexeme.is_empty() && !lexeme.chars().any(char::is_whitespace)
-            })
+            && token
+                .try_lexeme(source)
+                .is_some_and(|lexeme| !lexeme.is_empty())
     })
 }
 

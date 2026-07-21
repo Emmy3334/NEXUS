@@ -105,21 +105,20 @@ pub fn parse_line<'a>(
     parser.parse_list()
 }
 
-/// Fill `argv` from word slices, reusing each `String`'s capacity when possible.
+/// Fill `argv` from raw word lexemes, expanding quotes/escapes.
 ///
-/// Owned slots avoid tying argv lifetimes to the line buffer across REPL
-/// iterations (hot path: clear + `push_str`, no fresh `String` per word when
-/// capacity already fits).
-pub fn fill_argv(words: &[&str], argv: &mut Vec<String>) {
+/// Reuses each `String`'s capacity when possible (hot path: clear + expand
+/// into the same buffer).
+pub fn fill_argv(words: &[&str], argv: &mut Vec<String>) -> Result<(), crate::lex::LexError> {
     while argv.len() < words.len() {
         argv.push(String::new());
     }
     argv.truncate(words.len());
 
     for (slot, word) in argv.iter_mut().zip(words.iter()) {
-        slot.clear();
-        slot.push_str(word);
+        crate::lex::expand_word_into(word, slot)?;
     }
+    Ok(())
 }
 
 struct Parser<'src, 'tok> {
