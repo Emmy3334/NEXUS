@@ -7,8 +7,12 @@ description = "NEXUS — The Self-Healing Cloud Shell"
 license = "LicenseRef-Proprietary"
 publish = false
 
+[lib]
+name = "nexus"
+path = "src/lib.rs"
+
 [[bin]]
 name = "nexus"
-path = "src/main.rs"
+path = "src/bin/nexus.rs"
 
 [dependencies]
