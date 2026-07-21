@@ -1,0 +1,14 @@
+[package]
+name = "nexus"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "NEXUS — The Self-Healing Cloud Shell"
+license = "LicenseRef-Proprietary"
+publish = false
+
+[[bin]]
+name = "nexus"
+path = "src/main.rs"
+
+[dependencies]
