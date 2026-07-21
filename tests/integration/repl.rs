@@ -119,12 +119,33 @@ fn parse_errors_go_to_stderr() {
     assert!(String::from_utf8(stderr)
         .unwrap()
         .contains("Invalid null command"));
+}
 
-    let (code, _, stderr) = run_piped("cmd << END\n");
-    assert_eq!(code, 1);
+#[test]
+fn heredoc_feeds_stdin_in_repl() {
+    let path = std::env::temp_dir().join(format!("nexus_repl_heredoc_{}.txt", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let input = format!("cat << EOF > {}\nhello\nworld\nEOF\n", path.display());
+    let (code, _, stderr) = run_piped(&input);
+    assert_eq!(code, 0);
+    assert!(stderr.is_empty());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "hello\nworld\n");
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn heredoc_eof_warns_and_runs_partial() {
+    let path =
+        std::env::temp_dir().join(format!("nexus_repl_heredoc_eof_{}.txt", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let input = format!("cat << EOF > {}\npartial\n", path.display());
+    let (code, _, stderr) = run_piped(&input);
+    assert_eq!(code, 0);
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "partial\n");
     assert!(String::from_utf8(stderr)
         .unwrap()
-        .contains("heredoc is not implemented"));
+        .contains("here-document delimited by end-of-file"));
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]

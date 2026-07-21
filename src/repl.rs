@@ -60,11 +60,14 @@ pub fn run(
             }
         };
 
+        let heredoc_bodies = exec::collect_heredoc_bodies(&command_list, &mut stdin, &mut stderr)?;
+
         match exec::execute_list(
             &command_list,
             &mut argv,
             &mut shell_env,
             last_status,
+            heredoc_bodies,
             &mut stdout,
             &mut stderr,
         )? {

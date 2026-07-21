@@ -2,9 +2,9 @@
 //!
 //! Builtins in a multi-stage pipeline use subshell semantics (cloned env;
 //! `exit` does not kill the parent shell). Status is the last stage’s status.
-//! File redirects on a stage override the pipe on that fd.
+//! File / heredoc redirects on a stage override the pipe on that fd.
 
-use super::redirect::{apply_stdout_for_stage, open_redirect_files};
+use super::redirect::{apply_stdout_for_stage, open_redirect_files, HeredocState, StdinSource};
 use super::{
     abandon_children, build_external_command, report_spawn_failure, run_builtin_status,
     wait_children, CommandResult,
@@ -21,6 +21,7 @@ pub(super) fn execute_piped_stages(
     pipeline: &Pipeline<'_>,
     shell_env: &ShellEnvironment,
     last_status: u8,
+    heredocs: &mut HeredocState,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
@@ -49,7 +50,7 @@ pub(super) fn execute_piped_stages(
             return Ok(CommandResult::Status(0));
         };
 
-        let files = match open_redirect_files(redirects, stderr)? {
+        let files = match open_redirect_files(redirects, heredocs, stderr)? {
             Ok(files) => files,
             Err(code) => {
                 abandon_children(&mut children);
@@ -63,7 +64,7 @@ pub(super) fn execute_piped_stages(
                 let _ = io::copy(&mut reader, &mut io::sink());
             }
             let _ = buffered_out.take();
-            // Builtins don't consume stdin yet; drop the File (open already validated).
+            // Builtins don't consume stdin yet; drop any stdin redirect.
             drop(files.stdin);
 
             let mut env_clone = shell_env.clone();
@@ -101,43 +102,64 @@ pub(super) fn execute_piped_stages(
         let mut command = build_external_command(stage, shell_env);
         let stdout_redirected = files.stdout.is_some();
 
-        // Stdin: file redirect overrides pipe / buffered builtin output.
-        if let Some(file) = files.stdin {
-            if let Some(mut reader) = prev_stdout.take() {
-                let _ = io::copy(&mut reader, &mut io::sink());
-            }
-            let _ = buffered_out.take();
-            command.stdin(Stdio::from(file));
-        } else if let Some(buffer) = buffered_out.take() {
-            command.stdin(Stdio::piped());
-            apply_stdout_for_stage(&mut command, files.stdout, is_last);
-            let mut child = match command.spawn() {
-                Ok(child) => child,
-                Err(err) => {
-                    abandon_children(&mut children);
-                    return Ok(CommandResult::Status(report_spawn_failure(
-                        name, &err, stderr,
-                    )?));
+        // Stdin: file / heredoc redirect overrides pipe / buffered builtin output.
+        let stdin_bytes = match files.stdin {
+            Some(StdinSource::File(file)) => {
+                if let Some(mut reader) = prev_stdout.take() {
+                    let _ = io::copy(&mut reader, &mut io::sink());
                 }
-            };
-            if let Some(mut stdin) = child.stdin.take() {
-                stdin.write_all(&buffer)?;
-            }
-            prev_stdout = if !stdout_redirected && !is_last {
-                child.stdout.take()
-            } else {
+                let _ = buffered_out.take();
+                command.stdin(Stdio::from(file));
                 None
-            };
-            children.push(child);
-            continue;
-        } else if let Some(stdout_pipe) = prev_stdout.take() {
-            command.stdin(stdout_pipe);
-        }
+            }
+            Some(StdinSource::Bytes(bytes)) => {
+                if let Some(mut reader) = prev_stdout.take() {
+                    let _ = io::copy(&mut reader, &mut io::sink());
+                }
+                let _ = buffered_out.take();
+                command.stdin(Stdio::piped());
+                Some(bytes)
+            }
+            None => {
+                if let Some(buffer) = buffered_out.take() {
+                    command.stdin(Stdio::piped());
+                    apply_stdout_for_stage(&mut command, files.stdout, is_last);
+                    let mut child = match command.spawn() {
+                        Ok(child) => child,
+                        Err(err) => {
+                            abandon_children(&mut children);
+                            return Ok(CommandResult::Status(report_spawn_failure(
+                                name, &err, stderr,
+                            )?));
+                        }
+                    };
+                    if let Some(mut stdin) = child.stdin.take() {
+                        stdin.write_all(&buffer)?;
+                    }
+                    prev_stdout = if !stdout_redirected && !is_last {
+                        child.stdout.take()
+                    } else {
+                        None
+                    };
+                    children.push(child);
+                    continue;
+                }
+                if let Some(stdout_pipe) = prev_stdout.take() {
+                    command.stdin(stdout_pipe);
+                }
+                None
+            }
+        };
 
         apply_stdout_for_stage(&mut command, files.stdout, is_last);
 
         match command.spawn() {
             Ok(mut child) => {
+                if let Some(bytes) = stdin_bytes {
+                    if let Some(mut stdin) = child.stdin.take() {
+                        stdin.write_all(&bytes)?;
+                    }
+                }
                 prev_stdout = if !stdout_redirected && !is_last {
                     child.stdout.take()
                 } else {

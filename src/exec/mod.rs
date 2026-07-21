@@ -2,10 +2,12 @@
 //!
 //! - [`execute_list`] walks `;`-separated pipelines
 //! - [`pipe`] connects stages with OS pipes
-//! - [`redirect`] applies `<` / `>` / `>>` (overrides a pipe on that fd)
+//! - [`redirect`] applies `<` / `>` / `>>` / `<<` (overrides a pipe on that fd)
 
 mod pipe;
 mod redirect;
+
+pub use redirect::collect_heredoc_bodies;
 
 use crate::builtins::{self, BuiltinResult};
 use crate::env::ShellEnvironment;
@@ -39,6 +41,10 @@ impl From<BuiltinResult> for CommandResult {
 
 /// Run a command list: each `;`-separated pipeline in order.
 ///
+/// `heredoc_bodies` must contain one entry per `<<` in `list`, in left-to-right
+/// appearance order (see [`collect_heredoc_bodies`]). Bodies are consumed
+/// (moved) during apply so the payload is not cloned.
+///
 /// `exit` in a single-command pipeline stops the shell. Reuses `argv`
 /// across simple (non-pipe) commands.
 pub fn execute_list(
@@ -46,11 +52,21 @@ pub fn execute_list(
     argv: &mut Vec<String>,
     shell_env: &mut ShellEnvironment,
     mut last_status: u8,
+    heredoc_bodies: Vec<String>,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
+    let mut heredocs = redirect::HeredocState::new(heredoc_bodies);
     for pipeline in &list.pipelines {
-        match execute_pipeline(pipeline, argv, shell_env, last_status, stdout, stderr)? {
+        match execute_pipeline(
+            pipeline,
+            argv,
+            shell_env,
+            last_status,
+            &mut heredocs,
+            stdout,
+            stderr,
+        )? {
             CommandResult::Status(code) => last_status = code,
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
         }
@@ -64,6 +80,7 @@ fn execute_pipeline(
     argv: &mut Vec<String>,
     shell_env: &mut ShellEnvironment,
     last_status: u8,
+    heredocs: &mut redirect::HeredocState,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
@@ -77,13 +94,14 @@ fn execute_pipeline(
             redirect::execute_simple(
                 argv,
                 &simple.redirects,
+                heredocs,
                 shell_env,
                 last_status,
                 stdout,
                 stderr,
             )
         }
-        _ => pipe::execute_piped_stages(pipeline, shell_env, last_status, stdout, stderr),
+        _ => pipe::execute_piped_stages(pipeline, shell_env, last_status, heredocs, stdout, stderr),
     }
 }
 
