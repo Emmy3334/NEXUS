@@ -28,14 +28,6 @@ impl<'a> CommandList<'a> {
             _ => None,
         }
     }
-
-    /// Whether any pipeline uses `|` (multi-command).
-    #[must_use]
-    pub fn contains_pipe(&self) -> bool {
-        self.pipelines
-            .iter()
-            .any(|pipeline| pipeline.commands.len() > 1)
-    }
 }
 
 /// One or more simple commands connected by `|`.

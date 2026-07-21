@@ -1,8 +1,8 @@
 //! Read–eval–print loop (prompt → lex → parse → exec/builtins).
 //!
 //! Dragon Book pipeline: acquire line → lexical analysis → list/pipeline
-//! parse → execute against an owned environment copy. Semicolon lists run
-//! in order; pipe execution lands in a later Minishell2 slice.
+//! parse → execute against an owned environment copy. Semicolon lists and
+//! `|` pipelines are both executed.
 
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
@@ -187,11 +187,21 @@ mod tests {
     }
 
     #[test]
-    fn pipes_are_not_executed_yet() {
+    fn pipes_execute_and_use_last_status() {
         let (code, _, stderr) = run_piped("true | false\n");
         assert_eq!(code, 1);
-        let message = String::from_utf8(stderr).unwrap();
-        assert!(message.contains("pipes are not executed yet"));
+        assert!(stderr.is_empty());
+
+        let (code, _, stderr) = run_piped("false | true\n");
+        assert_eq!(code, 0);
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn exit_in_pipe_does_not_end_shell() {
+        let (code, _, stderr) = run_piped("exit 9 | true\nfalse\n");
+        assert_eq!(code, 1);
+        assert!(stderr.is_empty());
     }
 
     #[test]

@@ -1,20 +1,21 @@
 //! Command execution: builtins first, then external programs.
 //!
-//! Walks a [`CommandList`] for `;`-separated simple commands. Pipe execution
-//! lands in a later Minishell2 slice.
+//! Walks a [`CommandList`]: `;` runs pipelines in order; `|` connects
+//! stages with OS pipes. Builtins in a multi-stage pipeline use subshell
+//! semantics (cloned env; `exit` does not kill the parent shell).
 
 use crate::builtins::{self, BuiltinResult};
 use crate::env::ShellEnvironment;
-use crate::parse::{self, CommandList};
+use crate::parse::{self, CommandList, Pipeline};
 
 use std::ffi::OsStr;
 use std::io::{self, Write};
-use std::process::{Command, ExitStatus};
+use std::process::{Child, Command, ExitStatus, Stdio};
 
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 
-/// Outcome of running one simple command.
+/// Outcome of running one simple command or a list/pipeline.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[must_use = "shell exit vs continue must be handled by the REPL"]
 pub enum CommandResult {
@@ -35,8 +36,8 @@ impl From<BuiltinResult> for CommandResult {
 
 /// Run a command list: each `;`-separated pipeline in order.
 ///
-/// Pipelines with `|` are rejected until pipe exec is implemented.
-/// `exit` stops the list immediately. Reuses `argv` across commands.
+/// `exit` in a single-command pipeline stops the shell. Reuses `argv`
+/// across simple (non-pipe) commands.
 pub fn execute_list(
     list: &CommandList<'_>,
     argv: &mut Vec<String>,
@@ -45,26 +46,181 @@ pub fn execute_list(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
-    if list.contains_pipe() {
-        writeln!(stderr, "nexus: pipes are not executed yet.")?;
-        return Ok(CommandResult::Status(1));
-    }
-
     for pipeline in &list.pipelines {
-        // Pipe-free pipelines are exactly one simple command.
-        let simple = &pipeline.commands[0];
-        parse::fill_argv(&simple.argv, argv);
-        if argv.is_empty() {
-            continue;
-        }
-
-        match execute_command(argv, shell_env, last_status, stdout, stderr)? {
+        match execute_pipeline(pipeline, argv, shell_env, last_status, stdout, stderr)? {
             CommandResult::Status(code) => last_status = code,
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
         }
     }
 
     Ok(CommandResult::Status(last_status))
+}
+
+fn execute_pipeline(
+    pipeline: &Pipeline<'_>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<CommandResult> {
+    match pipeline.commands.as_slice() {
+        [] => Ok(CommandResult::Status(last_status)),
+        [simple] => {
+            parse::fill_argv(&simple.argv, argv);
+            if argv.is_empty() {
+                return Ok(CommandResult::Status(last_status));
+            }
+            execute_command(argv, shell_env, last_status, stdout, stderr)
+        }
+        _ => execute_piped_stages(pipeline, shell_env, last_status, stdout, stderr),
+    }
+}
+
+/// Multi-stage `|` pipeline. Status is the last stage’s status.
+fn execute_piped_stages(
+    pipeline: &Pipeline<'_>,
+    shell_env: &ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<CommandResult> {
+    let stages: Vec<Vec<String>> = pipeline
+        .commands
+        .iter()
+        .map(|command| {
+            command
+                .argv
+                .iter()
+                .map(|word| (*word).to_string())
+                .collect()
+        })
+        .collect();
+
+    let mut children: Vec<Child> = Vec::new();
+    let mut prev_stdout: Option<std::process::ChildStdout> = None;
+    let mut buffered_out: Option<Vec<u8>> = None;
+    let last_index = stages.len() - 1;
+
+    for (index, stage) in stages.iter().enumerate() {
+        let is_last = index == last_index;
+        let Some(name) = stage.first().map(String::as_str) else {
+            abandon_children(&mut children);
+            return Ok(CommandResult::Status(0));
+        };
+
+        if builtins::is_builtin(name) {
+            // Discard unused stdin from the previous external stage.
+            if let Some(mut reader) = prev_stdout.take() {
+                let _ = io::copy(&mut reader, &mut io::sink());
+            }
+            let _ = buffered_out.take();
+
+            let mut env_clone = shell_env.clone();
+            if is_last {
+                let status =
+                    run_builtin_status(stage, &mut env_clone, last_status, stdout, stderr)?;
+                // Reap prior external stages; pipeline status is the builtin’s.
+                let _ = wait_children(&mut children)?;
+                return Ok(CommandResult::Status(status));
+            }
+
+            let mut buffer = Vec::new();
+            let _ = run_builtin_status(stage, &mut env_clone, last_status, &mut buffer, stderr)?;
+            buffered_out = Some(buffer);
+            continue;
+        }
+
+        let mut command = build_external_command(stage, shell_env);
+        if let Some(buffer) = buffered_out.take() {
+            command.stdin(Stdio::piped());
+            if !is_last {
+                command.stdout(Stdio::piped());
+            }
+            let mut child = match command.spawn() {
+                Ok(child) => child,
+                Err(err) => {
+                    abandon_children(&mut children);
+                    return Ok(CommandResult::Status(report_spawn_failure(
+                        name, &err, stderr,
+                    )?));
+                }
+            };
+            if let Some(mut stdin) = child.stdin.take() {
+                stdin.write_all(&buffer)?;
+            }
+            prev_stdout = child.stdout.take();
+            children.push(child);
+            continue;
+        }
+
+        if let Some(stdout_pipe) = prev_stdout.take() {
+            command.stdin(stdout_pipe);
+        }
+        if !is_last {
+            command.stdout(Stdio::piped());
+        }
+
+        match command.spawn() {
+            Ok(mut child) => {
+                prev_stdout = child.stdout.take();
+                children.push(child);
+            }
+            Err(err) => {
+                abandon_children(&mut children);
+                return Ok(CommandResult::Status(report_spawn_failure(
+                    name, &err, stderr,
+                )?));
+            }
+        }
+    }
+
+    // Pipeline ended on an external (or empty builtin buffer edge).
+    let _ = buffered_out.take();
+    let _ = prev_stdout.take();
+    let status = wait_children(&mut children)?;
+    Ok(CommandResult::Status(status))
+}
+
+/// Run a builtin and map `exit` to a status (pipeline / subshell semantics).
+fn run_builtin_status(
+    argv: &[String],
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    match builtins::try_run(argv, shell_env, last_status, stdout, stderr)? {
+        Some(BuiltinResult::Status(code) | BuiltinResult::Exit(code)) => Ok(code),
+        None => Ok(0),
+    }
+}
+
+fn build_external_command(argv: &[String], shell_env: &ShellEnvironment) -> Command {
+    let mut command = Command::new(&argv[0]);
+    if argv.len() > 1 {
+        command.args(&argv[1..]);
+    }
+    command.env_clear().envs(shell_env.iter());
+    command
+}
+
+fn abandon_children(children: &mut [Child]) {
+    for child in children.iter_mut() {
+        let _ = child.kill();
+    }
+}
+
+fn wait_children(children: &mut Vec<Child>) -> io::Result<u8> {
+    let count = children.len();
+    let mut last_status = 0u8;
+    for (index, mut child) in children.drain(..).enumerate() {
+        let status = child.wait()?;
+        if index + 1 == count {
+            last_status = exit_status_code(status);
+        }
+    }
+    Ok(last_status)
 }
 
 /// Dispatch a simple command through builtins or an external spawn.
@@ -154,6 +310,14 @@ mod tests {
         let mut map = BTreeMap::new();
         map.insert("PATH".into(), path);
         ShellEnvironment::from_map(map)
+    }
+
+    fn parse_list(source: &str) -> CommandList<'_> {
+        let mut tokens = Vec::new();
+        crate::lex::tokenize_into(source, &mut tokens);
+        crate::parse::parse_line(source, &tokens)
+            .expect("parse ok")
+            .expect("non-empty list")
     }
 
     #[test]
@@ -266,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn pipes_in_list_are_rejected() {
+    fn pipe_uses_last_command_status() {
         let source = "true | false";
         let list = parse_list(source);
         let mut env = test_env();
@@ -275,16 +439,60 @@ mod tests {
         let mut stderr = Vec::new();
         let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
         assert_eq!(result, CommandResult::Status(1));
-        assert!(String::from_utf8(stderr)
-            .unwrap()
-            .contains("pipes are not executed yet"));
+
+        let source = "false | true";
+        let list = parse_list(source);
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(0));
     }
 
-    fn parse_list(source: &str) -> CommandList<'_> {
-        let mut tokens = Vec::new();
-        crate::lex::tokenize_into(source, &mut tokens);
-        crate::parse::parse_line(source, &tokens)
-            .expect("parse ok")
-            .expect("non-empty list")
+    #[test]
+    fn multipipe_status_is_last_stage() {
+        let source = "true | true | false";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(1));
+    }
+
+    #[test]
+    fn exit_in_pipeline_does_not_kill_shell() {
+        let source = "exit 9 | true";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(0));
+    }
+
+    #[test]
+    fn builtin_env_can_feed_pipe() {
+        let source = "env | true";
+        let list = parse_list(source);
+        let mut env = test_env();
+        env.set("NEXUS_PIPE_TEST", "1");
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(0));
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn semicolon_then_pipe() {
+        let source = "false ; true | false";
+        let list = parse_list(source);
+        let mut env = test_env();
+        let mut argv = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let result = execute_list(&list, &mut argv, &mut env, 0, &mut stdout, &mut stderr).unwrap();
+        assert_eq!(result, CommandResult::Status(1));
     }
 }
