@@ -18,6 +18,7 @@ mod while_run;
 #[cfg(unix)]
 pub use line_edit::take_complete_line;
 pub use line_edit::{complete, Action, HistoryRecall, KeyBindings, ReplInput};
+pub use prompt::format_primary;
 pub use script::run_script;
 
 use crate::env::ShellEnvironment;

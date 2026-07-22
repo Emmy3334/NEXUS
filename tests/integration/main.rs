@@ -8,6 +8,7 @@ mod complete_context;
 mod exec;
 mod expand;
 mod foreach;
+mod git_prompt;
 mod glob;
 mod if_block;
 mod jobs_signals;

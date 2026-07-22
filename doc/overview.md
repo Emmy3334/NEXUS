@@ -37,6 +37,7 @@ Product stages (from project PDFs / standing rules):
 | Jobs `&` / `jobs` / `fg` / `bg` (Unix) | Yes |
 | Line edition + `bindkey` (Unix TTY) | Yes |
 | Context Tab complete (git branches, `python`/`ruby` filters, `@docker logs`) | Yes |
+| Git-aware prompt (`$> [branch*] `) | Yes |
 | `foreach` / `while` / `if` | Yes |
 | Scripting / `source` / `.` | Yes |
 | Specials `precmd` / `cwdcmd` / `ignoreeof` | Yes |

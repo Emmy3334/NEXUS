@@ -7,6 +7,7 @@ use super::event::Event;
 use super::keys::read_event;
 use crate::keybind::{Binding, KeyBindings};
 use crate::repl::line_edit::recall::HistoryRecall;
+use crate::repl::prompt::PromptLine;
 
 use std::collections::VecDeque;
 use std::io::{self, Write};
@@ -15,7 +16,7 @@ pub(super) fn handle_event(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
     bindings: &mut KeyBindings,
-    prompt: &mut &str,
+    prompt: &mut PromptLine,
     nav: &mut HistoryRecall<'_>,
     queue: &mut VecDeque<u8>,
     pasting: &mut bool,
@@ -30,15 +31,15 @@ pub(super) fn handle_event(
             Ok(Loop::Continue)
         }
         Event::Action(action) if !*pasting => {
-            actions::apply(stdout, edit, bindings, action, prompt, nav)
+            actions::apply(stdout, edit, bindings, action, prompt.as_str(), nav)
         }
         Event::Action(_) => Ok(Loop::Continue),
         Event::InsertRun(text) if *pasting || !bindings.alternate_active() => {
-            insert_text(stdout, edit, prompt, &text)
+            insert_text(stdout, edit, prompt.as_str(), &text)
         }
-        Event::InsertRun(text) => insert_bound(stdout, edit, bindings, prompt, nav, &text),
-        Event::Raw(bytes) if *pasting => insert_raw_paste(stdout, edit, prompt, &bytes),
-        Event::Raw(bytes) => dispatch_raw(stdout, edit, bindings, prompt, nav, &bytes),
+        Event::InsertRun(text) => insert_bound(stdout, edit, bindings, prompt.as_str(), nav, &text),
+        Event::Raw(bytes) if *pasting => insert_raw_paste(stdout, edit, prompt.as_str(), &bytes),
+        Event::Raw(bytes) => dispatch_raw(stdout, edit, bindings, prompt.as_str(), nav, &bytes),
     }
 }
 

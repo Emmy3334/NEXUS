@@ -36,10 +36,10 @@ pub(super) fn apply(
             bindings.enter_insert_map();
             Ok(Loop::Continue)
         }
-        Action::HistoryUp if prompt == prompt::PRIMARY => {
+        Action::HistoryUp if prompt::is_primary(prompt) => {
             apply_recall(stdout, edit, prompt, |n, line| n.older(line), nav)
         }
-        Action::HistoryDown if prompt == prompt::PRIMARY => {
+        Action::HistoryDown if prompt::is_primary(prompt) => {
             apply_recall(stdout, edit, prompt, |n, line| n.newer(line), nav)
         }
         Action::HistoryUp | Action::HistoryDown => Ok(Loop::Continue),
