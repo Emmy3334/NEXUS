@@ -1,7 +1,6 @@
-//! `pushd` — push directory, rotate stack, and cd.
+//! Stack mutations for `pushd`.
 
-use super::args::{parse_plus_index, take_print_flags};
-use super::print::print_stack;
+use super::super::args::parse_plus_index;
 use crate::builtins::cd;
 use crate::env::ShellEnvironment;
 
@@ -9,47 +8,27 @@ use std::env as process_env;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-pub(crate) fn pushd_cmd(
-    argv: &[String],
+pub(super) fn dispatch(
+    rest: &[String],
     shell_env: &mut ShellEnvironment,
     last_status: u8,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    let cwd = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    shell_env.dir_stack.ensure_seeded(cwd);
-    let (flags, rest) = match take_print_flags(&argv[1..]) {
-        Ok(pair) => pair,
-        Err(msg) => {
-            writeln!(stderr, "pushd: {msg}")?;
-            return Ok(1);
-        }
-    };
-    if rest.len() > 1 {
-        writeln!(stderr, "pushd: Too many arguments.")?;
-        return Ok(1);
-    }
-    let code = match rest.first().map(String::as_str) {
-        None => swap_top(shell_env, last_status, stdout, stderr)?,
+    match rest.first().map(String::as_str) {
+        None => swap_top(shell_env, last_status, stdout, stderr),
         Some(raw) => match parse_plus_index(raw) {
-            Some(n) => rotate_to(n, shell_env, last_status, stdout, stderr)?,
-            None => {
-                let target = match resolve_push_target(raw, shell_env, stderr)? {
-                    Ok(path) => path,
-                    Err(code) => return Ok(code),
-                };
-                push_path(target, shell_env, last_status, stdout, stderr)?
-            }
+            Some(n) => rotate_to(n, shell_env, last_status, stdout, stderr),
+            None => match resolve_push_target(raw, shell_env, stderr)? {
+                Ok(path) => push_path(path, shell_env, last_status, stdout, stderr),
+                Err(code) => Ok(code),
+            },
         },
-    };
-    if code != 0 {
-        return Ok(code);
     }
-    print_stack(shell_env, flags, stdout)
 }
 
 /// Push `target` (used by `dirs -L` as well as the builtin).
-pub(super) fn push_path(
+pub(crate) fn push_path(
     target: PathBuf,
     shell_env: &mut ShellEnvironment,
     last_status: u8,
@@ -72,11 +51,7 @@ fn swap_top(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    if shell_env.dir_stack.len() < 2 {
-        writeln!(stderr, "pushd: No other directory.")?;
-        return Ok(1);
-    }
-    if !shell_env.dir_stack.rotate_left(1) {
+    if shell_env.dir_stack.len() < 2 || !shell_env.dir_stack.rotate_left(1) {
         writeln!(stderr, "pushd: No other directory.")?;
         return Ok(1);
     }
