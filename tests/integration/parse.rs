@@ -91,7 +91,17 @@ fn adjacent_operators_parse() {
 fn null_command_around_pipe_is_error() {
     assert_eq!(parse("| wc").unwrap_err(), ParseError::NullCommand);
     assert_eq!(parse("ls |").unwrap_err(), ParseError::NullCommand);
-    assert_eq!(parse("ls || wc").unwrap_err(), ParseError::NullCommand);
+    assert_eq!(parse("ls &&").unwrap_err(), ParseError::NullCommand);
+    assert_eq!(parse("|| true").unwrap_err(), ParseError::NullCommand);
+}
+
+#[test]
+fn and_or_join_pipelines() {
+    let list = parse("false && true || true").unwrap().unwrap();
+    assert_eq!(list.pipelines.len(), 3);
+    assert_eq!(list.pipelines[0].join, nexus::parse::PipelineJoin::Seq);
+    assert_eq!(list.pipelines[1].join, nexus::parse::PipelineJoin::And);
+    assert_eq!(list.pipelines[2].join, nexus::parse::PipelineJoin::Or);
 }
 
 #[test]

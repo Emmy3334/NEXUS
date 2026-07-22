@@ -50,6 +50,7 @@ fn background_simple<I: BufRead, O: Write, E: Write>(
         let pipeline = crate::parse::Pipeline {
             commands: vec![crate::parse::PipelineCommand::Simple(simple.clone())],
             background: false,
+            join: crate::parse::PipelineJoin::Seq,
         };
         return shell::spawn_pipeline(&pipeline, shell_env, heredocs, io.stderr);
     }

@@ -25,28 +25,11 @@ pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) -> Result<(), LexErr
 
 fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> Result<usize, LexError> {
     let bytes = source.as_bytes();
-    let first = bytes[start];
-
-    let (kind, end) = match first {
+    let (kind, end) = match bytes[start] {
         b';' => (TokenKind::Semicolon, start + 1),
-        b'|' => (TokenKind::Pipe, start + 1),
-        b'&' => (TokenKind::Ampersand, start + 1),
         b'(' => (TokenKind::LParen, start + 1),
         b')' => (TokenKind::RParen, start + 1),
-        b'>' => {
-            if bytes.get(start + 1) == Some(&b'>') {
-                (TokenKind::RedirectAppend, start + 2)
-            } else {
-                (TokenKind::RedirectOut, start + 1)
-            }
-        }
-        b'<' => {
-            if bytes.get(start + 1) == Some(&b'<') {
-                (TokenKind::Heredoc, start + 2)
-            } else {
-                (TokenKind::RedirectIn, start + 1)
-            }
-        }
+        b'|' | b'&' | b'>' | b'<' => two_char_op(bytes, start),
         _ => {
             let end = scan_word_end(source, start)?;
             (TokenKind::Word, end)
@@ -55,6 +38,20 @@ fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> Result<usi
 
     tokens.push(Token { kind, start, end });
     Ok(end)
+}
+
+fn two_char_op(bytes: &[u8], start: usize) -> (TokenKind, usize) {
+    let next = bytes.get(start + 1).copied();
+    match bytes[start] {
+        b'|' if next == Some(b'|') => (TokenKind::OrOr, start + 2),
+        b'|' => (TokenKind::Pipe, start + 1),
+        b'&' if next == Some(b'&') => (TokenKind::AndAnd, start + 2),
+        b'&' => (TokenKind::Ampersand, start + 1),
+        b'>' if next == Some(b'>') => (TokenKind::RedirectAppend, start + 2),
+        b'>' => (TokenKind::RedirectOut, start + 1),
+        b'<' if next == Some(b'<') => (TokenKind::Heredoc, start + 2),
+        _ => (TokenKind::RedirectIn, start + 1),
+    }
 }
 
 fn next_non_whitespace(source: &str, from: usize) -> Option<usize> {
