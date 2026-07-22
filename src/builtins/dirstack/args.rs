@@ -1,5 +1,7 @@
 //! Shared flag parsing for `dirs` / `pushd` / `popd`.
 
+use std::io::{self, Write};
+
 /// How the directory stack should be printed.
 #[derive(Debug, Clone, Copy, Default)]
 pub(super) struct PrintFlags {
@@ -18,6 +20,25 @@ pub(super) fn parse_plus_index(raw: &str) -> Option<usize> {
         return None;
     }
     rest.parse().ok()
+}
+
+/// Parse print flags for `name`; at most one non-flag operand.
+pub(super) fn parse_cmd_args<'a>(
+    name: &str,
+    argv: &'a [String],
+    stderr: &mut impl Write,
+) -> io::Result<Result<(PrintFlags, &'a [String]), u8>> {
+    match take_print_flags(&argv[1..]) {
+        Ok((flags, rest)) if rest.len() <= 1 => Ok(Ok((flags, rest))),
+        Ok((_, _)) => {
+            writeln!(stderr, "{name}: Too many arguments.")?;
+            Ok(Err(1))
+        }
+        Err(msg) => {
+            writeln!(stderr, "{name}: {msg}")?;
+            Ok(Err(1))
+        }
+    }
 }
 
 /// Consume leading `-…` print flags; returns remaining argv and flags.
