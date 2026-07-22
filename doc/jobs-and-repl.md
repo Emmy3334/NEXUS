@@ -41,6 +41,16 @@ Public pieces re-exported from `repl`: `Action`, `HistoryRecall`, `KeyBindings`,
 
 Otherwise falls back to builtins + `PATH` + filesystem matches.
 
+### Git-aware primary prompt
+
+Interactive primary prompts come from `repl::format_primary()` (`src/repl/prompt/`):
+
+- Outside a git work tree: `$> `
+- On a branch: `$> [main] `
+- With uncommitted changes (`git status --porcelain -uno`): `$> [main*] `
+
+Branch is read from `.git/HEAD` (no subprocess). Dirty state uses `git status --porcelain -uno` when available, with a short TTL / metadata cache so successive prompts avoid redundant spawns.
+
 **Bracketed paste**: TTY path queues paste bytes (`input_queue` on `ReplIo`) so multi-line pastes do not scramble the editor.
 
 **Completion**: path-oriented helpers under `line_edit/complete/`.

@@ -19,7 +19,7 @@ use super::recall::HistoryRecall;
 use super::ReadOutcome;
 use crate::history::History;
 use crate::keybind::KeyBindings;
-use crate::repl::prompt;
+use crate::repl::prompt::PromptLine;
 
 use std::collections::VecDeque;
 use std::io::{self, Write};
@@ -34,10 +34,10 @@ pub(super) fn edit_line(
     let _guard = term::RawMode::enter()?;
     let mut edit = EditBuffer::new();
     let mut nav = HistoryRecall::new(history);
-    let mut prompt = prompt::PRIMARY;
+    let mut prompt = PromptLine::primary();
     let mut pasting = false;
     bindings.enter_insert_map();
-    draw::redraw(stdout, prompt, &edit)?;
+    draw::redraw(stdout, prompt.as_str(), &edit)?;
     loop {
         match handle::handle_event(
             stdout,
@@ -70,19 +70,19 @@ fn on_interrupt<'a>(
     edit: &mut EditBuffer,
     nav: &mut HistoryRecall<'a>,
     history: &'a History,
-    prompt: &mut &str,
+    prompt: &mut PromptLine,
 ) -> io::Result<()> {
     edit.clear();
     *nav = HistoryRecall::new(history);
     writeln!(stdout, "^C")?;
-    *prompt = prompt::PRIMARY;
-    draw::redraw(stdout, prompt, edit)
+    prompt.set_primary();
+    draw::redraw(stdout, prompt.as_str(), edit)
 }
 
 fn finish_accept(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
-    prompt: &mut &str,
+    prompt: &mut PromptLine,
     out: &mut String,
 ) -> io::Result<bool> {
     writeln!(stdout)?;
@@ -92,8 +92,8 @@ fn finish_accept(
         return Ok(true);
     }
     edit.push_char('\n');
-    *prompt = prompt::CONTINUE;
-    write!(stdout, "{prompt}")?;
+    prompt.set_continue();
+    write!(stdout, "{}", prompt.as_str())?;
     stdout.flush()?;
     Ok(false)
 }
