@@ -16,4 +16,5 @@ mod parse;
 mod repl;
 mod scripting;
 mod shell_env;
+mod specials;
 mod while_loop;

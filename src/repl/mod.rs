@@ -12,6 +12,7 @@ mod line;
 mod line_edit;
 mod prompt;
 mod script;
+mod step_prep;
 mod while_run;
 
 #[cfg(unix)]
@@ -109,8 +110,16 @@ pub(super) fn run_loop<I: ReplInput, O: Write, E: Write>(
 ) -> io::Result<LoopEnd> {
     let mut buffers = ReplBuffers::new();
     let mut last_status = SUCCESS_EXIT;
+    let mut eof_streak = 0_u32;
     loop {
-        match step(io, interactive, &mut buffers, shell_env, last_status)? {
+        match step(
+            io,
+            interactive,
+            &mut buffers,
+            shell_env,
+            last_status,
+            &mut eof_streak,
+        )? {
             StepOutcome::Continue(status) => last_status = status,
             StepOutcome::Eof(status) => return Ok(LoopEnd::Status(status)),
             StepOutcome::Exit(status) => return Ok(LoopEnd::Exit(status)),
@@ -124,17 +133,24 @@ fn step<I: ReplInput, O: Write, E: Write>(
     buffers: &mut ReplBuffers,
     shell_env: &mut ShellEnvironment,
     last_status: u8,
+    eof_streak: &mut u32,
 ) -> io::Result<StepOutcome> {
     notify_completed_jobs(io.stderr, shell_env)?;
+    step_prep::run_precmd_if_interactive(interactive, shell_env, last_status, io)?;
+    let parsed = read_and_parse(
+        io,
+        interactive,
+        &mut buffers.line,
+        &mut buffers.expanded,
+        &mut buffers.tokens,
+        shell_env,
+    )?;
+    let is_eof = matches!(parsed, ParseOutcome::Eof);
+    if step_prep::suppress_eof(interactive, is_eof, shell_env, eof_streak, io.stderr)? {
+        return Ok(StepOutcome::Continue(last_status));
+    }
     execute_parsed(
-        read_and_parse(
-            io,
-            interactive,
-            &mut buffers.line,
-            &mut buffers.expanded,
-            &mut buffers.tokens,
-            shell_env,
-        )?,
+        parsed,
         io,
         interactive,
         &mut buffers.argv,
