@@ -1,11 +1,13 @@
 //! Ephemeral Docker container heal backend (bollard).
 
 mod client;
+mod list;
 mod missing;
 mod register;
 mod run;
 mod runtime;
 
+pub use list::running_names;
 pub use register::attach_docker_backend;
 
 use super::CommandResolver;

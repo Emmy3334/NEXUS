@@ -15,6 +15,9 @@ pub use recall::HistoryRecall;
 #[cfg(unix)]
 pub use tty::take_complete_line;
 
+/// Tab-complete the token under `cursor` in `buffer` (integration tests / tooling).
+pub use complete::complete;
+
 use super::prompt;
 use crate::history::History;
 use crate::keybind::KeyBindings as Bindings;

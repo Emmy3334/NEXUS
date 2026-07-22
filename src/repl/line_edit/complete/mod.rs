@@ -1,7 +1,12 @@
 //! Tab completion for the current token.
 
+mod context;
+mod docker;
+mod git;
+mod interp;
 mod paths;
 
+use self::context::Kind;
 use self::paths::{collect_file_matches, collect_path_commands};
 
 const BUILTINS: &[&str] = &[
@@ -10,9 +15,10 @@ const BUILTINS: &[&str] = &[
 ];
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.
-pub(super) fn complete(buffer: &mut String, cursor: &mut usize) -> Vec<String> {
+pub fn complete(buffer: &mut String, cursor: &mut usize) -> Vec<String> {
     let (start, prefix) = token_at(buffer, *cursor);
-    let matches = collect_matches(&prefix);
+    let before = &buffer[..start];
+    let matches = collect_matches(before, &prefix);
     match matches.as_slice() {
         [] => Vec::new(),
         [only] => {
@@ -45,22 +51,31 @@ fn apply_match(buffer: &mut String, cursor: &mut usize, start: usize, value: &st
     *cursor = start + value.len();
 }
 
-fn collect_matches(prefix: &str) -> Vec<String> {
+fn collect_matches(before: &str, prefix: &str) -> Vec<String> {
     let mut out = Vec::new();
-    if prefix.contains('/') || prefix.starts_with('.') {
-        collect_file_matches(prefix, &mut out);
-    } else {
-        for name in BUILTINS {
-            if name.starts_with(prefix) {
-                out.push((*name).to_owned());
-            }
-        }
-        collect_path_commands(prefix, &mut out);
-        collect_file_matches(prefix, &mut out);
+    match context::classify(before) {
+        Kind::GitBranch => git::collect_branches(prefix, &mut out),
+        Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),
+        Kind::DockerContainer => docker::collect(prefix, &mut out),
+        Kind::Default => default_matches(prefix, &mut out),
     }
     out.sort();
     out.dedup();
     out
+}
+
+fn default_matches(prefix: &str, out: &mut Vec<String>) {
+    if prefix.contains('/') || prefix.starts_with('.') {
+        collect_file_matches(prefix, out);
+        return;
+    }
+    for name in BUILTINS {
+        if name.starts_with(prefix) {
+            out.push((*name).to_owned());
+        }
+    }
+    collect_path_commands(prefix, out);
+    collect_file_matches(prefix, out);
 }
 
 fn common_prefix(items: &[String]) -> Option<String> {

@@ -10,7 +10,7 @@ mod report;
 
 pub use after_spawn::{after_spawn_failure, after_spawn_failure_os};
 pub use chain::ResolverChain;
-pub use docker::{attach_docker_backend, DockerResolver, DEFAULT_IMAGE};
+pub use docker::{attach_docker_backend, running_names, DockerResolver, DEFAULT_IMAGE};
 pub(crate) use report::report_spawn_failure;
 
 use crate::env::ShellEnvironment;

@@ -4,6 +4,7 @@
 
 mod advanced;
 mod builtins;
+mod complete_context;
 mod exec;
 mod expand;
 mod foreach;
