@@ -38,6 +38,7 @@ Product stages (from project PDFs / standing rules):
 | Line edition + `bindkey` (Unix TTY) | Yes |
 | Context Tab complete (git branches, `python`/`ruby` filters, `@docker logs`) | Yes |
 | Git-aware prompt (`$> [branch*] `) | Yes |
+| Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
 | `foreach` / `while` / `if` | Yes |
 | Scripting / `source` / `.` | Yes |
 | Specials `precmd` / `cwdcmd` / `ignoreeof` | Yes |

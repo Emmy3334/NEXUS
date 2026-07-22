@@ -11,6 +11,7 @@ mod if_run;
 mod line;
 mod line_edit;
 mod prompt;
+mod rc;
 mod script;
 mod step_prep;
 mod while_run;
@@ -19,6 +20,7 @@ mod while_run;
 pub use line_edit::take_complete_line;
 pub use line_edit::{complete, Action, HistoryRecall, KeyBindings, ReplInput};
 pub use prompt::format_primary;
+pub use rc::{load_startup_rc, source_rc, RcLoad};
 pub use script::run_script;
 
 use crate::env::ShellEnvironment;
@@ -99,18 +101,29 @@ pub fn run_with_env(
     if interactive {
         crate::jobs::install_interactive_handlers()?;
     }
-    Ok(match run_loop(&mut io, interactive, shell_env)? {
-        LoopEnd::Status(code) | LoopEnd::Exit(code) => code,
-    })
+    let mut last_status = SUCCESS_EXIT;
+    // Real TTY only: Cursor-based interactive tests must not pick up ~/.nexusrc.
+    if interactive && io.stdin.is_terminal() {
+        match rc::load_startup_rc(shell_env, io.stdout, io.stderr)? {
+            RcLoad::Exit(code) => return Ok(code),
+            RcLoad::Continue(code) => last_status = code,
+            RcLoad::Skipped => {}
+        }
+    }
+    Ok(
+        match run_loop(&mut io, interactive, shell_env, last_status)? {
+            LoopEnd::Status(code) | LoopEnd::Exit(code) => code,
+        },
+    )
 }
 
 pub(super) fn run_loop<I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
     interactive: bool,
     shell_env: &mut ShellEnvironment,
+    mut last_status: u8,
 ) -> io::Result<LoopEnd> {
     let mut buffers = ReplBuffers::new();
-    let mut last_status = SUCCESS_EXIT;
     let mut eof_streak = 0_u32;
     loop {
         match step(

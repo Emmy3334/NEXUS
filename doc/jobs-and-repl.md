@@ -79,6 +79,20 @@ Unix pieces live under `src/jobs/unix/` (child setup, `wait_fg`, tty/`tcsetpgrp`
 
 Background registration is wired from `src/exec/background/`. Cloning `ShellEnvironment` **drops** the job table so subshells do not inherit live children.
 
+## Startup RC (`~/.nexusrc`)
+
+On an **interactive TTY** session (`repl::run_with_env`), before the main loop Nexus loads a startup file like `source`:
+
+| Resolution | Behavior |
+|------------|----------|
+| `NEXUSRC` set to a path | Use that file |
+| `NEXUSRC` empty | Skip RC entirely |
+| unset | `$home` / `$HOME` + `/.nexusrc` |
+
+Missing file = quiet no-op. `exit` in the RC ends the shell before the REPL. Otherwise the RC’s last status seeds the REPL `$?` (`RcLoad::Continue`). Piped / Cursor-based “interactive” tests do **not** load RC (`stdin.is_terminal()` is false).
+
+Helpers: `repl::load_startup_rc`, `repl::source_rc`, `repl::RcLoad`.
+
 ## Scripting
 
 - `nexus script.sh args…` → `run_script` with argv `[script, …args]`
