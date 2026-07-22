@@ -43,18 +43,29 @@ pub enum BuiltinResult {
 | `which` | `which.rs` | First match: builtin or PATH (`pathfind`) |
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
+| `sandbox` | `sandbox.rs` | Run a Wasm module (path / cache name) via Wasmtime; else host command in a temp HOME with filtered env |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
 | `popd` | `dirstack/` | Pop and `cd`; same print flags; `+n` drops entry `n` |
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
 
 Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
-Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`.
+Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache** then **Docker** (when reachable).
+
+### `sandbox` / Wasm cache
+
+| Piece | Role |
+|-------|------|
+| `sandbox <name\|path.wasm> [args…]` | Run a WASI Preview1 module via Wasmtime; if not a module, run the host command in a temp `HOME`/`TMPDIR` with only `PATH`/`TERM`/`LANG`/… (no heal backends) |
+| `NEXUS_WASM_CACHE` | Override cache directory (default `~/.nexus/wasm`) |
+| `~/.nexus/wasm/<name>.wasm` | Module looked up by `sandbox <name>` and by the Wasm heal backend |
+
+Install helpers for tests/tools: `sandbox::install_from_wat` / `install_from_wat_into`.
 
 ## Recognition list
 
 `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `pushd`, `popd`, `dirs`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `pushd`, `popd`, `dirs`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

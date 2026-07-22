@@ -1,6 +1,6 @@
-//! Bonus builtin handlers (`which`, `repeat`, dir stack, …).
+//! Bonus builtin handlers (`which`, `repeat`, dir stack, `sandbox`, …).
 
-use super::super::{dirstack, repeat, which, BuiltinResult};
+use super::super::{dirstack, repeat, sandbox, which, BuiltinResult};
 use crate::env::ShellEnvironment;
 
 use std::io::{self, Write};
@@ -17,6 +17,7 @@ pub(super) fn run(
         "which" => BuiltinResult::Status(which::which_cmd(argv, shell_env, stdout, stderr)?),
         "where" => BuiltinResult::Status(which::where_cmd(argv, shell_env, stdout, stderr)?),
         "repeat" => return repeat::repeat_cmd(argv, stderr),
+        "sandbox" => sandbox::sandbox_cmd(argv, shell_env, stdout, stderr)?,
         "pushd" => BuiltinResult::Status(dirstack::pushd_cmd(
             argv,
             shell_env,

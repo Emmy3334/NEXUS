@@ -18,6 +18,7 @@ mod line_edit_paste;
 mod nexusrc;
 mod parse;
 mod repl;
+mod sandbox_wasm;
 mod scripting;
 mod shell_env;
 mod specials;
