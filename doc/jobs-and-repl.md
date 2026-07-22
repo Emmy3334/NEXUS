@@ -26,7 +26,20 @@ Buffers (`line`, `expanded`, `tokens`, `argv`) are reused across steps to avoid 
 | Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation, history recall, completion, paste queue, bindkey actions |
 | Else | Plain line read (`plain.rs`) |
 
-Public pieces re-exported from `repl`: `Action`, `HistoryRecall`, `KeyBindings`, `ReplInput`, and on Unix `take_complete_line`.
+Public pieces re-exported from `repl`: `Action`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, and on Unix `take_complete_line`.
+
+### Context-aware Tab completion
+
+`src/repl/line_edit/complete/` inspects words before the token:
+
+| Context | Suggestions |
+|---------|-------------|
+| `git … checkout\|switch\|branch …` (flags allowed) | Local branches under `.git/refs/heads/` |
+| `python` / `python3` | Cwd files ending in `.py` (dirs still listed) |
+| `ruby` | Cwd files ending in `.rb` |
+| `@docker … logs …` (flags allowed) | Running container names via bollard |
+
+Otherwise falls back to builtins + `PATH` + filesystem matches.
 
 **Bracketed paste**: TTY path queues paste bytes (`input_queue` on `ReplIo`) so multi-line pastes do not scramble the editor.
 
