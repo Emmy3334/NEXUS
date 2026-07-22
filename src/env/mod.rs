@@ -95,6 +95,7 @@ impl ShellEnvironment {
             jobs: JobTable::default(),
         };
         env.seed_specials();
+        crate::heal::attach_default_backends(&mut env);
         env
     }
 
