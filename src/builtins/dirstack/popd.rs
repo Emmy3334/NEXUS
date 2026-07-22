@@ -1,5 +1,7 @@
-//! `popd` — pop directory stack and cd.
+//! `popd` — pop or drop a stack entry and cd when needed.
 
+use super::args::{parse_plus_index, take_print_flags};
+use super::print::print_stack;
 use crate::builtins::cd;
 use crate::env::ShellEnvironment;
 
@@ -14,31 +16,57 @@ pub(crate) fn popd_cmd(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    if argv.len() > 1 {
+    let cwd = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    shell_env.dir_stack.ensure_seeded(cwd);
+    let (flags, rest) = match take_print_flags(&argv[1..]) {
+        Ok(pair) => pair,
+        Err(msg) => {
+            writeln!(stderr, "popd: {msg}")?;
+            return Ok(1);
+        }
+    };
+    if rest.len() > 1 {
         writeln!(stderr, "popd: Too many arguments.")?;
         return Ok(1);
     }
-    let cwd = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    shell_env.dir_stack.ensure_seeded(cwd);
+    let index = match rest.first().map(String::as_str) {
+        None => 0,
+        Some(raw) => match parse_plus_index(raw) {
+            Some(n) => n,
+            None => {
+                writeln!(stderr, "popd: Invalid argument.")?;
+                return Ok(1);
+            }
+        },
+    };
+    let code = pop_at(index, shell_env, last_status, stdout, stderr)?;
+    if code != 0 {
+        return Ok(code);
+    }
+    print_stack(shell_env, flags, stdout)
+}
+
+fn pop_at(
+    index: usize,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
     if shell_env.dir_stack.len() < 2 {
         writeln!(stderr, "popd: Directory stack empty.")?;
         return Ok(1);
     }
-    let _ = shell_env.dir_stack.pop();
-    let Some(next) = shell_env.dir_stack.iter().next().cloned() else {
+    if shell_env.dir_stack.remove_at(index).is_none() {
+        writeln!(stderr, "popd: Directory stack not that deep.")?;
+        return Ok(1);
+    }
+    if index > 0 {
+        return Ok(0);
+    }
+    let Some(next) = shell_env.dir_stack.get(0).cloned() else {
         writeln!(stderr, "popd: Directory stack empty.")?;
         return Ok(1);
     };
-    let code = cd::change_directory(&next, shell_env, last_status, stdout, stderr)?;
-    if code != 0 {
-        return Ok(code);
-    }
-    for (i, path) in shell_env.dir_stack.iter().enumerate() {
-        if i > 0 {
-            write!(stdout, " ")?;
-        }
-        write!(stdout, "{}", path.display())?;
-    }
-    writeln!(stdout)?;
-    Ok(0)
+    cd::change_directory(&next, shell_env, last_status, stdout, stderr)
 }

@@ -76,8 +76,8 @@ impl JobTable {
         (id, pgid)
     }
 
-    /// Print jobs to `stdout` (Running / Suspended).
-    pub fn print_jobs(&mut self, stdout: &mut impl Write) -> io::Result<()> {
+    /// Print jobs to `stdout` (Running / Suspended). With `long`, include PIDs.
+    pub fn print_jobs(&mut self, stdout: &mut impl Write, long: bool) -> io::Result<()> {
         let _ = self.take_notifications();
         let last = self.jobs.len().saturating_sub(1);
         for (index, job) in self.jobs.iter().enumerate() {
@@ -86,15 +86,43 @@ impl JobTable {
                 JobState::Running => "Running",
                 JobState::Stopped => "Suspended",
             };
-            writeln!(
-                stdout,
-                "[{}] {} {state:<16}      {}",
-                job.id, marker, job.command
-            )?;
+            if long {
+                write_job_long(stdout, job, marker, state)?;
+            } else {
+                writeln!(
+                    stdout,
+                    "[{}] {} {state:<16}      {}",
+                    job.id, marker, job.command
+                )?;
+            }
         }
         Ok(())
     }
+}
 
+fn write_job_long(stdout: &mut impl Write, job: &Job, marker: char, state: &str) -> io::Result<()> {
+    let mut pids = job.children.iter().map(|c| c.id());
+    let Some(first) = pids.next() else {
+        writeln!(
+            stdout,
+            "[{}] {} {state:<16}      {}",
+            job.id, marker, job.command
+        )?;
+        return Ok(());
+    };
+    write!(
+        stdout,
+        "[{}] {} {first:>5} {state:<16}      {}",
+        job.id, marker, job.command
+    )?;
+    writeln!(stdout)?;
+    for pid in pids {
+        writeln!(stdout, "       {pid:>5}")?;
+    }
+    Ok(())
+}
+
+impl JobTable {
     /// Bring a job to the foreground; may leave it Suspended again on Ctrl-Z.
     pub fn foreground(
         &mut self,

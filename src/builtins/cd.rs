@@ -81,6 +81,9 @@ pub(super) fn change_directory(
     shell_env.set("OLDPWD", previous.to_string_lossy().into_owned());
     shell_env.set("PWD", pwd.clone());
     shell_env.set_cwd(pwd);
+    if !shell_env.dir_stack.is_empty() {
+        shell_env.dir_stack.set_top(new_pwd);
+    }
     let mut empty = io::Cursor::new(Vec::<u8>::new());
     crate::specials::run_cwdcmd(shell_env, last_status, &mut empty, stdout, stderr)?;
     Ok(0)
