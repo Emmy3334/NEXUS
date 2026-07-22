@@ -8,6 +8,7 @@ mod exec;
 mod expand;
 mod foreach;
 mod glob;
+mod if_block;
 mod jobs_signals;
 mod lex;
 mod line_edit;

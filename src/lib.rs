@@ -11,6 +11,7 @@ pub mod expand;
 pub mod foreach;
 pub mod glob;
 pub mod history;
+pub mod if_block;
 pub mod jobs;
 pub mod lex;
 pub mod parse;
