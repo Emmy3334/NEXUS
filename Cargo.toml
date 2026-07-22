@@ -1,0 +1,25 @@
+[package]
+name = "nexus"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "NEXUS — The Self-Healing Cloud Shell"
+license = "LicenseRef-Proprietary"
+publish = false
+# One integration crate so rust-analyzer sees a single module tree.
+autotests = false
+
+[lib]
+name = "nexus"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nexus"
+path = "src/bin/nexus.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration/main.rs"
+
+[dependencies]
+nix = { version = "0.29", default-features = false, features = ["fs", "process", "signal", "term"] }
