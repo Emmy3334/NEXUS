@@ -1,10 +1,11 @@
 //! Builtin dispatch and external spawn (inherit or capture stdout).
 
-use super::process::{exit_status_code, report_spawn_failure};
+use super::process::exit_status_code;
 use super::stdout_mode::StdoutMode;
 use super::CommandResult;
 use crate::builtins;
 use crate::env::ShellEnvironment;
+use crate::heal;
 use crate::jobs::{self, FgWait, JobState};
 
 use std::ffi::OsStr;
@@ -86,33 +87,29 @@ pub(crate) fn execute_external_mode<S: AsRef<OsStr>>(
     match stdout_mode {
         StdoutMode::Inherit => {
             jobs::prepare_process_group(&mut command, None);
-            spawn_inherit(&mut command, program.as_ref(), argv, shell_env, stderr)
+            spawn_inherit(&mut command, argv, shell_env, stdout, stderr)
         }
-        StdoutMode::Capture => spawn_captured(&mut command, program.as_ref(), stdout, stderr),
+        StdoutMode::Capture => spawn_captured(&mut command, argv, shell_env, stdout, stderr),
     }
 }
 
 fn spawn_inherit<S: AsRef<OsStr>>(
     command: &mut Command,
-    program: &OsStr,
     argv: &[S],
     shell_env: &mut ShellEnvironment,
+    stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     if !jobs::job_control_enabled() {
         return match command.status() {
             Ok(status) => Ok(exit_status_code(status)),
-            Err(err) => {
-                let name = program.to_string_lossy();
-                report_spawn_failure(&name, &err, stderr)
-            }
+            Err(err) => heal::after_spawn_failure_os(argv, &err, shell_env, stdout, stderr),
         };
     }
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(err) => {
-            let name = program.to_string_lossy();
-            return report_spawn_failure(&name, &err, stderr);
+            return heal::after_spawn_failure_os(argv, &err, shell_env, stdout, stderr);
         }
     };
     match jobs::wait_foreground(&mut child)? {
@@ -139,17 +136,17 @@ fn register_stopped_external<S: AsRef<OsStr>>(
     Ok(jobs::sigtstp_status())
 }
 
-fn spawn_captured(
+fn spawn_captured<S: AsRef<OsStr>>(
     command: &mut Command,
-    program: &OsStr,
+    argv: &[S],
+    shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     let mut child = match command.stdout(Stdio::piped()).spawn() {
         Ok(child) => child,
         Err(err) => {
-            let name = program.to_string_lossy();
-            return report_spawn_failure(&name, &err, stderr);
+            return heal::after_spawn_failure_os(argv, &err, shell_env, stdout, stderr);
         }
     };
     if let Some(mut pipe) = child.stdout.take() {

@@ -9,27 +9,6 @@ use std::process::{Child, Command, ExitStatus};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 
-pub(crate) fn report_spawn_failure(
-    program: &str,
-    err: &io::Error,
-    stderr: &mut impl Write,
-) -> io::Result<u8> {
-    match err.kind() {
-        io::ErrorKind::NotFound => {
-            writeln!(stderr, "{program}: Command not found.")?;
-            Ok(127)
-        }
-        io::ErrorKind::PermissionDenied => {
-            writeln!(stderr, "{program}: Permission denied.")?;
-            Ok(126)
-        }
-        _ => {
-            writeln!(stderr, "{program}: {err}")?;
-            Ok(1)
-        }
-    }
-}
-
 pub(crate) fn exit_status_code(status: ExitStatus) -> u8 {
     if let Some(code) = status.code() {
         return code as u8;

@@ -27,8 +27,7 @@ pub use redirect::collect_heredoc_bodies;
 pub(crate) use stdout_mode::StdoutMode;
 
 pub(crate) use process::{
-    abandon_children, build_external_command, exit_status_code, report_spawn_failure,
-    run_builtin_status, wait_children,
+    abandon_children, build_external_command, exit_status_code, run_builtin_status, wait_children,
 };
 
 use crate::builtins;

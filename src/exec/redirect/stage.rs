@@ -6,9 +6,8 @@ use super::heredoc::HeredocState;
 use crate::builtins;
 use crate::env::ShellEnvironment;
 use crate::exec::io::ExecIo;
-use crate::exec::{
-    execute_command_mode, exit_status_code, report_spawn_failure, CommandResult, StdoutMode,
-};
+use crate::exec::{execute_command_mode, exit_status_code, CommandResult, StdoutMode};
+use crate::heal;
 use crate::parse::Redirect;
 
 use std::io::{self, BufRead, Write};
@@ -103,7 +102,6 @@ fn execute_external_with_files(
         &mut command,
         stdin_bytes,
         copy_out,
-        program,
         argv,
         shell_env,
         stdout,
@@ -146,7 +144,6 @@ fn run_configured(
     command: &mut Command,
     stdin_bytes: Option<Vec<u8>>,
     copy_out: bool,
-    program: &str,
     argv: &[String],
     shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
@@ -154,27 +151,38 @@ fn run_configured(
 ) -> io::Result<u8> {
     if stdin_bytes.is_none() && !copy_out && crate::jobs::job_control_enabled() {
         crate::jobs::prepare_process_group(command, None);
-        return spawn_job_control(command, program, argv, shell_env, stderr);
+        return spawn_job_control(command, argv, shell_env, stderr);
     }
     if stdin_bytes.is_none() && !copy_out {
         return match command.status() {
             Ok(status) => Ok(exit_status_code(status)),
-            Err(err) => Ok(report_spawn_failure(program, &err, stderr)?),
+            Err(err) => Ok(heal::after_spawn_failure(
+                argv, &err, shell_env, stdout, stderr,
+            )?),
         };
     }
-    run_with_io(command, stdin_bytes, copy_out, program, stdout, stderr)
+    run_with_io(
+        command,
+        stdin_bytes,
+        copy_out,
+        argv,
+        shell_env,
+        stdout,
+        stderr,
+    )
 }
 
 fn spawn_job_control(
     command: &mut Command,
-    program: &str,
     argv: &[String],
     shell_env: &mut ShellEnvironment,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     let mut child = match command.spawn() {
         Ok(child) => child,
-        Err(err) => return report_spawn_failure(program, &err, stderr),
+        Err(err) => {
+            return heal::after_spawn_failure(argv, &err, shell_env, &mut io::sink(), stderr);
+        }
     };
     match crate::jobs::wait_foreground(&mut child)? {
         crate::jobs::FgWait::Done(code) => Ok(code),

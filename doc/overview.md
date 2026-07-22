@@ -12,7 +12,7 @@ Product stages (from project PDFs / standing rules):
 
 1. **Minishell** — prompt, lex/parse/exec, builtins, pipes, redirects, env
 2. **42sh-class** — jobs, history/`!`, aliases, line edit, control structures, `&&`/`||`, bonuses
-3. **Cloud / self-healing** — not implemented in this tree yet; docs here stop at the shell language processor
+3. **Cloud / self-healing** — resolver seam is in place (`src/heal/`); Wasm/Docker/K8s backends not implemented yet
 
 ## Package facts
 
@@ -40,6 +40,8 @@ Product stages (from project PDFs / standing rules):
 | Scripting / `source` / `.` | Yes |
 | Specials `precmd` / `cwdcmd` / `ignoreeof` | Yes |
 | Bonuses `which`/`where`, `repeat`, `pushd`/`popd`/`dirs`, bracketed paste | Yes |
+| Self-heal resolver seam (`CommandResolver` / empty chain → classic 127) | Yes (no backends yet) |
+| Cloud / Wasm / Docker heal backends | Not yet |
 
 ## Top-level layout
 

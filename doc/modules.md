@@ -17,10 +17,11 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 | Module | Path | Responsibility |
 |--------|------|----------------|
 | **exec** | `src/exec/` | `execute_list`, pipes, redirects/heredoc, process spawn, background, subshell, repeat, capture |
-| **env** | `src/env/` | `ShellEnvironment`: vars, locals, aliases, argv, history, keys, dirstack, jobs |
+| **env** | `src/env/` | `ShellEnvironment`: vars, locals, aliases, argv, history, keys, dirstack, healers, jobs |
 | **builtins** | `src/builtins/` | Builtin implementations + dispatch |
 | **repl** | `src/repl/` | Main loop, script runner, control collect/run, line edition |
 | **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / (related resolution) |
+| **heal** | `src/heal/` | Self-heal seam: `CommandResolver` + `ResolverChain` on not-found |
 
 ### Exec internals (important subtrees)
 
