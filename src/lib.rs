@@ -16,6 +16,7 @@ pub mod jobs;
 pub mod keybind;
 pub mod lex;
 pub mod parse;
+pub mod pathfind;
 pub mod repl;
 pub mod specials;
 pub mod while_loop;

@@ -14,6 +14,7 @@ mod pipe;
 mod process;
 mod redirect;
 mod render;
+mod repeat;
 mod stdout_mode;
 mod subshell;
 
@@ -50,6 +51,9 @@ impl From<builtins::BuiltinResult> for CommandResult {
             builtins::BuiltinResult::Status(code) => Self::Status(code),
             builtins::BuiltinResult::Exit(code) => Self::Exit(code),
             builtins::BuiltinResult::Source(path) => Self::Source(path),
+            builtins::BuiltinResult::Repeat { .. } => {
+                Self::Status(1) // handled in execute_command_mode
+            }
         }
     }
 }

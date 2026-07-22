@@ -62,7 +62,7 @@ fn resolve_target(
 }
 
 /// Change into `target`, then refresh `PWD` / `OLDPWD` / the `cwd` local.
-fn change_directory(
+pub(super) fn change_directory(
     target: &Path,
     shell_env: &mut ShellEnvironment,
     last_status: u8,

@@ -5,6 +5,7 @@ mod buffer;
 mod draw;
 mod escape;
 mod event;
+mod handle;
 mod keys;
 mod queue;
 mod term;
@@ -13,13 +14,11 @@ pub use queue::take_complete_line;
 
 use self::actions::Loop;
 use self::buffer::EditBuffer;
-use self::event::Event;
-use self::keys::read_event;
 use super::probe::quotes_closed;
 use super::recall::HistoryRecall;
 use super::ReadOutcome;
 use crate::history::History;
-use crate::keybind::{Binding, KeyBindings};
+use crate::keybind::KeyBindings;
 use crate::repl::prompt;
 
 use std::collections::VecDeque;
@@ -36,10 +35,19 @@ pub(super) fn edit_line(
     let mut edit = EditBuffer::new();
     let mut nav = HistoryRecall::new(history);
     let mut prompt = prompt::PRIMARY;
+    let mut pasting = false;
     bindings.enter_insert_map();
     draw::redraw(stdout, prompt, &edit)?;
     loop {
-        match handle_event(stdout, &mut edit, bindings, &mut prompt, &mut nav, queue)? {
+        match handle::handle_event(
+            stdout,
+            &mut edit,
+            bindings,
+            &mut prompt,
+            &mut nav,
+            queue,
+            &mut pasting,
+        )? {
             Loop::Continue => {}
             Loop::Accept => {
                 if finish_accept(stdout, &mut edit, &mut prompt, out)? {
@@ -88,88 +96,4 @@ fn finish_accept(
     write!(stdout, "{prompt}")?;
     stdout.flush()?;
     Ok(false)
-}
-
-fn handle_event(
-    stdout: &mut impl Write,
-    edit: &mut EditBuffer,
-    bindings: &mut KeyBindings,
-    prompt: &mut &str,
-    nav: &mut HistoryRecall<'_>,
-    queue: &mut VecDeque<u8>,
-) -> io::Result<Loop> {
-    match read_event(queue)? {
-        Event::Action(action) => actions::apply(stdout, edit, bindings, action, prompt, nav),
-        Event::InsertRun(text) => insert_or_bind(stdout, edit, bindings, prompt, nav, &text),
-        Event::Raw(bytes) => dispatch_raw(stdout, edit, bindings, prompt, nav, &bytes),
-    }
-}
-
-fn dispatch_raw(
-    stdout: &mut impl Write,
-    edit: &mut EditBuffer,
-    bindings: &mut KeyBindings,
-    prompt: &str,
-    nav: &mut HistoryRecall<'_>,
-    bytes: &[u8],
-) -> io::Result<Loop> {
-    match bindings.lookup(bytes).cloned() {
-        Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding),
-        None => Ok(Loop::Continue),
-    }
-}
-
-fn insert_or_bind(
-    stdout: &mut impl Write,
-    edit: &mut EditBuffer,
-    bindings: &mut KeyBindings,
-    prompt: &str,
-    nav: &mut HistoryRecall<'_>,
-    text: &str,
-) -> io::Result<Loop> {
-    if !bindings.alternate_active() {
-        for ch in text.chars() {
-            edit.insert(ch);
-        }
-        draw::redraw(stdout, prompt, edit)?;
-        return Ok(Loop::Continue);
-    }
-    for ch in text.chars() {
-        let mut buf = [0u8; 4];
-        let encoded = ch.encode_utf8(&mut buf);
-        if let Some(binding) = bindings.lookup(encoded.as_bytes()).cloned() {
-            let result = apply_binding(stdout, edit, bindings, prompt, nav, binding)?;
-            if !matches!(result, Loop::Continue) {
-                return Ok(result);
-            }
-        }
-    }
-    Ok(Loop::Continue)
-}
-
-fn apply_binding(
-    stdout: &mut impl Write,
-    edit: &mut EditBuffer,
-    bindings: &mut KeyBindings,
-    prompt: &str,
-    nav: &mut HistoryRecall<'_>,
-    binding: Binding,
-) -> io::Result<Loop> {
-    match binding {
-        Binding::Action(action) => actions::apply(stdout, edit, bindings, action, prompt, nav),
-        Binding::Command(cmd) => {
-            edit.clear();
-            for ch in cmd.chars() {
-                edit.insert(ch);
-            }
-            Ok(Loop::Accept)
-        }
-        Binding::Literal(text) => {
-            for ch in text.chars() {
-                edit.insert(ch);
-            }
-            draw::redraw(stdout, prompt, edit)?;
-            Ok(Loop::Continue)
-        }
-    }
 }

@@ -6,16 +6,20 @@ mod alias;
 mod at;
 mod bindkey;
 mod cd;
+mod dirstack;
+mod dispatch;
 mod env;
 mod exit;
 mod history;
 mod jobs;
+mod repeat;
 mod set;
 mod setenv;
 mod source;
 mod unalias;
 mod unset;
 mod unsetenv;
+mod which;
 
 use crate::env::ShellEnvironment;
 
@@ -31,6 +35,8 @@ pub enum BuiltinResult {
     Exit(u8),
     /// Run `path` in the current shell (handled by the REPL).
     Source(String),
+    /// Run `argv` `count` times (handled by exec to avoid cycles).
+    Repeat { count: u32, argv: Vec<String> },
 }
 
 /// Whether `name` is a shell builtin.
@@ -54,6 +60,12 @@ pub fn is_builtin(name: &str) -> bool {
             | "."
             | "@"
             | "bindkey"
+            | "which"
+            | "where"
+            | "repeat"
+            | "pushd"
+            | "popd"
+            | "dirs"
     )
 }
 
@@ -68,26 +80,5 @@ pub fn try_run(
     let Some(name) = argv.first().map(String::as_str) else {
         return Ok(None);
     };
-
-    let result = match name {
-        "cd" => BuiltinResult::Status(cd::cd(argv, shell_env, last_status, stdout, stderr)?),
-        "setenv" => BuiltinResult::Status(setenv::setenv(argv, shell_env, stdout, stderr)?),
-        "unsetenv" => BuiltinResult::Status(unsetenv::unsetenv(argv, shell_env, stderr)?),
-        "env" => BuiltinResult::Status(env::env_cmd(argv, shell_env, stdout, stderr)?),
-        "set" => BuiltinResult::Status(set::set(argv, shell_env, stdout, stderr)?),
-        "unset" => BuiltinResult::Status(unset::unset(argv, shell_env, stderr)?),
-        "alias" => BuiltinResult::Status(alias::alias(argv, shell_env, stdout, stderr)?),
-        "unalias" => BuiltinResult::Status(unalias::unalias(argv, shell_env, stderr)?),
-        "bindkey" => BuiltinResult::Status(bindkey::bindkey(argv, shell_env, stdout, stderr)?),
-        "history" => BuiltinResult::Status(history::history_cmd(argv, shell_env, stdout, stderr)?),
-        "jobs" => BuiltinResult::Status(jobs::jobs_cmd(argv, shell_env, stdout, stderr)?),
-        "fg" => BuiltinResult::Status(jobs::fg_cmd(argv, shell_env, stderr)?),
-        "bg" => BuiltinResult::Status(jobs::bg_cmd(argv, shell_env, stderr)?),
-        "source" | "." => source::source(argv, shell_env, stderr)?,
-        "@" => BuiltinResult::Status(at::at_cmd(argv, shell_env, stderr)?),
-        "exit" => exit::exit_cmd(argv, last_status, stderr)?,
-        _ => return Ok(None),
-    };
-
-    Ok(Some(result))
+    dispatch::dispatch(name, argv, shell_env, last_status, stdout, stderr)
 }

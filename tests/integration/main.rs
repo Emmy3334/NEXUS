@@ -12,6 +12,7 @@ mod if_block;
 mod jobs_signals;
 mod lex;
 mod line_edit;
+mod line_edit_paste;
 mod parse;
 mod repl;
 mod scripting;

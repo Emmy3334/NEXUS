@@ -2,7 +2,7 @@
 
 use nix::sys::termios::{tcgetattr, tcsetattr, InputFlags, LocalFlags, SetArg, Termios};
 use nix::unistd::isatty;
-use std::io;
+use std::io::{self, Write};
 use std::os::fd::{AsFd, AsRawFd};
 
 pub(super) fn stdin_is_tty() -> bool {
@@ -28,12 +28,17 @@ impl RawMode {
             .remove(LocalFlags::ICANON | LocalFlags::ECHO | LocalFlags::ISIG);
         raw.input_flags.remove(InputFlags::IXON | InputFlags::ICRNL);
         tcsetattr(stdin.as_fd(), SetArg::TCSANOW, &raw).map_err(nix_err)?;
+        // Enable bracketed paste so pasted newlines are not treated as Accept.
+        let _ = io::stdout().write_all(b"\x1b[?2004h");
+        let _ = io::stdout().flush();
         Ok(Self { original })
     }
 }
 
 impl Drop for RawMode {
     fn drop(&mut self) {
+        let _ = io::stdout().write_all(b"\x1b[?2004l");
+        let _ = io::stdout().flush();
         let stdin = io::stdin();
         let _ = tcsetattr(stdin.as_fd(), SetArg::TCSANOW, &self.original);
     }

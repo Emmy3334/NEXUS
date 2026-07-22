@@ -38,7 +38,18 @@ pub(crate) fn execute_command_mode(
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
     if let Some(result) = builtins::try_run(argv, shell_env, last_status, stdout, stderr)? {
-        return Ok(result.into());
+        return match result {
+            builtins::BuiltinResult::Repeat { count, argv } => super::repeat::run_repeat(
+                stdout_mode,
+                count,
+                &argv,
+                shell_env,
+                last_status,
+                stdout,
+                stderr,
+            ),
+            other => Ok(other.into()),
+        };
     }
     Ok(CommandResult::Status(execute_external_mode(
         stdout_mode,
