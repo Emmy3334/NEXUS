@@ -4,15 +4,18 @@
 //! list/pipeline parse → execute against an owned environment copy.
 
 mod line;
+mod line_edit;
+mod prompt;
+
+pub use line_edit::{Action, HistoryRecall, KeyBindings, ReplInput};
 
 use crate::env::ShellEnvironment;
 use crate::exec::CommandResult;
 use crate::lex;
 
 use line::{read_and_parse, run_ready_command, ParseOutcome};
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 
-const PROMPT: &str = "$> ";
 const SUCCESS_EXIT: u8 = 0;
 
 /// The REPL's own I/O streams, bundled so helper functions don't need one
@@ -51,8 +54,11 @@ enum StepOutcome {
 }
 
 /// Run the interactive (or piped) read–eval loop.
+///
+/// Raw-mode line editing runs only when `interactive` and `stdin.is_terminal()`
+/// (so [`std::io::Cursor`] tests never touch process fd 0).
 pub fn run(
-    mut stdin: impl BufRead,
+    mut stdin: impl ReplInput,
     mut stdout: impl Write,
     mut stderr: impl Write,
     interactive: bool,
@@ -83,7 +89,7 @@ pub fn run(
 }
 
 /// One prompt → read → history → parse → execute iteration.
-fn step<I: BufRead, O: Write, E: Write>(
+fn step<I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
     interactive: bool,
     buffers: &mut ReplBuffers,
@@ -91,9 +97,9 @@ fn step<I: BufRead, O: Write, E: Write>(
     last_status: u8,
 ) -> io::Result<StepOutcome> {
     notify_completed_jobs(io.stderr, shell_env)?;
-    write_prompt(io.stdout, interactive)?;
     let command_list = match read_and_parse(
         io,
+        interactive,
         &mut buffers.line,
         &mut buffers.expanded,
         &mut buffers.tokens,
@@ -118,12 +124,4 @@ fn notify_completed_jobs(
         writeln!(stderr, "[{id}]  Done ({status})                 {command}")?;
     }
     Ok(())
-}
-
-fn write_prompt(stdout: &mut impl Write, interactive: bool) -> io::Result<()> {
-    if !interactive {
-        return Ok(());
-    }
-    write!(stdout, "{PROMPT}")?;
-    stdout.flush()
 }

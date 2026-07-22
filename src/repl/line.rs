@@ -1,5 +1,6 @@
 //! Read a line, expand history events, lex, and parse.
 
+use super::line_edit::{self, ReadOutcome, ReplInput};
 use super::ReplIo;
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
@@ -21,24 +22,29 @@ pub(super) enum ParseOutcome<'a> {
     Ready(parse::CommandList<'a>),
 }
 
-/// Read one line, expand `!` events, tokenize, and parse.
-pub(super) fn read_and_parse<'a, I: BufRead, O: Write, E: Write>(
+/// Read one logical line, expand `!` events, tokenize, and parse.
+pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
+    interactive: bool,
     line_buffer: &mut String,
     expanded: &'a mut String,
     tokens: &mut Vec<lex::Token>,
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<ParseOutcome<'a>> {
-    line_buffer.clear();
-    let bytes_read = io.stdin.read_line(line_buffer)?;
-    if bytes_read == 0 {
-        return Ok(ParseOutcome::Eof);
+    match line_edit::read_logical_line(
+        io.stdin,
+        io.stdout,
+        interactive,
+        &shell_env.history,
+        line_buffer,
+    )? {
+        ReadOutcome::Eof => return Ok(ParseOutcome::Eof),
+        ReadOutcome::Line => {}
     }
     if line_buffer.trim().is_empty() {
         return Ok(ParseOutcome::Blank);
     }
-    let raw = line_buffer.trim_end_matches(['\n', '\r']);
-    let outcome = match history::expand_line(raw, &mut shell_env.history, expanded) {
+    let outcome = match history::expand_line(line_buffer, &mut shell_env.history, expanded) {
         Ok(o) => o,
         Err(err) => {
             writeln!(io.stderr, "{}", err.message())?;
