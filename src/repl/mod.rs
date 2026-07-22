@@ -6,8 +6,10 @@
 mod line;
 mod line_edit;
 mod prompt;
+mod script;
 
 pub use line_edit::{Action, HistoryRecall, KeyBindings, ReplInput};
+pub use script::run_script;
 
 use crate::env::ShellEnvironment;
 use crate::exec::CommandResult;
@@ -26,7 +28,6 @@ pub(super) struct ReplIo<'a, I, O, E> {
     pub(super) stderr: &'a mut E,
 }
 
-/// Reusable scratch buffers for one REPL session.
 struct ReplBuffers {
     line: String,
     expanded: String,
@@ -45,50 +46,67 @@ impl ReplBuffers {
     }
 }
 
-/// Outcome of one read–eval iteration.
 enum StepOutcome {
-    /// Keep looping with this status as `last_status`.
     Continue(u8),
-    /// Stop the shell (EOF or `exit`) with this status.
-    Stop(u8),
+    /// Stdin closed; keep status but do not treat as `exit`.
+    Eof(u8),
+    /// `exit` builtin (or nested source that exited).
+    Exit(u8),
 }
 
-/// Run the interactive (or piped) read–eval loop.
-///
-/// Raw-mode line editing runs only when `interactive` and `stdin.is_terminal()`
-/// (so [`std::io::Cursor`] tests never touch process fd 0).
+pub(super) enum LoopEnd {
+    Status(u8),
+    Exit(u8),
+}
+
+/// Run the interactive (or piped) read–eval loop with a fresh environment.
 pub fn run(
+    stdin: impl ReplInput,
+    stdout: impl Write,
+    stderr: impl Write,
+    interactive: bool,
+) -> io::Result<u8> {
+    let mut shell_env = ShellEnvironment::capture();
+    run_with_env(stdin, stdout, stderr, interactive, &mut shell_env)
+}
+
+/// Like [`run`], using a caller-owned environment (scripts / tests).
+pub fn run_with_env(
     mut stdin: impl ReplInput,
     mut stdout: impl Write,
     mut stderr: impl Write,
     interactive: bool,
+    shell_env: &mut ShellEnvironment,
 ) -> io::Result<u8> {
     let mut io = ReplIo {
         stdin: &mut stdin,
         stdout: &mut stdout,
         stderr: &mut stderr,
     };
-    let mut shell_env = ShellEnvironment::capture();
-    let mut buffers = ReplBuffers::new();
-    let mut last_status = SUCCESS_EXIT;
     if interactive {
         crate::jobs::install_interactive_handlers()?;
     }
+    Ok(match run_loop(&mut io, interactive, shell_env)? {
+        LoopEnd::Status(code) | LoopEnd::Exit(code) => code,
+    })
+}
+
+pub(super) fn run_loop<I: ReplInput, O: Write, E: Write>(
+    io: &mut ReplIo<'_, I, O, E>,
+    interactive: bool,
+    shell_env: &mut ShellEnvironment,
+) -> io::Result<LoopEnd> {
+    let mut buffers = ReplBuffers::new();
+    let mut last_status = SUCCESS_EXIT;
     loop {
-        match step(
-            &mut io,
-            interactive,
-            &mut buffers,
-            &mut shell_env,
-            last_status,
-        )? {
+        match step(io, interactive, &mut buffers, shell_env, last_status)? {
             StepOutcome::Continue(status) => last_status = status,
-            StepOutcome::Stop(status) => return Ok(status),
+            StepOutcome::Eof(status) => return Ok(LoopEnd::Status(status)),
+            StepOutcome::Exit(status) => return Ok(LoopEnd::Exit(status)),
         }
     }
 }
 
-/// One prompt → read → history → parse → execute iteration.
 fn step<I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
     interactive: bool,
@@ -105,14 +123,18 @@ fn step<I: ReplInput, O: Write, E: Write>(
         &mut buffers.tokens,
         shell_env,
     )? {
-        ParseOutcome::Eof => return Ok(StepOutcome::Stop(last_status)),
+        ParseOutcome::Eof => return Ok(StepOutcome::Eof(last_status)),
         ParseOutcome::Blank => return Ok(StepOutcome::Continue(last_status)),
         ParseOutcome::Failed(code) => return Ok(StepOutcome::Continue(code)),
         ParseOutcome::Ready(list) => list,
     };
     match run_ready_command(&command_list, io, &mut buffers.argv, shell_env, last_status)? {
         CommandResult::Status(code) => Ok(StepOutcome::Continue(code)),
-        CommandResult::Exit(code) => Ok(StepOutcome::Stop(code)),
+        CommandResult::Exit(code) => Ok(StepOutcome::Exit(code)),
+        CommandResult::Source(path) => match script::source_path(&path, io, shell_env)? {
+            LoopEnd::Status(code) => Ok(StepOutcome::Continue(code)),
+            LoopEnd::Exit(code) => Ok(StepOutcome::Exit(code)),
+        },
     }
 }
 

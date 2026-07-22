@@ -39,6 +39,7 @@ pub(super) fn run_subshell<I: BufRead, O: Write, E: Write>(
     restore_cwd(saved_cwd, io.stderr);
     Ok(match result? {
         CommandResult::Exit(code) | CommandResult::Status(code) => CommandResult::Status(code),
+        CommandResult::Source(_) => CommandResult::Status(1),
     })
 }
 

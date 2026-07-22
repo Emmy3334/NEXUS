@@ -10,6 +10,7 @@ mod history;
 mod jobs;
 mod set;
 mod setenv;
+mod source;
 mod unalias;
 mod unset;
 mod unsetenv;
@@ -19,13 +20,15 @@ use crate::env::ShellEnvironment;
 use std::io::{self, Write};
 
 /// Outcome of a recognized builtin.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use = "builtin status vs shell exit must be handled by the caller"]
 pub enum BuiltinResult {
     /// Keep the REPL running with this status.
     Status(u8),
     /// Terminate the shell with this status (`exit`).
     Exit(u8),
+    /// Run `path` in the current shell (handled by the REPL).
+    Source(String),
 }
 
 /// Whether `name` is a shell builtin.
@@ -45,6 +48,8 @@ pub fn is_builtin(name: &str) -> bool {
             | "jobs"
             | "fg"
             | "bg"
+            | "source"
+            | "."
     )
 }
 
@@ -73,6 +78,7 @@ pub fn try_run(
         "jobs" => BuiltinResult::Status(jobs::jobs_cmd(argv, shell_env, stdout, stderr)?),
         "fg" => BuiltinResult::Status(jobs::fg_cmd(argv, shell_env, stderr)?),
         "bg" => BuiltinResult::Status(jobs::bg_cmd(argv, shell_env, stderr)?),
+        "source" | "." => source::source(argv, shell_env, stderr)?,
         "exit" => exit::exit_cmd(argv, last_status, stderr)?,
         _ => return Ok(None),
     };

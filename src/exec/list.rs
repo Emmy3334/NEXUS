@@ -67,6 +67,7 @@ pub(super) fn execute_list_with<I: BufRead, O: Write, E: Write>(
         match execute_pipeline(pipeline, argv, shell_env, last_status, heredocs, io)? {
             CommandResult::Status(code) => last_status = code,
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
+            CommandResult::Source(path) => return Ok(CommandResult::Source(path)),
         }
     }
     Ok(CommandResult::Status(last_status))

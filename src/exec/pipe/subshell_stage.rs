@@ -24,6 +24,7 @@ pub(super) fn run_subshell_stage<I: BufRead, O: Write, E: Write>(
         let result = run_last(list, redirects, pipe_in, ctx, argv_scratch)?;
         let status = match result {
             CommandResult::Status(code) | CommandResult::Exit(code) => code,
+            CommandResult::Source(_) => 1,
         };
         state.terminal_status = Some(status);
         return Ok(None);

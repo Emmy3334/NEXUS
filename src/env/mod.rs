@@ -9,6 +9,7 @@
 
 mod access;
 mod aliases;
+mod argv;
 mod mutate;
 mod specials;
 
@@ -26,6 +27,8 @@ pub struct ShellEnvironment {
     pub(super) locals: BTreeMap<String, String>,
     /// Command aliases (not passed to children).
     pub(super) aliases: BTreeMap<String, String>,
+    /// Positional parameters for scripting (`$0`, `$1`, …).
+    pub(super) argv: Vec<String>,
     /// Session command history for `!` events and `history`.
     pub history: History,
     /// Background jobs for `&` / `jobs` / `fg` / `bg`.
@@ -38,6 +41,7 @@ impl Clone for ShellEnvironment {
             vars: self.vars.clone(),
             locals: self.locals.clone(),
             aliases: self.aliases.clone(),
+            argv: self.argv.clone(),
             history: self.history.clone(),
             // Subshells must not inherit live child processes.
             jobs: JobTable::default(),
@@ -50,6 +54,7 @@ impl PartialEq for ShellEnvironment {
         self.vars == other.vars
             && self.locals == other.locals
             && self.aliases == other.aliases
+            && self.argv == other.argv
             && self.history == other.history
     }
 }
@@ -65,6 +70,7 @@ impl ShellEnvironment {
             vars: std::env::vars().collect(),
             locals: BTreeMap::new(),
             aliases: BTreeMap::new(),
+            argv: Vec::new(),
             history: History::default(),
             jobs: JobTable::default(),
         };
@@ -80,6 +86,7 @@ impl ShellEnvironment {
             vars,
             locals: BTreeMap::new(),
             aliases: BTreeMap::new(),
+            argv: Vec::new(),
             history: History::default(),
             jobs: JobTable::default(),
         }

@@ -33,13 +33,15 @@ pub(crate) use process::{
 use crate::builtins;
 
 /// Outcome of running one simple command or a list/pipeline.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use = "shell exit vs continue must be handled by the REPL"]
 pub enum CommandResult {
     /// Keep the REPL running with this status.
     Status(u8),
     /// Terminate the shell with this status (`exit` builtin).
     Exit(u8),
+    /// Run a file in the current shell environment.
+    Source(String),
 }
 
 impl From<builtins::BuiltinResult> for CommandResult {
@@ -47,6 +49,7 @@ impl From<builtins::BuiltinResult> for CommandResult {
         match result {
             builtins::BuiltinResult::Status(code) => Self::Status(code),
             builtins::BuiltinResult::Exit(code) => Self::Exit(code),
+            builtins::BuiltinResult::Source(path) => Self::Source(path),
         }
     }
 }
