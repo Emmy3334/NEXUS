@@ -1,9 +1,9 @@
 //! Syntax analysis for command lists and pipelines (Dragon Book Ch. 4).
 //!
-//! Grammar (42sh parentheses + job control):
+//! Grammar (42sh parentheses + job control + and-or):
 //! ```text
 //! line     → list
-//! list     → pipeline ( (';' | '&') pipeline )* [ ';' | '&' ]
+//! list     → pipeline ( (';' | '&' | '&&' | '||') pipeline )* [ ';' | '&' ]
 //! pipeline → command ( '|' command )*
 //! command  → simple | '(' list ')' redirect*
 //! simple   → ( WORD | redirect )+   # at least one WORD
@@ -11,30 +11,43 @@
 //! ```
 //!
 //! Heredoc body lines are collected by the REPL after parse (not on this line).
-//! Empty commands around `|` are errors; a trailing `;` or `&` is allowed.
+//! Empty commands around `|` / `&&` / `||` are errors; a trailing `;` or `&` is allowed.
 
 mod parser;
 
 use crate::lex::Token;
 
-/// A sequence of pipelines separated by `;`.
+/// A sequence of pipelines separated by `;`, `&`, `&&`, or `||`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandList<'a> {
     pub pipelines: Vec<Pipeline<'a>>,
 }
 
 impl<'a> CommandList<'a> {
-    /// A list that is exactly one foreground simple command (no `;`, `|`, `&`, or subshell).
+    /// A list that is exactly one foreground simple command (no `;`, `|`, `&`, `&&`, `||`, or subshell).
     #[must_use]
     pub fn as_single_command(&self) -> Option<&SimpleCommand<'a>> {
         match self.pipelines.as_slice() {
-            [pipeline] if !pipeline.background => match pipeline.commands.as_slice() {
-                [PipelineCommand::Simple(cmd)] => Some(cmd),
-                _ => None,
-            },
+            [pipeline] if !pipeline.background && pipeline.join == PipelineJoin::Seq => {
+                match pipeline.commands.as_slice() {
+                    [PipelineCommand::Simple(cmd)] => Some(cmd),
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }
+}
+
+/// How this pipeline connects to the previous one in the list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PipelineJoin {
+    /// First pipeline, or after `;` / `&`.
+    Seq,
+    /// After `&&` — run only if the previous status was zero.
+    And,
+    /// After `||` — run only if the previous status was non-zero.
+    Or,
 }
 
 /// One or more commands connected by `|`.
@@ -43,6 +56,8 @@ pub struct Pipeline<'a> {
     pub commands: Vec<PipelineCommand<'a>>,
     /// True when this pipeline was terminated with `&`.
     pub background: bool,
+    /// How this pipeline joins from the previous list element.
+    pub join: PipelineJoin,
 }
 
 /// One stage of a pipeline: a simple command or a `( … )` subshell.

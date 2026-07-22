@@ -121,6 +121,22 @@ fn ampersand_is_operator() {
 }
 
 #[test]
+fn and_and_or_or_are_operators() {
+    assert_eq!(
+        kinds("true && false"),
+        vec![TokenKind::Word, TokenKind::AndAnd, TokenKind::Word]
+    );
+    assert_eq!(lexemes("true&&false"), vec!["true", "&&", "false"]);
+    assert_eq!(
+        kinds("false || true"),
+        vec![TokenKind::Word, TokenKind::OrOr, TokenKind::Word]
+    );
+    assert_eq!(lexemes("a||b"), vec!["a", "||", "b"]);
+    assert!(TokenKind::AndAnd.is_operator());
+    assert!(TokenKind::OrOr.is_operator());
+}
+
+#[test]
 fn parentheses_are_operators() {
     assert_eq!(
         kinds("(ls)"),

@@ -22,6 +22,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             Some(kind) if super::is_redirect(kind) => Err(ParseError::UnexpectedToken),
             Some(TokenKind::Pipe) => Err(ParseError::NullCommand),
             Some(TokenKind::Ampersand) => Err(ParseError::NullCommand),
+            Some(TokenKind::AndAnd) | Some(TokenKind::OrOr) => Err(ParseError::NullCommand),
             Some(TokenKind::RParen) => Err(ParseError::UnexpectedToken),
             _ => Err(ParseError::UnexpectedToken),
         }

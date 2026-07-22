@@ -64,6 +64,10 @@ pub(super) fn execute_list_with<I: BufRead, O: Write, E: Write>(
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
     for pipeline in &list.pipelines {
+        if should_skip(pipeline.join, last_status) {
+            heredocs.discard_pipeline(pipeline);
+            continue;
+        }
         match execute_pipeline(pipeline, argv, shell_env, last_status, heredocs, io)? {
             CommandResult::Status(code) => last_status = code,
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
@@ -71,6 +75,14 @@ pub(super) fn execute_list_with<I: BufRead, O: Write, E: Write>(
         }
     }
     Ok(CommandResult::Status(last_status))
+}
+
+const fn should_skip(join: parse::PipelineJoin, last_status: u8) -> bool {
+    match join {
+        parse::PipelineJoin::And => last_status != 0,
+        parse::PipelineJoin::Or => last_status == 0,
+        parse::PipelineJoin::Seq => false,
+    }
 }
 
 fn execute_pipeline<I: BufRead, O: Write, E: Write>(
@@ -111,7 +123,7 @@ fn run_simple<I: BufRead, O: Write, E: Write>(
     heredocs: &mut HeredocState,
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
-    if let Err(code) = expand_simple_argv(&simple.argv, argv, shell_env, last_status, io)? {
+    if let Err(code) = expand_for_background(&simple.argv, argv, shell_env, last_status, io)? {
         return Ok(CommandResult::Status(code));
     }
     if argv.is_empty() {
@@ -125,16 +137,6 @@ fn run_simple<I: BufRead, O: Write, E: Write>(
         last_status,
         io,
     )
-}
-
-fn expand_simple_argv<I: BufRead, O: Write, E: Write>(
-    words: &[&str],
-    argv: &mut Vec<String>,
-    shell_env: &mut ShellEnvironment,
-    last_status: u8,
-    io: &mut ExecIo<'_, I, O, E>,
-) -> io::Result<Result<(), u8>> {
-    expand_for_background(words, argv, shell_env, last_status, io)
 }
 
 pub(super) fn expand_for_background<I: BufRead, O: Write, E: Write>(

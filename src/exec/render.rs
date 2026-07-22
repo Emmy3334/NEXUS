@@ -5,14 +5,23 @@ use crate::parse::{CommandList, Pipeline, PipelineCommand, Redirect, RedirectKin
 pub(super) fn render_list(list: &CommandList<'_>) -> String {
     let mut source = String::new();
     for (index, pipeline) in list.pipelines.iter().enumerate() {
+        if index > 0 {
+            source.push_str(join_symbol(pipeline.join));
+        }
         source.push_str(&render_pipeline(pipeline));
         if pipeline.background {
             source.push_str(" &");
-        } else if index + 1 < list.pipelines.len() {
-            source.push_str(" ;");
         }
     }
     source
+}
+
+fn join_symbol(join: crate::parse::PipelineJoin) -> &'static str {
+    match join {
+        crate::parse::PipelineJoin::Seq => " ; ",
+        crate::parse::PipelineJoin::And => " && ",
+        crate::parse::PipelineJoin::Or => " || ",
+    }
 }
 
 pub(super) fn render_pipeline(pipeline: &Pipeline<'_>) -> String {
