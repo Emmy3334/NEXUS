@@ -15,6 +15,7 @@ mod jobs_signals;
 mod lex;
 mod line_edit;
 mod line_edit_paste;
+mod nexusrc;
 mod parse;
 mod repl;
 mod scripting;

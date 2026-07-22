@@ -28,15 +28,25 @@ pub(super) fn source_path<O: Write, E: Write>(
     io: &mut ReplIo<'_, impl super::line_edit::ReplInput, O, E>,
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<super::LoopEnd> {
-    let contents = read_script(Path::new(path))?;
+    source_file(Path::new(path), io.stdout, io.stderr, shell_env)
+}
+
+/// Source `path` into `shell_env`, writing through `stdout` / `stderr`.
+pub(super) fn source_file<O: Write, E: Write>(
+    path: &Path,
+    stdout: &mut O,
+    stderr: &mut E,
+    shell_env: &mut ShellEnvironment,
+) -> io::Result<super::LoopEnd> {
+    let contents = read_script(path)?;
     let mut cursor = Cursor::new(contents);
     let mut nested = ReplIo {
         stdin: &mut cursor,
-        stdout: io.stdout,
-        stderr: io.stderr,
+        stdout,
+        stderr,
         input_queue: VecDeque::new(),
     };
-    run_loop(&mut nested, false, shell_env)
+    run_loop(&mut nested, false, shell_env, 0)
 }
 
 fn run_with_cursor(
@@ -51,7 +61,7 @@ fn run_with_cursor(
         stderr: &mut stderr,
         input_queue: VecDeque::new(),
     };
-    Ok(match run_loop(&mut io, false, shell_env)? {
+    Ok(match run_loop(&mut io, false, shell_env, 0)? {
         super::LoopEnd::Status(code) | super::LoopEnd::Exit(code) => code,
     })
 }
