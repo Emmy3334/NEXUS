@@ -15,6 +15,7 @@ mod specials;
 
 use crate::history::History;
 use crate::jobs::JobTable;
+use crate::keybind::KeyBindings;
 
 use std::collections::BTreeMap;
 
@@ -31,6 +32,8 @@ pub struct ShellEnvironment {
     pub(super) argv: Vec<String>,
     /// Session command history for `!` events and `history`.
     pub history: History,
+    /// Interactive editor bindings for `bindkey` / line edition.
+    pub key_bindings: KeyBindings,
     /// Background jobs for `&` / `jobs` / `fg` / `bg`.
     pub jobs: JobTable,
 }
@@ -43,6 +46,7 @@ impl Clone for ShellEnvironment {
             aliases: self.aliases.clone(),
             argv: self.argv.clone(),
             history: self.history.clone(),
+            key_bindings: self.key_bindings.clone(),
             // Subshells must not inherit live child processes.
             jobs: JobTable::default(),
         }
@@ -56,6 +60,8 @@ impl PartialEq for ShellEnvironment {
             && self.aliases == other.aliases
             && self.argv == other.argv
             && self.history == other.history
+            && self.key_bindings == other.key_bindings
+        // `jobs` excluded: live child processes are not value identity.
     }
 }
 
@@ -72,6 +78,7 @@ impl ShellEnvironment {
             aliases: BTreeMap::new(),
             argv: Vec::new(),
             history: History::default(),
+            key_bindings: KeyBindings::new(),
             jobs: JobTable::default(),
         };
         env.seed_specials();
@@ -88,6 +95,7 @@ impl ShellEnvironment {
             aliases: BTreeMap::new(),
             argv: Vec::new(),
             history: History::default(),
+            key_bindings: KeyBindings::new(),
             jobs: JobTable::default(),
         }
     }

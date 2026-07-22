@@ -24,7 +24,14 @@ pub(super) fn run_foreach<I: ReplInput, O: Write, E: Write>(
     last_status: u8,
     argv: &mut Vec<String>,
 ) -> io::Result<CommandResult> {
-    let Some(body) = collect_body(io, interactive, &shell_env.history, BlockKind::ForEach)? else {
+    let Some(body) = collect_body(
+        io,
+        interactive,
+        &shell_env.history,
+        &mut shell_env.key_bindings,
+        BlockKind::ForEach,
+    )?
+    else {
         return Ok(CommandResult::Status(1));
     };
     let items = match expand_items(&header.items, shell_env, last_status, io)? {

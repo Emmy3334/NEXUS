@@ -4,6 +4,7 @@
 
 mod alias;
 mod at;
+mod bindkey;
 mod cd;
 mod env;
 mod exit;
@@ -52,6 +53,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "source"
             | "."
             | "@"
+            | "bindkey"
     )
 }
 
@@ -76,6 +78,7 @@ pub fn try_run(
         "unset" => BuiltinResult::Status(unset::unset(argv, shell_env, stderr)?),
         "alias" => BuiltinResult::Status(alias::alias(argv, shell_env, stdout, stderr)?),
         "unalias" => BuiltinResult::Status(unalias::unalias(argv, shell_env, stderr)?),
+        "bindkey" => BuiltinResult::Status(bindkey::bindkey(argv, shell_env, stdout, stderr)?),
         "history" => BuiltinResult::Status(history::history_cmd(argv, shell_env, stdout, stderr)?),
         "jobs" => BuiltinResult::Status(jobs::jobs_cmd(argv, shell_env, stdout, stderr)?),
         "fg" => BuiltinResult::Status(jobs::fg_cmd(argv, shell_env, stderr)?),

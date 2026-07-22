@@ -3,7 +3,7 @@
 use super::escape;
 use super::event::Event;
 use super::queue::{self, fill};
-use crate::repl::line_edit::bindings::Action;
+use crate::keybind::Action;
 
 use std::collections::VecDeque;
 use std::io;
@@ -18,26 +18,11 @@ pub(super) fn read_event(q: &mut VecDeque<u8>) -> io::Result<Event> {
     if b0 == 0x1b {
         return escape::decode_escape(q);
     }
-    if let Some(action) = map_control(b0) {
-        q.pop_front();
-        return Ok(Event::Action(action));
-    }
-    if b0 < 0x20 {
+    if b0 < 0x20 || b0 == 0x7f {
         q.pop_front();
         return Ok(Event::Raw(vec![b0]));
     }
     Ok(Event::InsertRun(take_printable_run(q)?))
-}
-
-fn map_control(byte: u8) -> Option<Action> {
-    match byte {
-        b'\r' | b'\n' => Some(Action::Accept),
-        0x7f | 0x08 => Some(Action::Backspace),
-        b'\t' => Some(Action::Complete),
-        0x03 => Some(Action::Interrupt),
-        0x04 => Some(Action::Eof),
-        _ => None,
-    }
 }
 
 fn take_printable_run(q: &mut VecDeque<u8>) -> io::Result<String> {

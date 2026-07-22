@@ -1,6 +1,7 @@
 //! Integration tests for shell builtins.
 
 mod alias;
+mod bindkey;
 mod cd;
 mod env;
 mod exit;

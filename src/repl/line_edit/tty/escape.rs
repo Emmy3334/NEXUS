@@ -2,7 +2,6 @@
 
 use super::event::Event;
 use super::queue;
-use crate::repl::line_edit::bindings::Action;
 
 use std::collections::VecDeque;
 use std::io;
@@ -10,11 +9,11 @@ use std::io;
 pub(super) fn decode_escape(q: &mut VecDeque<u8>) -> io::Result<Event> {
     while q.len() < 3 && queue::fill_more(q)? {}
     let seq = peek_escape(q);
-    if let Some(action) = map_escape(&seq) {
+    if is_complete_escape(&seq) {
         for _ in 0..seq.len() {
             q.pop_front();
         }
-        return Ok(Event::Action(action));
+        return Ok(Event::Raw(seq));
     }
     q.pop_front();
     Ok(Event::Raw(vec![0x1b]))
@@ -40,13 +39,9 @@ fn peek_escape(q: &VecDeque<u8>) -> Vec<u8> {
     seq
 }
 
-fn map_escape(seq: &[u8]) -> Option<Action> {
-    match seq {
-        b"\x1b[D" => Some(Action::MoveLeft),
-        b"\x1b[C" => Some(Action::MoveRight),
-        b"\x1b[A" => Some(Action::HistoryUp),
-        b"\x1b[B" => Some(Action::HistoryDown),
-        b"\x1b[3~" => Some(Action::Delete),
-        _ => None,
-    }
+fn is_complete_escape(seq: &[u8]) -> bool {
+    matches!(
+        seq,
+        b"\x1b[D" | b"\x1b[C" | b"\x1b[A" | b"\x1b[B" | b"\x1b[3~" | [0x1b, b'O', _]
+    )
 }

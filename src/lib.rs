@@ -13,6 +13,7 @@ pub mod glob;
 pub mod history;
 pub mod if_block;
 pub mod jobs;
+pub mod keybind;
 pub mod lex;
 pub mod parse;
 pub mod repl;

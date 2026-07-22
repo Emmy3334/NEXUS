@@ -19,7 +19,14 @@ pub(super) fn run_while<I: ReplInput, O: Write, E: Write>(
     last_status: u8,
     argv: &mut Vec<String>,
 ) -> io::Result<CommandResult> {
-    let Some(body) = collect_body(io, interactive, &shell_env.history, BlockKind::While)? else {
+    let Some(body) = collect_body(
+        io,
+        interactive,
+        &shell_env.history,
+        &mut shell_env.key_bindings,
+        BlockKind::While,
+    )?
+    else {
         return Ok(CommandResult::Status(1));
     };
     let mut status = last_status;

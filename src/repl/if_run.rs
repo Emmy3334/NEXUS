@@ -20,7 +20,13 @@ pub(super) fn run_if<I: ReplInput, O: Write, E: Write>(
     last_status: u8,
     argv: &mut Vec<String>,
 ) -> io::Result<CommandResult> {
-    let Some(plan) = collect_if(io, interactive, &shell_env.history)? else {
+    let Some(plan) = collect_if(
+        io,
+        interactive,
+        &shell_env.history,
+        &mut shell_env.key_bindings,
+    )?
+    else {
         return Ok(CommandResult::Status(1));
     };
     run_plan(header, plan, io, shell_env, last_status, argv)
