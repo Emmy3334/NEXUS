@@ -1,5 +1,7 @@
-//! `pushd` — push directory and cd.
+//! `pushd` — push directory, rotate stack, and cd.
 
+use super::args::{parse_plus_index, take_print_flags};
+use super::print::print_stack;
 use crate::builtins::cd;
 use crate::env::ShellEnvironment;
 
@@ -14,23 +16,54 @@ pub(crate) fn pushd_cmd(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    if argv.len() > 2 {
+    let cwd = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    shell_env.dir_stack.ensure_seeded(cwd);
+    let (flags, rest) = match take_print_flags(&argv[1..]) {
+        Ok(pair) => pair,
+        Err(msg) => {
+            writeln!(stderr, "pushd: {msg}")?;
+            return Ok(1);
+        }
+    };
+    if rest.len() > 1 {
         writeln!(stderr, "pushd: Too many arguments.")?;
         return Ok(1);
     }
-    let cwd = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    shell_env.dir_stack.ensure_seeded(cwd);
-    if argv.len() == 1 {
-        return swap_top(shell_env, last_status, stdout, stderr);
-    }
-    let target = PathBuf::from(&argv[1]);
-    let code = cd::change_directory(&target, shell_env, last_status, stdout, stderr)?;
+    let code = match rest.first().map(String::as_str) {
+        None => swap_top(shell_env, last_status, stdout, stderr)?,
+        Some(raw) => match parse_plus_index(raw) {
+            Some(n) => rotate_to(n, shell_env, last_status, stdout, stderr)?,
+            None => {
+                let target = match resolve_push_target(raw, shell_env, stderr)? {
+                    Ok(path) => path,
+                    Err(code) => return Ok(code),
+                };
+                push_path(target, shell_env, last_status, stdout, stderr)?
+            }
+        },
+    };
     if code != 0 {
         return Ok(code);
     }
-    let new_cwd = process_env::current_dir().unwrap_or(target);
-    shell_env.dir_stack.push(new_cwd);
-    print_stack(shell_env, stdout)
+    print_stack(shell_env, flags, stdout)
+}
+
+/// Push `target` (used by `dirs -L` as well as the builtin).
+pub(super) fn push_path(
+    target: PathBuf,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    let cwd = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    shell_env.dir_stack.ensure_seeded(cwd.clone());
+    shell_env.dir_stack.push(cwd);
+    let code = cd::change_directory(&target, shell_env, last_status, stdout, stderr)?;
+    if code != 0 {
+        let _ = shell_env.dir_stack.pop();
+    }
+    Ok(code)
 }
 
 fn swap_top(
@@ -43,24 +76,48 @@ fn swap_top(
         writeln!(stderr, "pushd: No other directory.")?;
         return Ok(1);
     }
-    let first = shell_env.dir_stack.pop().expect("len >= 2");
-    let second = shell_env.dir_stack.pop().expect("len >= 2");
-    shell_env.dir_stack.push(first);
-    shell_env.dir_stack.push(second.clone());
-    let code = cd::change_directory(&second, shell_env, last_status, stdout, stderr)?;
-    if code != 0 {
-        return Ok(code);
+    if !shell_env.dir_stack.rotate_left(1) {
+        writeln!(stderr, "pushd: No other directory.")?;
+        return Ok(1);
     }
-    print_stack(shell_env, stdout)
+    let Some(top) = shell_env.dir_stack.get(0).cloned() else {
+        writeln!(stderr, "pushd: No other directory.")?;
+        return Ok(1);
+    };
+    cd::change_directory(&top, shell_env, last_status, stdout, stderr)
 }
 
-fn print_stack(shell_env: &ShellEnvironment, stdout: &mut impl Write) -> io::Result<u8> {
-    for (i, path) in shell_env.dir_stack.iter().enumerate() {
-        if i > 0 {
-            write!(stdout, " ")?;
-        }
-        write!(stdout, "{}", path.display())?;
+fn rotate_to(
+    n: usize,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    if !shell_env.dir_stack.rotate_left(n) {
+        writeln!(stderr, "pushd: Directory stack not that deep.")?;
+        return Ok(1);
     }
-    writeln!(stdout)?;
-    Ok(0)
+    let Some(top) = shell_env.dir_stack.get(0).cloned() else {
+        writeln!(stderr, "pushd: Directory stack not that deep.")?;
+        return Ok(1);
+    };
+    cd::change_directory(&top, shell_env, last_status, stdout, stderr)
+}
+
+fn resolve_push_target(
+    raw: &str,
+    shell_env: &ShellEnvironment,
+    stderr: &mut impl Write,
+) -> io::Result<Result<PathBuf, u8>> {
+    if raw != "-" {
+        return Ok(Ok(PathBuf::from(raw)));
+    }
+    match shell_env.get("OLDPWD") {
+        Some(old) => Ok(Ok(PathBuf::from(old))),
+        None => {
+            writeln!(stderr, "pushd: OLDPWD not set.")?;
+            Ok(Err(1))
+        }
+    }
 }

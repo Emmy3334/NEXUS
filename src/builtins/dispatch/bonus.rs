@@ -31,7 +31,13 @@ pub(super) fn run(
             stdout,
             stderr,
         )?),
-        "dirs" => BuiltinResult::Status(dirstack::dirs_cmd(argv, shell_env, stdout, stderr)?),
+        "dirs" => BuiltinResult::Status(dirstack::dirs_cmd(
+            argv,
+            shell_env,
+            last_status,
+            stdout,
+            stderr,
+        )?),
         _ => return Ok(None),
     }))
 }

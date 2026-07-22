@@ -5,18 +5,18 @@ use crate::jobs::JobSpec;
 
 use std::io::{self, Write};
 
-/// `jobs` — list running background jobs.
+/// `jobs [-l]` — list running background jobs.
 pub(super) fn jobs_cmd(
     argv: &[String],
     shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    if argv.len() > 1 {
-        writeln!(stderr, "jobs: Too many arguments.")?;
-        return Ok(1);
-    }
-    shell_env.jobs.print_jobs(stdout)?;
+    let long = match parse_jobs_flags(&argv[1..], stderr)? {
+        Ok(long) => long,
+        Err(code) => return Ok(code),
+    };
+    shell_env.jobs.print_jobs(stdout, long)?;
     Ok(0)
 }
 
@@ -56,6 +56,20 @@ pub(super) fn bg_cmd(
             Ok(1)
         }
     }
+}
+
+fn parse_jobs_flags(args: &[String], stderr: &mut impl Write) -> io::Result<Result<bool, u8>> {
+    let mut long = false;
+    for arg in args {
+        match arg.as_str() {
+            "-l" => long = true,
+            _ => {
+                writeln!(stderr, "jobs: Too many arguments.")?;
+                return Ok(Err(1));
+            }
+        }
+    }
+    Ok(Ok(long))
 }
 
 fn parse_spec(argv: &[String], stderr: &mut impl Write) -> io::Result<Result<JobSpec, u8>> {
