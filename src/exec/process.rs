@@ -85,6 +85,10 @@ pub(crate) fn run_builtin_status(
             writeln!(stderr, "source: not available in this context.")?;
             Ok(1)
         }
+        Some(BuiltinResult::Repeat { .. }) => {
+            writeln!(stderr, "repeat: not available in this context.")?;
+            Ok(1)
+        }
         None => Ok(0),
     }
 }

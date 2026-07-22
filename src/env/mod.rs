@@ -10,8 +10,11 @@
 mod access;
 mod aliases;
 mod argv;
+mod dirstack;
 mod mutate;
 mod specials;
+
+pub use dirstack::DirStack;
 
 use crate::history::History;
 use crate::jobs::JobTable;
@@ -34,6 +37,8 @@ pub struct ShellEnvironment {
     pub history: History,
     /// Interactive editor bindings for `bindkey` / line edition.
     pub key_bindings: KeyBindings,
+    /// Directory stack for `pushd` / `popd` / `dirs`.
+    pub dir_stack: DirStack,
     /// Background jobs for `&` / `jobs` / `fg` / `bg`.
     pub jobs: JobTable,
 }
@@ -47,6 +52,7 @@ impl Clone for ShellEnvironment {
             argv: self.argv.clone(),
             history: self.history.clone(),
             key_bindings: self.key_bindings.clone(),
+            dir_stack: self.dir_stack.clone(),
             // Subshells must not inherit live child processes.
             jobs: JobTable::default(),
         }
@@ -61,6 +67,7 @@ impl PartialEq for ShellEnvironment {
             && self.argv == other.argv
             && self.history == other.history
             && self.key_bindings == other.key_bindings
+            && self.dir_stack == other.dir_stack
         // `jobs` excluded: live child processes are not value identity.
     }
 }
@@ -79,6 +86,7 @@ impl ShellEnvironment {
             argv: Vec::new(),
             history: History::default(),
             key_bindings: KeyBindings::new(),
+            dir_stack: DirStack::default(),
             jobs: JobTable::default(),
         };
         env.seed_specials();
@@ -96,6 +104,7 @@ impl ShellEnvironment {
             argv: Vec::new(),
             history: History::default(),
             key_bindings: KeyBindings::new(),
+            dir_stack: DirStack::default(),
             jobs: JobTable::default(),
         }
     }

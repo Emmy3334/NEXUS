@@ -8,4 +8,8 @@ pub(super) enum Event {
     /// One or more printable characters (paste-friendly).
     InsertRun(String),
     Raw(Vec<u8>),
+    /// OSC-style bracketed paste begin (`\e[200~`).
+    PasteStart,
+    /// Bracketed paste end (`\e[201~`).
+    PasteEnd,
 }
