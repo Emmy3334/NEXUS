@@ -46,6 +46,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         io.stdout,
         interactive,
         &shell_env.history,
+        &mut shell_env.key_bindings,
         line_buffer,
         &mut io.input_queue,
     )? {

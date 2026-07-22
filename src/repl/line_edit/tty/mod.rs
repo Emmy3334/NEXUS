@@ -15,11 +15,11 @@ use self::actions::Loop;
 use self::buffer::EditBuffer;
 use self::event::Event;
 use self::keys::read_event;
-use super::bindings::KeyBindings;
 use super::probe::quotes_closed;
 use super::recall::HistoryRecall;
 use super::ReadOutcome;
 use crate::history::History;
+use crate::keybind::{Binding, KeyBindings};
 use crate::repl::prompt;
 
 use std::collections::VecDeque;
@@ -29,16 +29,17 @@ pub(super) fn edit_line(
     stdout: &mut impl Write,
     out: &mut String,
     history: &History,
+    bindings: &mut KeyBindings,
     queue: &mut VecDeque<u8>,
 ) -> io::Result<ReadOutcome> {
     let _guard = term::RawMode::enter()?;
-    let bindings = KeyBindings::default();
     let mut edit = EditBuffer::new();
     let mut nav = HistoryRecall::new(history);
     let mut prompt = prompt::PRIMARY;
+    bindings.enter_insert_map();
     draw::redraw(stdout, prompt, &edit)?;
     loop {
-        match handle_event(stdout, &mut edit, &bindings, &mut prompt, &mut nav, queue)? {
+        match handle_event(stdout, &mut edit, bindings, &mut prompt, &mut nav, queue)? {
             Loop::Continue => {}
             Loop::Accept => {
                 if finish_accept(stdout, &mut edit, &mut prompt, out)? {
@@ -92,26 +93,83 @@ fn finish_accept(
 fn handle_event(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
-    bindings: &KeyBindings,
+    bindings: &mut KeyBindings,
     prompt: &mut &str,
     nav: &mut HistoryRecall<'_>,
     queue: &mut VecDeque<u8>,
 ) -> io::Result<Loop> {
     match read_event(queue)? {
-        Event::Action(action) => actions::apply(stdout, edit, action, prompt, nav),
-        Event::InsertRun(text) => {
+        Event::Action(action) => actions::apply(stdout, edit, bindings, action, prompt, nav),
+        Event::InsertRun(text) => insert_or_bind(stdout, edit, bindings, prompt, nav, &text),
+        Event::Raw(bytes) => dispatch_raw(stdout, edit, bindings, prompt, nav, &bytes),
+    }
+}
+
+fn dispatch_raw(
+    stdout: &mut impl Write,
+    edit: &mut EditBuffer,
+    bindings: &mut KeyBindings,
+    prompt: &str,
+    nav: &mut HistoryRecall<'_>,
+    bytes: &[u8],
+) -> io::Result<Loop> {
+    match bindings.lookup(bytes).cloned() {
+        Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding),
+        None => Ok(Loop::Continue),
+    }
+}
+
+fn insert_or_bind(
+    stdout: &mut impl Write,
+    edit: &mut EditBuffer,
+    bindings: &mut KeyBindings,
+    prompt: &str,
+    nav: &mut HistoryRecall<'_>,
+    text: &str,
+) -> io::Result<Loop> {
+    if !bindings.alternate_active() {
+        for ch in text.chars() {
+            edit.insert(ch);
+        }
+        draw::redraw(stdout, prompt, edit)?;
+        return Ok(Loop::Continue);
+    }
+    for ch in text.chars() {
+        let mut buf = [0u8; 4];
+        let encoded = ch.encode_utf8(&mut buf);
+        if let Some(binding) = bindings.lookup(encoded.as_bytes()).cloned() {
+            let result = apply_binding(stdout, edit, bindings, prompt, nav, binding)?;
+            if !matches!(result, Loop::Continue) {
+                return Ok(result);
+            }
+        }
+    }
+    Ok(Loop::Continue)
+}
+
+fn apply_binding(
+    stdout: &mut impl Write,
+    edit: &mut EditBuffer,
+    bindings: &mut KeyBindings,
+    prompt: &str,
+    nav: &mut HistoryRecall<'_>,
+    binding: Binding,
+) -> io::Result<Loop> {
+    match binding {
+        Binding::Action(action) => actions::apply(stdout, edit, bindings, action, prompt, nav),
+        Binding::Command(cmd) => {
+            edit.clear();
+            for ch in cmd.chars() {
+                edit.insert(ch);
+            }
+            Ok(Loop::Accept)
+        }
+        Binding::Literal(text) => {
             for ch in text.chars() {
                 edit.insert(ch);
             }
             draw::redraw(stdout, prompt, edit)?;
             Ok(Loop::Continue)
-        }
-        Event::Raw(bytes) => {
-            if let Some(action) = bindings.lookup(&bytes) {
-                actions::apply(stdout, edit, action, prompt, nav)
-            } else {
-                Ok(Loop::Continue)
-            }
         }
     }
 }

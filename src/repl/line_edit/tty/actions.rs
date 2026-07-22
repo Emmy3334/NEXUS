@@ -2,7 +2,7 @@
 
 use super::buffer::{self, EditBuffer};
 use super::draw;
-use crate::repl::line_edit::bindings::Action;
+use crate::keybind::{Action, KeyBindings};
 use crate::repl::line_edit::complete;
 use crate::repl::line_edit::recall::HistoryRecall;
 use crate::repl::prompt;
@@ -19,6 +19,7 @@ pub(super) enum Loop {
 pub(super) fn apply(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
+    bindings: &mut KeyBindings,
     action: Action,
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
@@ -27,6 +28,14 @@ pub(super) fn apply(
         Action::Accept => Ok(Loop::Accept),
         Action::Eof => Ok(Loop::Eof),
         Action::Interrupt => Ok(Loop::Interrupt),
+        Action::ViCmdMode => {
+            bindings.enter_command_map();
+            Ok(Loop::Continue)
+        }
+        Action::ViInsertMode => {
+            bindings.enter_insert_map();
+            Ok(Loop::Continue)
+        }
         Action::HistoryUp if prompt == prompt::PRIMARY => {
             apply_recall(stdout, edit, prompt, |n, line| n.older(line), nav)
         }
@@ -77,9 +86,9 @@ fn complete_token(
     let matches = complete::complete(&mut edit.text, &mut edit.cursor);
     if !matches.is_empty() {
         writeln!(stdout)?;
-        for item in &matches {
-            writeln!(stdout, "{item}")?;
-        }
+    }
+    for item in &matches {
+        writeln!(stdout, "{item}")?;
     }
     draw::redraw(stdout, prompt, edit)?;
     Ok(Loop::Continue)

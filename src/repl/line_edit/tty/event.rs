@@ -1,6 +1,6 @@
 //! Key events produced by the raw-mode reader.
 
-use crate::repl::line_edit::bindings::Action;
+use crate::keybind::Action;
 
 #[derive(Debug)]
 pub(super) enum Event {

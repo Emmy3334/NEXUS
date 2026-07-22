@@ -1,7 +1,8 @@
 //! Line-edition coverage: quote continuation, rebinding, and history recall.
 
 use nexus::history::History;
-use nexus::repl::{self, Action, HistoryRecall, KeyBindings};
+use nexus::keybind::{Action, Binding, KeyBindings};
+use nexus::repl::{self, HistoryRecall};
 use std::io::Cursor;
 
 #[test]
@@ -23,9 +24,15 @@ fn interactive_continues_unclosed_double_quote() {
 #[test]
 fn key_bindings_can_be_rebound() {
     let mut bindings = KeyBindings::new();
-    bindings.bind(b"\x18".to_vec(), Action::Interrupt);
-    assert_eq!(bindings.lookup(b"\x18"), Some(Action::Interrupt));
-    assert_eq!(bindings.lookup(b"\t"), Some(Action::Complete));
+    bindings.bind(b"\x18".to_vec(), Binding::Action(Action::Interrupt), false);
+    assert_eq!(
+        bindings.lookup(b"\x18"),
+        Some(&Binding::Action(Action::Interrupt))
+    );
+    assert_eq!(
+        bindings.lookup(b"\t"),
+        Some(&Binding::Action(Action::Complete))
+    );
 }
 
 #[test]

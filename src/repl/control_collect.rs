@@ -4,6 +4,7 @@ use super::line_edit::{self, ReadOutcome, ReplInput};
 use super::ReplIo;
 use crate::foreach;
 use crate::history::History;
+use crate::keybind::KeyBindings;
 use crate::while_loop;
 
 use std::io::{self, Write};
@@ -20,6 +21,7 @@ pub(super) fn collect_body<I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
     interactive: bool,
     history: &History,
+    bindings: &mut KeyBindings,
     kind: BlockKind,
 ) -> io::Result<Option<Vec<String>>> {
     let mut body = Vec::new();
@@ -36,6 +38,7 @@ pub(super) fn collect_body<I: ReplInput, O: Write, E: Write>(
             io.stdout,
             false,
             history,
+            bindings,
             &mut line_buf,
             &mut io.input_queue,
         )? {

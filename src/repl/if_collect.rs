@@ -4,6 +4,7 @@ use super::line_edit::{self, ReadOutcome, ReplInput};
 use super::ReplIo;
 use crate::history::History;
 use crate::if_block::{self, IfHeader};
+use crate::keybind::KeyBindings;
 use crate::lex;
 
 use std::io::{self, Write};
@@ -21,6 +22,7 @@ pub(super) fn collect_if<I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
     interactive: bool,
     history: &History,
+    bindings: &mut KeyBindings,
 ) -> io::Result<Option<IfPlan>> {
     let mut plan = IfPlan {
         then_body: Vec::new(),
@@ -31,7 +33,7 @@ pub(super) fn collect_if<I: ReplInput, O: Write, E: Write>(
     let mut target = Target::Then;
     let mut line_buf = String::new();
     while depth > 0 {
-        if !read_body_line(io, interactive, history, &mut line_buf)? {
+        if !read_body_line(io, interactive, history, bindings, &mut line_buf)? {
             return Ok(None);
         }
         depth = ingest_line(depth, &line_buf, &mut plan, &mut target);
@@ -43,6 +45,7 @@ fn read_body_line<I: ReplInput, O: Write, E: Write>(
     io: &mut ReplIo<'_, I, O, E>,
     interactive: bool,
     history: &History,
+    bindings: &mut KeyBindings,
     line_buf: &mut String,
 ) -> io::Result<bool> {
     if interactive {
@@ -55,6 +58,7 @@ fn read_body_line<I: ReplInput, O: Write, E: Write>(
         io.stdout,
         false,
         history,
+        bindings,
         line_buf,
         &mut io.input_queue,
     )? {
