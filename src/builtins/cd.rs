@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 pub(super) fn cd(
     argv: &[String],
     shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     if argv.len() > 2 {
@@ -21,7 +23,7 @@ pub(super) fn cd(
         Err(code) => return Ok(code),
     };
 
-    change_directory(&target, shell_env, stderr)
+    change_directory(&target, shell_env, last_status, stdout, stderr)
 }
 
 /// Resolve the requested argument (`~`, `-`, `~/…`, or a plain path) into a
@@ -63,6 +65,8 @@ fn resolve_target(
 fn change_directory(
     target: &Path,
     shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     let previous = process_env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -77,5 +81,7 @@ fn change_directory(
     shell_env.set("OLDPWD", previous.to_string_lossy().into_owned());
     shell_env.set("PWD", pwd.clone());
     shell_env.set_cwd(pwd);
+    let mut empty = io::Cursor::new(Vec::<u8>::new());
+    crate::specials::run_cwdcmd(shell_env, last_status, &mut empty, stdout, stderr)?;
     Ok(0)
 }

@@ -68,7 +68,7 @@ pub fn try_run(
     };
 
     let result = match name {
-        "cd" => BuiltinResult::Status(cd::cd(argv, shell_env, stderr)?),
+        "cd" => BuiltinResult::Status(cd::cd(argv, shell_env, last_status, stdout, stderr)?),
         "setenv" => BuiltinResult::Status(setenv::setenv(argv, shell_env, stdout, stderr)?),
         "unsetenv" => BuiltinResult::Status(unsetenv::unsetenv(argv, shell_env, stderr)?),
         "env" => BuiltinResult::Status(env::env_cmd(argv, shell_env, stdout, stderr)?),
