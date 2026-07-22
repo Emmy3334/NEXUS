@@ -81,6 +81,10 @@ pub(crate) fn run_builtin_status(
 ) -> io::Result<u8> {
     match builtins::try_run(argv, shell_env, last_status, stdout, stderr)? {
         Some(BuiltinResult::Status(code) | BuiltinResult::Exit(code)) => Ok(code),
+        Some(BuiltinResult::Source(_)) => {
+            writeln!(stderr, "source: not available in this context.")?;
+            Ok(1)
+        }
         None => Ok(0),
     }
 }

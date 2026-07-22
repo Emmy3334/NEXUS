@@ -1,4 +1,4 @@
-//! Named parameter lookup (`$name` / `${name}` / `$status`).
+//! Named parameter lookup (`$name` / `${name}` / `$status` / `$n` / `$#`).
 
 use super::ExpandedWord;
 use crate::env::ShellEnvironment;
@@ -11,14 +11,30 @@ pub(super) fn push_named_parameter(
     globable: bool,
 ) {
     if name == "status" {
-        let mut buf = String::new();
-        let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("{last_status}"));
-        out.push_str_literal(&buf);
+        push_text(&format!("{last_status}"), out, false);
+        return;
+    }
+    if name == "#" {
+        push_text(&format!("{}", env.argc()), out, false);
+        return;
+    }
+    if name == "*" {
+        push_text(&env.star(), out, globable);
+        return;
+    }
+    if let Ok(index) = name.parse::<usize>() {
+        if let Some(value) = env.positional(index) {
+            push_text(value, out, globable);
+        }
         return;
     }
     let Some(value) = env.lookup(name) else {
         return;
     };
+    push_text(value, out, globable);
+}
+
+fn push_text(value: &str, out: &mut ExpandedWord, globable: bool) {
     if globable {
         out.push_str_globable(value);
     } else {

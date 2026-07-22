@@ -12,4 +12,5 @@ mod lex;
 mod line_edit;
 mod parse;
 mod repl;
+mod scripting;
 mod shell_env;
