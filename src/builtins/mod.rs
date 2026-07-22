@@ -3,6 +3,7 @@
 //! Each command lives in its own module; this file dispatches by `argv[0]`.
 
 mod alias;
+mod at;
 mod cd;
 mod env;
 mod exit;
@@ -50,6 +51,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "bg"
             | "source"
             | "."
+            | "@"
     )
 }
 
@@ -79,6 +81,7 @@ pub fn try_run(
         "fg" => BuiltinResult::Status(jobs::fg_cmd(argv, shell_env, stderr)?),
         "bg" => BuiltinResult::Status(jobs::bg_cmd(argv, shell_env, stderr)?),
         "source" | "." => source::source(argv, shell_env, stderr)?,
+        "@" => BuiltinResult::Status(at::at_cmd(argv, shell_env, stderr)?),
         "exit" => exit::exit_cmd(argv, last_status, stderr)?,
         _ => return Ok(None),
     };

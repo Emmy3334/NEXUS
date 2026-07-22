@@ -15,3 +15,4 @@ mod parse;
 mod repl;
 mod scripting;
 mod shell_env;
+mod while_loop;
