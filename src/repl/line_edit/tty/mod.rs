@@ -3,12 +3,18 @@
 mod actions;
 mod buffer;
 mod draw;
+mod escape;
+mod event;
 mod keys;
+mod queue;
 mod term;
+
+pub use queue::take_complete_line;
 
 use self::actions::Loop;
 use self::buffer::EditBuffer;
-use self::keys::{read_event, Event};
+use self::event::Event;
+use self::keys::read_event;
 use super::bindings::KeyBindings;
 use super::probe::quotes_closed;
 use super::recall::HistoryRecall;
@@ -16,12 +22,14 @@ use super::ReadOutcome;
 use crate::history::History;
 use crate::repl::prompt;
 
+use std::collections::VecDeque;
 use std::io::{self, Write};
 
 pub(super) fn edit_line(
     stdout: &mut impl Write,
     out: &mut String,
     history: &History,
+    queue: &mut VecDeque<u8>,
 ) -> io::Result<ReadOutcome> {
     let _guard = term::RawMode::enter()?;
     let bindings = KeyBindings::default();
@@ -30,7 +38,7 @@ pub(super) fn edit_line(
     let mut prompt = prompt::PRIMARY;
     draw::redraw(stdout, prompt, &edit)?;
     loop {
-        match handle_event(stdout, &mut edit, &bindings, &mut prompt, &mut nav)? {
+        match handle_event(stdout, &mut edit, &bindings, &mut prompt, &mut nav, queue)? {
             Loop::Continue => {}
             Loop::Accept => {
                 if finish_accept(stdout, &mut edit, &mut prompt, out)? {
@@ -43,15 +51,23 @@ pub(super) fn edit_line(
                 return Ok(ReadOutcome::Eof);
             }
             Loop::Eof => {}
-            Loop::Interrupt => {
-                edit.clear();
-                nav = HistoryRecall::new(history);
-                writeln!(stdout, "^C")?;
-                prompt = prompt::PRIMARY;
-                draw::redraw(stdout, prompt, &edit)?;
-            }
+            Loop::Interrupt => on_interrupt(stdout, &mut edit, &mut nav, history, &mut prompt)?,
         }
     }
+}
+
+fn on_interrupt<'a>(
+    stdout: &mut impl Write,
+    edit: &mut EditBuffer,
+    nav: &mut HistoryRecall<'a>,
+    history: &'a History,
+    prompt: &mut &str,
+) -> io::Result<()> {
+    edit.clear();
+    *nav = HistoryRecall::new(history);
+    writeln!(stdout, "^C")?;
+    *prompt = prompt::PRIMARY;
+    draw::redraw(stdout, prompt, edit)
 }
 
 fn finish_accept(
@@ -79,11 +95,14 @@ fn handle_event(
     bindings: &KeyBindings,
     prompt: &mut &str,
     nav: &mut HistoryRecall<'_>,
+    queue: &mut VecDeque<u8>,
 ) -> io::Result<Loop> {
-    match read_event()? {
+    match read_event(queue)? {
         Event::Action(action) => actions::apply(stdout, edit, action, prompt, nav),
-        Event::Insert(ch) => {
-            edit.insert(ch);
+        Event::InsertRun(text) => {
+            for ch in text.chars() {
+                edit.insert(ch);
+            }
             draw::redraw(stdout, prompt, edit)?;
             Ok(Loop::Continue)
         }

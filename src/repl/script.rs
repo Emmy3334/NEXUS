@@ -3,6 +3,7 @@
 use super::{run_loop, ReplIo};
 use crate::env::ShellEnvironment;
 
+use std::collections::VecDeque;
 use std::fs;
 use std::io::{self, Cursor, Write};
 use std::path::Path;
@@ -33,6 +34,7 @@ pub(super) fn source_path<O: Write, E: Write>(
         stdin: &mut cursor,
         stdout: io.stdout,
         stderr: io.stderr,
+        input_queue: VecDeque::new(),
     };
     run_loop(&mut nested, false, shell_env)
 }
@@ -47,6 +49,7 @@ fn run_with_cursor(
         stdin,
         stdout: &mut stdout,
         stderr: &mut stderr,
+        input_queue: VecDeque::new(),
     };
     Ok(match run_loop(&mut io, false, shell_env)? {
         super::LoopEnd::Status(code) | super::LoopEnd::Exit(code) => code,

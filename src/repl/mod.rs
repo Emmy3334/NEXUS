@@ -3,11 +3,15 @@
 //! Dragon Book pipeline: acquire line → history expansion → lexical analysis →
 //! list/pipeline parse → execute against an owned environment copy.
 
+mod foreach_collect;
+mod foreach_run;
 mod line;
 mod line_edit;
 mod prompt;
 mod script;
 
+#[cfg(unix)]
+pub use line_edit::take_complete_line;
 pub use line_edit::{Action, HistoryRecall, KeyBindings, ReplInput};
 pub use script::run_script;
 
@@ -16,16 +20,18 @@ use crate::exec::CommandResult;
 use crate::lex;
 
 use line::{read_and_parse, run_ready_command, ParseOutcome};
+use std::collections::VecDeque;
 use std::io::{self, Write};
 
 const SUCCESS_EXIT: u8 = 0;
 
 /// The REPL's own I/O streams, bundled so helper functions don't need one
-/// parameter per stream.
+/// parameter per stream. `input_queue` holds leftover TTY paste bytes.
 pub(super) struct ReplIo<'a, I, O, E> {
     pub(super) stdin: &'a mut I,
     pub(super) stdout: &'a mut O,
     pub(super) stderr: &'a mut E,
+    pub(super) input_queue: VecDeque<u8>,
 }
 
 struct ReplBuffers {
@@ -82,6 +88,7 @@ pub fn run_with_env(
         stdin: &mut stdin,
         stdout: &mut stdout,
         stderr: &mut stderr,
+        input_queue: VecDeque::new(),
     };
     if interactive {
         crate::jobs::install_interactive_handlers()?;
@@ -115,20 +122,54 @@ fn step<I: ReplInput, O: Write, E: Write>(
     last_status: u8,
 ) -> io::Result<StepOutcome> {
     notify_completed_jobs(io.stderr, shell_env)?;
-    let command_list = match read_and_parse(
+    execute_parsed(
+        read_and_parse(
+            io,
+            interactive,
+            &mut buffers.line,
+            &mut buffers.expanded,
+            &mut buffers.tokens,
+            shell_env,
+        )?,
         io,
         interactive,
-        &mut buffers.line,
-        &mut buffers.expanded,
-        &mut buffers.tokens,
+        &mut buffers.argv,
         shell_env,
-    )? {
-        ParseOutcome::Eof => return Ok(StepOutcome::Eof(last_status)),
-        ParseOutcome::Blank => return Ok(StepOutcome::Continue(last_status)),
-        ParseOutcome::Failed(code) => return Ok(StepOutcome::Continue(code)),
-        ParseOutcome::Ready(list) => list,
-    };
-    match run_ready_command(&command_list, io, &mut buffers.argv, shell_env, last_status)? {
+        last_status,
+    )
+}
+
+fn execute_parsed<I: ReplInput, O: Write, E: Write>(
+    parsed: ParseOutcome<'_>,
+    io: &mut ReplIo<'_, I, O, E>,
+    interactive: bool,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+) -> io::Result<StepOutcome> {
+    match parsed {
+        ParseOutcome::Eof => Ok(StepOutcome::Eof(last_status)),
+        ParseOutcome::Blank => Ok(StepOutcome::Continue(last_status)),
+        ParseOutcome::Failed(code) => Ok(StepOutcome::Continue(code)),
+        ParseOutcome::Ready(list) => finish_result(
+            run_ready_command(&list, io, argv, shell_env, last_status)?,
+            io,
+            shell_env,
+        ),
+        ParseOutcome::ForEach(header) => finish_result(
+            foreach_run::run_foreach(header, io, interactive, shell_env, last_status, argv)?,
+            io,
+            shell_env,
+        ),
+    }
+}
+
+fn finish_result<I: ReplInput, O: Write, E: Write>(
+    result: CommandResult,
+    io: &mut ReplIo<'_, I, O, E>,
+    shell_env: &mut ShellEnvironment,
+) -> io::Result<StepOutcome> {
+    match result {
         CommandResult::Status(code) => Ok(StepOutcome::Continue(code)),
         CommandResult::Exit(code) => Ok(StepOutcome::Exit(code)),
         CommandResult::Source(path) => match script::source_path(&path, io, shell_env)? {

@@ -85,3 +85,28 @@ fn history_recall_newer_on_draft_is_noop() {
     assert_eq!(line, "only");
     assert_eq!(nav.offset(), 0);
 }
+
+#[cfg(unix)]
+#[test]
+fn paste_buffer_peels_complete_lines_and_keeps_tail() {
+    use std::collections::VecDeque;
+
+    let mut q = VecDeque::from(b"echo a\necho b\r\npartial".to_vec());
+    assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some("echo a"));
+    assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some("echo b"));
+    assert_eq!(repl::take_complete_line(&mut q), None);
+    assert_eq!(Vec::from(q), b"partial");
+}
+
+#[cfg(unix)]
+#[test]
+fn paste_buffer_handles_cr_only_and_empty_lines() {
+    use std::collections::VecDeque;
+
+    let mut q = VecDeque::from(b"one\r\ntwo\r\n\nthree\n".to_vec());
+    assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some("one"));
+    assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some("two"));
+    assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some(""));
+    assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some("three"));
+    assert_eq!(repl::take_complete_line(&mut q), None);
+}
