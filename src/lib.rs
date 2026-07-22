@@ -15,3 +15,4 @@ pub mod jobs;
 pub mod lex;
 pub mod parse;
 pub mod repl;
+pub mod while_loop;

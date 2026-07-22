@@ -3,12 +3,13 @@
 //! Dragon Book pipeline: acquire line → history expansion → lexical analysis →
 //! list/pipeline parse → execute against an owned environment copy.
 
-mod foreach_collect;
+mod control_collect;
 mod foreach_run;
 mod line;
 mod line_edit;
 mod prompt;
 mod script;
+mod while_run;
 
 #[cfg(unix)]
 pub use line_edit::take_complete_line;
@@ -158,6 +159,11 @@ fn execute_parsed<I: ReplInput, O: Write, E: Write>(
         ),
         ParseOutcome::ForEach(header) => finish_result(
             foreach_run::run_foreach(header, io, interactive, shell_env, last_status, argv)?,
+            io,
+            shell_env,
+        ),
+        ParseOutcome::While(header) => finish_result(
+            while_run::run_while(header, io, interactive, shell_env, last_status, argv)?,
             io,
             shell_env,
         ),

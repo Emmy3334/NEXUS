@@ -8,6 +8,7 @@ use crate::foreach::{self, ForEachHeader};
 use crate::history::{self, ExpandOutcome};
 use crate::lex;
 use crate::parse;
+use crate::while_loop::{self, WhileHeader};
 
 use std::io::{self, BufRead, Write};
 
@@ -23,6 +24,8 @@ pub(super) enum ParseOutcome<'a> {
     Ready(parse::CommandList<'a>),
     /// `foreach name ( … )` — body collected by the REPL.
     ForEach(ForEachHeader),
+    /// `while ( expr )` — body collected by the REPL.
+    While(WhileHeader),
 }
 
 /// Read one logical line, expand `!` events, tokenize, and parse.
@@ -85,20 +88,8 @@ fn tokenize_and_parse<'a, E: Write>(
         return Ok(ParseOutcome::Failed(1));
     }
     debug_assert!(tokens_are_well_formed(expanded, tokens));
-    if let Some(header) = foreach::parse_header(expanded, tokens) {
-        return Ok(ParseOutcome::ForEach(header));
-    }
-    if foreach::starts_with_foreach(expanded, tokens) {
-        writeln!(
-            stderr,
-            "{}",
-            foreach::foreach_syntax_message(expanded, tokens)
-        )?;
-        return Ok(ParseOutcome::Failed(1));
-    }
-    if foreach::is_end_line(expanded) {
-        writeln!(stderr, "end: Not in while/foreach.")?;
-        return Ok(ParseOutcome::Failed(1));
+    if let Some(outcome) = try_control(expanded, tokens, stderr)? {
+        return Ok(outcome);
     }
     match parse::parse_line(expanded, tokens) {
         Ok(Some(list)) => Ok(ParseOutcome::Ready(list)),
@@ -108,6 +99,40 @@ fn tokenize_and_parse<'a, E: Write>(
             Ok(ParseOutcome::Failed(1))
         }
     }
+}
+
+fn try_control<'a, E: Write>(
+    expanded: &'a str,
+    tokens: &[lex::Token],
+    stderr: &mut E,
+) -> io::Result<Option<ParseOutcome<'a>>> {
+    if let Some(header) = foreach::parse_header(expanded, tokens) {
+        return Ok(Some(ParseOutcome::ForEach(header)));
+    }
+    if foreach::starts_with_foreach(expanded, tokens) {
+        writeln!(
+            stderr,
+            "{}",
+            foreach::foreach_syntax_message(expanded, tokens)
+        )?;
+        return Ok(Some(ParseOutcome::Failed(1)));
+    }
+    if let Some(header) = while_loop::parse_header(expanded, tokens) {
+        return Ok(Some(ParseOutcome::While(header)));
+    }
+    if while_loop::starts_with_while(expanded, tokens) {
+        writeln!(
+            stderr,
+            "{}",
+            while_loop::while_syntax_message(expanded, tokens)
+        )?;
+        return Ok(Some(ParseOutcome::Failed(1)));
+    }
+    if foreach::is_end_line(expanded) {
+        writeln!(stderr, "end: Not in while/foreach.")?;
+        return Ok(Some(ParseOutcome::Failed(1)));
+    }
+    Ok(None)
 }
 
 /// Collect heredoc bodies (if any) then execute the parsed command list.

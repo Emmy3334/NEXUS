@@ -1,8 +1,9 @@
 //! Expand foreach items and execute the loop body.
 
-use super::foreach_collect::collect_body;
+use super::control_collect::{collect_body, BlockKind};
 use super::line;
 use super::line_edit::ReplInput;
+use super::while_run;
 use super::{script, LoopEnd, ReplIo};
 use crate::env::ShellEnvironment;
 use crate::exec::CommandResult;
@@ -22,7 +23,7 @@ pub(super) fn run_foreach<I: ReplInput, O: Write, E: Write>(
     last_status: u8,
     argv: &mut Vec<String>,
 ) -> io::Result<CommandResult> {
-    let Some(body) = collect_body(io, interactive, &shell_env.history)? else {
+    let Some(body) = collect_body(io, interactive, &shell_env.history, BlockKind::ForEach)? else {
         return Ok(CommandResult::Status(1));
     };
     let items = match expand_items(&header.items, shell_env, last_status, io)? {
@@ -63,7 +64,8 @@ fn expand_items<I: ReplInput, O: Write, E: Write>(
     Ok(Some(out))
 }
 
-fn run_body<I: ReplInput, O: Write, E: Write>(
+/// Replay body lines through the normal read/parse/exec path.
+pub(super) fn run_body<I: ReplInput, O: Write, E: Write>(
     body: &[String],
     io: &mut ReplIo<'_, I, O, E>,
     shell_env: &mut ShellEnvironment,
@@ -137,6 +139,11 @@ fn replay_one<I: ReplInput, O: Write, E: Write>(
         ),
         line::ParseOutcome::ForEach(header) => apply_result(
             run_foreach(header, io, false, shell_env, last_status, argv)?,
+            io,
+            shell_env,
+        ),
+        line::ParseOutcome::While(header) => apply_result(
+            while_run::run_while(header, io, false, shell_env, last_status, argv)?,
             io,
             shell_env,
         ),
