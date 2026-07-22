@@ -5,15 +5,22 @@
 
 mod after_spawn;
 mod chain;
+mod docker;
 mod report;
 
 pub use after_spawn::{after_spawn_failure, after_spawn_failure_os};
 pub use chain::ResolverChain;
+pub use docker::{attach_docker_backend, DockerResolver, DEFAULT_IMAGE};
 pub(crate) use report::report_spawn_failure;
 
 use crate::env::ShellEnvironment;
 
 use std::io::{self, Write};
+
+/// Attach built-in heal backends that are available on this host.
+pub fn attach_default_backends(shell_env: &mut ShellEnvironment) {
+    attach_docker_backend(shell_env);
+}
 
 /// Backend that may recover a command missing on the local host.
 ///
