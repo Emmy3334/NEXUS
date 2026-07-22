@@ -13,6 +13,7 @@ mod exit;
 mod history;
 mod jobs;
 mod repeat;
+mod sandbox;
 mod set;
 mod setenv;
 mod source;
@@ -63,6 +64,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "which"
             | "where"
             | "repeat"
+            | "sandbox"
             | "pushd"
             | "popd"
             | "dirs"

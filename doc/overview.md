@@ -12,7 +12,7 @@ Product stages (from project PDFs / standing rules):
 
 1. **Minishell** — prompt, lex/parse/exec, builtins, pipes, redirects, env
 2. **42sh-class** — jobs, history/`!`, aliases, line edit, control structures, `&&`/`||`, bonuses
-3. **Cloud / self-healing** — resolver seam + Docker backend (`bollard` / alpine) when the daemon is up; Wasm/K8s backends not implemented yet
+3. **Cloud / self-healing** — resolver seam + Wasm cache + Docker backend (`bollard` / alpine) when the daemon is up; K8s backends not implemented yet
 
 ## Package facts
 
@@ -20,7 +20,7 @@ Product stages (from project PDFs / standing rules):
 |-------|--------|
 | Crate / binary name | `nexus` |
 | Edition | 2021 |
-| `rust-version` | 1.75 |
+| `rust-version` | 1.78 |
 | Tests | Single integration crate (`autotests = false`) |
 | Main dependency | `nix` 0.29 (`fs`, `process`, `signal`, `term`) |
 
@@ -39,13 +39,14 @@ Product stages (from project PDFs / standing rules):
 | Context Tab complete (git branches, `python`/`ruby` filters, `@docker logs`) | Yes |
 | Git-aware prompt (`$> [branch*] `) | Yes |
 | Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
+| Wasm sandbox (`sandbox`) + module cache heal | Yes |
 | `foreach` / `while` / `if` | Yes |
 | Scripting / `source` / `.` | Yes |
 | Specials `precmd` / `cwdcmd` / `ignoreeof` | Yes |
 | Bonuses `which`/`where`, `repeat`, `pushd`/`popd`/`dirs`, bracketed paste | Yes |
 | Self-heal resolver seam (`CommandResolver` / empty chain → classic 127) | Yes |
 | Docker heal backend (`bollard`, alpine image when daemon up) | Yes |
-| Cloud / Wasm / K8s heal backends | Not yet |
+| Cloud / Wasm / K8s heal backends | Wasm cache yes; K8s not yet |
 
 ## Top-level layout
 
