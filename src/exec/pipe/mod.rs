@@ -27,7 +27,7 @@ use std::io::{self, BufRead, Write};
 
 /// Per-pipeline state that every stage needs but does not itself own.
 pub(super) struct StageCtx<'a, I, O, E> {
-    pub(super) shell_env: &'a ShellEnvironment,
+    pub(super) shell_env: &'a mut ShellEnvironment,
     pub(super) last_status: u8,
     pub(super) heredocs: &'a mut HeredocState,
     pub(super) stdin: &'a mut I,
@@ -58,7 +58,7 @@ pub(super) fn execute_piped_stages<I: BufRead, O: Write, E: Write>(
 
 fn run_stages<I: BufRead, O: Write, E: Write>(
     stages: &[PreparedStage<'_>],
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     heredocs: &mut HeredocState,
     io: &mut ExecIo<'_, I, O, E>,
@@ -155,6 +155,6 @@ fn run_simple_stage<I: BufRead, O: Write, E: Write>(
     if builtins::is_builtin(name) {
         run_builtin_stage(stage, files, is_last, ctx, state)
     } else {
-        run_external_stage(name, stage, files, is_last, ctx, state)
+        run_external_stage(stage, files, is_last, ctx, state)
     }
 }

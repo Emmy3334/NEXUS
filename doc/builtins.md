@@ -47,7 +47,8 @@ pub enum BuiltinResult {
 | `popd` | `dirstack/` | Pop and `cd`; same print flags; `+n` drops entry `n` |
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
 
-Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack.rs`).
+Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
+Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`.
 
 ## Recognition list
 

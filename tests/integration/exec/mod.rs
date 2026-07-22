@@ -2,6 +2,7 @@
 
 mod common;
 mod external;
+mod heal;
 mod jobs;
 mod list;
 mod pipe;

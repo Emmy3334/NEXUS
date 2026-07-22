@@ -16,6 +16,7 @@ mod specials;
 
 pub use dirstack::DirStack;
 
+use crate::heal::ResolverChain;
 use crate::history::History;
 use crate::jobs::JobTable;
 use crate::keybind::KeyBindings;
@@ -39,6 +40,8 @@ pub struct ShellEnvironment {
     pub key_bindings: KeyBindings,
     /// Directory stack for `pushd` / `popd` / `dirs`.
     pub dir_stack: DirStack,
+    /// Self-heal backends for missing external commands (empty = classic 127).
+    pub healers: ResolverChain,
     /// Background jobs for `&` / `jobs` / `fg` / `bg`.
     pub jobs: JobTable,
 }
@@ -53,6 +56,7 @@ impl Clone for ShellEnvironment {
             history: self.history.clone(),
             key_bindings: self.key_bindings.clone(),
             dir_stack: self.dir_stack.clone(),
+            healers: self.healers.clone(),
             // Subshells must not inherit live child processes.
             jobs: JobTable::default(),
         }
@@ -68,7 +72,7 @@ impl PartialEq for ShellEnvironment {
             && self.history == other.history
             && self.key_bindings == other.key_bindings
             && self.dir_stack == other.dir_stack
-        // `jobs` excluded: live child processes are not value identity.
+        // `jobs` / `healers` excluded: not value identity for env snapshots.
     }
 }
 
@@ -87,6 +91,7 @@ impl ShellEnvironment {
             history: History::default(),
             key_bindings: KeyBindings::new(),
             dir_stack: DirStack::default(),
+            healers: ResolverChain::empty(),
             jobs: JobTable::default(),
         };
         env.seed_specials();
@@ -105,6 +110,7 @@ impl ShellEnvironment {
             history: History::default(),
             key_bindings: KeyBindings::new(),
             dir_stack: DirStack::default(),
+            healers: ResolverChain::empty(),
             jobs: JobTable::default(),
         }
     }

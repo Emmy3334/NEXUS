@@ -2,8 +2,9 @@
 
 use super::super::io::ExecIo;
 use super::super::redirect::{open_redirect_files, HeredocState, RedirectFiles, StdinSource};
-use super::super::{build_external_command, report_spawn_failure, CommandResult};
+use super::super::{build_external_command, CommandResult};
 use crate::env::ShellEnvironment;
+use crate::heal;
 use crate::parse::Redirect;
 
 use std::io::{self, BufRead, Write};
@@ -33,8 +34,8 @@ pub(super) fn spawn_simple<I: BufRead, O: Write, E: Write>(
     crate::jobs::prepare_background_group(&mut command);
     match command.spawn() {
         Ok(child) => register_job(argv, vec![child], shell_env, io.stderr),
-        Err(err) => Ok(CommandResult::Status(report_spawn_failure(
-            &argv[0], &err, io.stderr,
+        Err(err) => Ok(CommandResult::Status(heal::after_spawn_failure(
+            argv, &err, shell_env, io.stdout, io.stderr,
         )?)),
     }
 }
