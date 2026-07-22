@@ -6,6 +6,7 @@ mod advanced;
 mod builtins;
 mod exec;
 mod expand;
+mod foreach;
 mod glob;
 mod jobs_signals;
 mod lex;

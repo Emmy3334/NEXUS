@@ -4,6 +4,7 @@ use super::line_edit::{self, ReadOutcome, ReplInput};
 use super::ReplIo;
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
+use crate::foreach::{self, ForEachHeader};
 use crate::history::{self, ExpandOutcome};
 use crate::lex;
 use crate::parse;
@@ -20,6 +21,8 @@ pub(super) enum ParseOutcome<'a> {
     Failed(u8),
     /// A command list ready to execute.
     Ready(parse::CommandList<'a>),
+    /// `foreach name ( … )` — body collected by the REPL.
+    ForEach(ForEachHeader),
 }
 
 /// Read one logical line, expand `!` events, tokenize, and parse.
@@ -37,6 +40,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         interactive,
         &shell_env.history,
         line_buffer,
+        &mut io.input_queue,
     )? {
         ReadOutcome::Eof => return Ok(ParseOutcome::Eof),
         ReadOutcome::Line => {}
@@ -81,6 +85,21 @@ fn tokenize_and_parse<'a, E: Write>(
         return Ok(ParseOutcome::Failed(1));
     }
     debug_assert!(tokens_are_well_formed(expanded, tokens));
+    if let Some(header) = foreach::parse_header(expanded, tokens) {
+        return Ok(ParseOutcome::ForEach(header));
+    }
+    if foreach::starts_with_foreach(expanded, tokens) {
+        writeln!(
+            stderr,
+            "{}",
+            foreach::foreach_syntax_message(expanded, tokens)
+        )?;
+        return Ok(ParseOutcome::Failed(1));
+    }
+    if foreach::is_end_line(expanded) {
+        writeln!(stderr, "end: Not in while/foreach.")?;
+        return Ok(ParseOutcome::Failed(1));
+    }
     match parse::parse_line(expanded, tokens) {
         Ok(Some(list)) => Ok(ParseOutcome::Ready(list)),
         Ok(None) => Ok(ParseOutcome::Blank),

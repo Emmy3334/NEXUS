@@ -8,6 +8,7 @@ pub mod builtins;
 pub mod env;
 pub mod exec;
 pub mod expand;
+pub mod foreach;
 pub mod glob;
 pub mod history;
 pub mod jobs;
