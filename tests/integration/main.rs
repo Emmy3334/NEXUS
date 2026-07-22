@@ -9,6 +9,7 @@ mod expand;
 mod glob;
 mod jobs_signals;
 mod lex;
+mod line_edit;
 mod parse;
 mod repl;
 mod shell_env;
