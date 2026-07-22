@@ -4,7 +4,10 @@
 //! list/pipeline parse → execute against an owned environment copy.
 
 mod control_collect;
+mod control_parse;
 mod foreach_run;
+mod if_collect;
+mod if_run;
 mod line;
 mod line_edit;
 mod prompt;
@@ -164,6 +167,11 @@ fn execute_parsed<I: ReplInput, O: Write, E: Write>(
         ),
         ParseOutcome::While(header) => finish_result(
             while_run::run_while(header, io, interactive, shell_env, last_status, argv)?,
+            io,
+            shell_env,
+        ),
+        ParseOutcome::If(header) => finish_result(
+            if_run::run_if(header, io, interactive, shell_env, last_status, argv)?,
             io,
             shell_env,
         ),

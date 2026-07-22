@@ -1,6 +1,7 @@
 //! Expand foreach items and execute the loop body.
 
 use super::control_collect::{collect_body, BlockKind};
+use super::if_run;
 use super::line;
 use super::line_edit::ReplInput;
 use super::while_run;
@@ -144,6 +145,11 @@ fn replay_one<I: ReplInput, O: Write, E: Write>(
         ),
         line::ParseOutcome::While(header) => apply_result(
             while_run::run_while(header, io, false, shell_env, last_status, argv)?,
+            io,
+            shell_env,
+        ),
+        line::ParseOutcome::If(header) => apply_result(
+            if_run::run_if(header, io, false, shell_env, last_status, argv)?,
             io,
             shell_env,
         ),
