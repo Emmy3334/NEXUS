@@ -1,15 +1,26 @@
 //! Redraw the current visual line on the TTY.
 
 use super::buffer::EditBuffer;
+use crate::repl::prompt;
 use std::io::{self, Write};
 
 pub(super) fn clear_screen(stdout: &mut impl Write) -> io::Result<()> {
     write!(stdout, "\x1b[H\x1b[2J")
 }
 
-pub(super) fn redraw(stdout: &mut impl Write, prompt: &str, edit: &EditBuffer) -> io::Result<()> {
-    let (line, cursor_in_line) = visible_line(edit);
-    write!(stdout, "\r\x1b[2K{prompt}{line}")?;
+pub(super) fn redraw(
+    stdout: &mut impl Write,
+    prompt_str: &str,
+    edit: &EditBuffer,
+) -> io::Result<()> {
+    let (line, cursor_in_line, continuation) = visible_line(edit);
+    // Paste / multi-line under PS1: bare continuation rows (zsh-like). PS2 still repeats.
+    let shown = if continuation && prompt::is_primary(prompt_str) {
+        ""
+    } else {
+        prompt_str
+    };
+    write!(stdout, "\r\x1b[2K{shown}{line}")?;
     let after = line.len().saturating_sub(cursor_in_line);
     if after > 0 {
         write!(stdout, "\x1b[{after}D")?;
@@ -17,7 +28,7 @@ pub(super) fn redraw(stdout: &mut impl Write, prompt: &str, edit: &EditBuffer) -
     stdout.flush()
 }
 
-fn visible_line(edit: &EditBuffer) -> (&str, usize) {
+fn visible_line(edit: &EditBuffer) -> (&str, usize, bool) {
     let text = edit.as_str();
     let cursor = edit.cursor;
     let start = text[..cursor].rfind('\n').map(|i| i + 1).unwrap_or(0);
@@ -25,5 +36,5 @@ fn visible_line(edit: &EditBuffer) -> (&str, usize) {
         .find('\n')
         .map(|i| cursor + i)
         .unwrap_or(text.len());
-    (&text[start..end], cursor - start)
+    (&text[start..end], cursor - start, start > 0)
 }

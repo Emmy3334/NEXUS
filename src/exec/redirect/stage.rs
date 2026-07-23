@@ -81,12 +81,10 @@ fn execute_external_with_files(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    let Some((program, args)) = argv.split_first() else {
+    if argv.is_empty() {
         return Ok(0);
-    };
-    let mut command = Command::new(program);
-    command.args(args).env_clear().envs(shell_env.iter());
-    crate::jobs::prepare_child_command(&mut command);
+    }
+    let mut command = crate::exec::build_external_command(argv, shell_env);
     let (stdin_bytes, copy_out) = configure_stdio(&mut command, files, stdout_mode);
     run_configured(
         &mut command,
@@ -140,7 +138,7 @@ fn run_configured(
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     if stdin_bytes.is_none() && !copy_out && crate::jobs::job_control_enabled() {
-        crate::jobs::prepare_process_group(command, None);
+        crate::jobs::prepare_process_group(command, None, shell_env);
         return spawn_job_control(command, argv, shell_env, stderr);
     }
     if stdin_bytes.is_none() && !copy_out {

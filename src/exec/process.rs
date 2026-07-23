@@ -2,6 +2,8 @@
 
 use crate::builtins::{self, BuiltinResult};
 use crate::env::ShellEnvironment;
+use crate::harden;
+use crate::pathfind;
 
 use std::io::{self, Write};
 use std::process::{Child, Command, ExitStatus};
@@ -23,13 +25,36 @@ pub(crate) fn exit_status_code(status: ExitStatus) -> u8 {
 }
 
 pub(crate) fn build_external_command(argv: &[String], shell_env: &ShellEnvironment) -> Command {
-    let mut command = Command::new(&argv[0]);
+    let program = resolve_program(&argv[0], shell_env);
+    let mut command = Command::new(program);
     if argv.len() > 1 {
         command.args(&argv[1..]);
     }
-    command.env_clear().envs(shell_env.iter());
-    crate::jobs::prepare_child_command(&mut command);
+    apply_child_env(&mut command, shell_env);
+    crate::jobs::prepare_child_command(&mut command, shell_env);
     command
+}
+
+fn resolve_program(name: &str, env: &ShellEnvironment) -> String {
+    if name.contains('/') {
+        return name.to_owned();
+    }
+    let path = harden::effective_path(env);
+    pathfind::resolve_first(name, &path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| name.to_owned())
+}
+
+fn apply_child_env(command: &mut Command, shell_env: &ShellEnvironment) {
+    command.env_clear();
+    let jail = harden::path_jail_enabled(shell_env);
+    for (key, value) in shell_env.iter() {
+        if jail && key == "PATH" {
+            command.env(key, pathfind::sanitize_path(value));
+        } else {
+            command.env(key, value);
+        }
+    }
 }
 
 pub(crate) fn abandon_children(children: &mut [Child]) {

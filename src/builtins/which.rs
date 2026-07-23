@@ -36,10 +36,10 @@ fn locate(
         writeln!(stderr, "{}: Too few arguments.", argv[0])?;
         return Ok(1);
     }
-    let path_var = shell_env.get("PATH").unwrap_or("");
+    let path_var = crate::harden::effective_path(shell_env);
     let mut status = 0_u8;
     for name in names {
-        if !print_one(name, path_var, all, stdout)? {
+        if !print_one(name, &path_var, all, stdout)? {
             writeln!(stderr, "{name}: Command not found.")?;
             status = 1;
         }

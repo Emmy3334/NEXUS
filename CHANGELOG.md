@@ -22,6 +22,10 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Host spawn hardening: absolute-only **PATH jail** (default on;
+  `path_jail=0` / `NEXUS_PATH_JAIL=0` to disable) and opt-in child **setrlimit**
+  (`rlimit=1` / `NEXUS_RLIMIT=1`; CPU/NOFILE everywhere; AS/NPROC on Linux —
+  macOS cannot apply finite `RLIMIT_AS`).
 - Arithmetic command `((expr))`: same engine as `$((…))` (including `++`/`--` and
   assignments); status 0 if result ≠ 0, else 1; does not execute the number as a command.
 - Arithmetic prefix/postfix `++` / `--` on bare names in `$((…))` (same writeback as

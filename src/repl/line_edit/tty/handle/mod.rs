@@ -95,12 +95,16 @@ fn insert_raw_paste(
     bytes: &[u8],
 ) -> io::Result<Loop> {
     for &b in bytes {
-        let ch = match b {
-            b'\r' | b'\n' => '\n',
-            b if b >= 0x20 && b != 0x7f => b as char,
-            _ => continue,
-        };
-        edit.insert(ch);
+        match b {
+            // New row without repeating PS1 (continuation rows are prompt-less).
+            b'\n' => {
+                edit.insert('\n');
+                writeln!(stdout)?;
+            }
+            b'\r' => {}
+            b if b >= 0x20 && b != 0x7f => edit.insert(b as char),
+            _ => {}
+        }
     }
     draw::redraw(stdout, prompt, edit)?;
     Ok(Loop::Continue)

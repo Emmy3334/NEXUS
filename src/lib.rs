@@ -12,6 +12,7 @@ pub mod expand;
 pub mod foreach;
 pub mod functions;
 pub mod glob;
+pub mod harden;
 pub mod heal;
 pub mod history;
 pub mod if_block;
