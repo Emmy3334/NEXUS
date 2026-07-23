@@ -1,6 +1,9 @@
-//! `$name` / `$?` / `$n` values inside `$((…))` (unset → 0).
+//! `$name` / `$?` / `$n` / nested `$((…))` (unset → 0).
 
+use super::super::super::read;
+use super::super::evaluate;
 use crate::env::ShellEnvironment;
+use crate::lex::LexError;
 
 use std::iter::Peekable;
 use std::str::Chars;
@@ -9,16 +12,31 @@ pub(super) fn value(
     chars: &mut Peekable<Chars<'_>>,
     env: &ShellEnvironment,
     last_status: u8,
-) -> i64 {
+) -> Result<i64, LexError> {
     match chars.peek().copied() {
         Some('?') => {
             chars.next();
-            i64::from(last_status)
+            Ok(i64::from(last_status))
         }
-        Some(c) if c.is_ascii_digit() => lookup_int(&take_digits(chars), env, last_status),
-        Some(c) if is_name_start(c) => lookup_int(&take_name(chars), env, last_status),
-        _ => 0,
+        Some('(') => nested_arith(chars, env, last_status),
+        Some(c) if c.is_ascii_digit() => Ok(lookup_int(&take_digits(chars), env, last_status)),
+        Some(c) if is_name_start(c) => Ok(lookup_int(&take_name(chars), env, last_status)),
+        _ => Ok(0),
     }
+}
+
+fn nested_arith(
+    chars: &mut Peekable<Chars<'_>>,
+    env: &ShellEnvironment,
+    last_status: u8,
+) -> Result<i64, LexError> {
+    chars.next(); // '('
+    if chars.peek() != Some(&'(') {
+        return Err(LexError::Arithmetic);
+    }
+    chars.next(); // second '('
+    let body = read::take_body(chars)?;
+    evaluate(&body, env, last_status)
 }
 
 fn take_digits(chars: &mut Peekable<Chars<'_>>) -> String {
@@ -33,7 +51,7 @@ fn take_digits(chars: &mut Peekable<Chars<'_>>) -> String {
     name
 }
 
-fn take_name(chars: &mut Peekable<Chars<'_>>) -> String {
+pub(super) fn take_name(chars: &mut Peekable<Chars<'_>>) -> String {
     let mut name = String::new();
     if let Some(c) = chars.next() {
         name.push(c);
@@ -48,7 +66,7 @@ fn take_name(chars: &mut Peekable<Chars<'_>>) -> String {
     name
 }
 
-fn lookup_int(name: &str, env: &ShellEnvironment, last_status: u8) -> i64 {
+pub(super) fn lookup_int(name: &str, env: &ShellEnvironment, last_status: u8) -> i64 {
     if name == "status" {
         return i64::from(last_status);
     }
@@ -63,7 +81,7 @@ fn lookup_int(name: &str, env: &ShellEnvironment, last_status: u8) -> i64 {
     text.parse().unwrap_or(0)
 }
 
-fn is_name_start(c: char) -> bool {
+pub(super) fn is_name_start(c: char) -> bool {
     c.is_ascii_alphabetic() || c == '_'
 }
 

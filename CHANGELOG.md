@@ -18,6 +18,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Extended arithmetic expansion: bare names, nested `$((…))`, `**`, shifts, bitwise /
+  compare / `&&` `||` / `!` `~`, and ternary `?:`.
 - Arithmetic expansion `$((expr))`: integers, `+ - * / %`, unary `+/-`, `(…)`, and
   `$name` / `$?` / `$n` inside the expression (unset → 0). Unquoted form stays one
   lex word; div-by-zero / bad expr → expand error.

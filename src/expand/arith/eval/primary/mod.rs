@@ -1,4 +1,4 @@
-//! Unary / primary / number atoms for arithmetic.
+//! Unary / primary / number / bare name / nested `$((…))`.
 
 mod dollar;
 
@@ -30,6 +30,14 @@ pub(super) fn parse_unary(
             chars.next();
             Ok(parse_unary(chars, env, last_status)?.wrapping_neg())
         }
+        Some('!') => {
+            chars.next();
+            Ok(i64::from(parse_unary(chars, env, last_status)? == 0))
+        }
+        Some('~') => {
+            chars.next();
+            Ok(!parse_unary(chars, env, last_status)?)
+        }
         _ => parse_primary(chars, env, last_status),
     }
 }
@@ -52,9 +60,14 @@ fn parse_primary(
         }
         Some('$') => {
             chars.next();
-            Ok(dollar::value(chars, env, last_status))
+            dollar::value(chars, env, last_status)
         }
         Some(c) if c.is_ascii_digit() => parse_number(chars),
+        Some(c) if dollar::is_name_start(c) => Ok(dollar::lookup_int(
+            &dollar::take_name(chars),
+            env,
+            last_status,
+        )),
         _ => Err(LexError::Arithmetic),
     }
 }
