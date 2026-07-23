@@ -5,11 +5,14 @@ mod background;
 use super::common::{parse_list, test_env};
 use nexus::exec::{execute_list, CommandResult};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 fn temp_file(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("nexus_jobs_{}_{name}", std::process::id()))
+    static SEQ: AtomicU64 = AtomicU64::new(0);
+    let seq = SEQ.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!("nexus_jobs_{}_{seq}_{name}", std::process::id()))
 }
 
 fn run(source: &str, env: &mut nexus::env::ShellEnvironment) -> (CommandResult, String, String) {
@@ -62,4 +65,21 @@ fn parse_ampersand_sets_background() {
     let list = parse_list("true &");
     assert!(list.pipelines[0].background);
     assert!(list.as_single_command().is_none());
+}
+
+/// Background pipelines spawn a nested `nexus` (~large debug binary). Allow
+/// cold-start under a full suite; 2s was flaky after the Wasmtime bump.
+pub(super) fn wait_for_contents(path: &std::path::Path, expected: &str) {
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        if std::fs::read_to_string(path).ok().as_deref() == Some(expected) {
+            return;
+        }
+        if Instant::now() >= deadline {
+            break;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    let actual = std::fs::read_to_string(path).unwrap_or_else(|err| format!("<missing: {err}>"));
+    assert_eq!(actual, expected, "timed out waiting for {}", path.display());
 }
