@@ -33,6 +33,8 @@ pub enum BuiltinResult {
 | `fg` | `jobs.rs` | Bring job to foreground and wait |
 | `bg` | `jobs.rs` | Continue job in background |
 | `disown` | `jobs.rs` | Remove job from table without killing it |
+| `return` | `return_cmd.rs` | Leave current function with optional status |
+| `local` | `local_cmd.rs` | Function-scoped shell local (`name` / `name=value`); restores on leave |
 | `source` / `.` | `source.rs` | `BuiltinResult::Source(path)` — run file in current shell |
 | `@` | `at.rs` | tcsh-style `@ i++` / `@ i = n` on locals |
 | `bindkey` | `bindkey/` | List / set / clear editor bindings (`-e` `-v` `-c` `-s` `-a`, …) |
@@ -116,7 +118,7 @@ Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running c
 
 `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

@@ -15,8 +15,8 @@ use self::paths::{collect_file_matches, collect_path_commands};
 pub use list::{format_columns, list_display_lines, list_display_lines_width};
 
 const BUILTINS: &[&str] = &[
-    "alias", "bg", "cd", "disown", "doctor", "env", "exit", "fg", "heal", "history", "jobs", "set",
-    "setenv", "source", "unalias", "unset", "unsetenv",
+    "alias", "bg", "cd", "disown", "doctor", "env", "exit", "fg", "heal", "history", "jobs",
+    "local", "set", "setenv", "source", "unalias", "unset", "unsetenv",
 ];
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.

@@ -49,6 +49,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
   live wasm/kube/docker reachability probes.
 - Heal command→image map (python/node/ruby/php family) for Docker/Kube by default; unmapped
   typos skip containers (fast). Opt-in alpine catch-all: `heal_catch_all` / `NEXUS_HEAL_CATCH_ALL`.
+- Function-scoped `local name[=value]` (restores prior shell local on function exit / `return`).
 
 ### Fixed
 
