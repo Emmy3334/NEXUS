@@ -156,6 +156,13 @@ fn parentheses_are_operators() {
 }
 
 #[test]
+fn arithmetic_stays_one_word() {
+    assert_eq!(kinds("$((1+2))"), vec![TokenKind::Word]);
+    assert_eq!(lexemes("echo $((1+2*3))"), vec!["echo", "$((1+2*3))"]);
+    assert_eq!(lexemes("$((1+(2)))"), vec!["$((1+(2)))"]);
+}
+
+#[test]
 fn single_and_double_redirects() {
     assert_eq!(
         kinds("cat < in > out"),

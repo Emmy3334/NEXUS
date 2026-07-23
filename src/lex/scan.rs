@@ -1,13 +1,13 @@
 //! Splitting a source line into [`Token`] spans.
 
-use super::{quote, LexError, QuoteState, Token, TokenKind};
+use super::{arith_span, quote, LexError, QuoteState, Token, TokenKind};
 
 /// Tokenize `source` into `tokens`, reusing `tokens`' capacity.
 ///
 /// Clears `tokens` first. One forward scan; no intermediate collections.
 /// Two-character operators (`>>`, `<<`) are preferred over single `>` / `<`.
 /// Operators split words only when outside quotes. `\` escapes the next
-/// character outside quotes (and a few insides `"…"`).
+/// character outside quotes (and a few insides `"…"`). `$((…))` stays one word.
 pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) -> Result<(), LexError> {
     tokens.clear();
 
@@ -64,15 +64,32 @@ fn next_non_whitespace(source: &str, from: usize) -> Option<usize> {
 /// Scan one word starting at `from` (must not be whitespace/operator).
 fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
     let mut state = QuoteState::Normal;
-    let mut chars = source[from..].char_indices();
-
-    while let Some((rel, ch)) = chars.next() {
-        if state == QuoteState::Normal && (ch.is_whitespace() || is_operator_char(ch)) {
-            return Ok(from + rel);
+    let mut i = from;
+    while i < source.len() {
+        let ch = source[i..].chars().next().expect("i in range");
+        let ch_len = ch.len_utf8();
+        if state == QuoteState::Normal {
+            if ch.is_whitespace() {
+                return Ok(i);
+            }
+            if let Some(end) = arith_span::try_close_arith(source, i)? {
+                i = end;
+                continue;
+            }
+            if is_operator_char(ch) {
+                return Ok(i);
+            }
         }
-        state = quote::advance(state, ch, &mut chars);
+        if quote::escapes(state) && ch == '\\' {
+            i += ch_len;
+            if let Some(next) = source[i..].chars().next() {
+                i += next.len_utf8();
+            }
+            continue;
+        }
+        state = quote::advance_at(state, source, i);
+        i += ch_len;
     }
-
     if state != QuoteState::Normal {
         return Err(LexError::UnclosedQuote);
     }

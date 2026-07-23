@@ -1,9 +1,11 @@
-//! `$` / `$?` / `$status` / `$n` / `$#` / `$*` / `${…}` into an [`ExpandedWord`].
+//! `$` / `$?` / `$n` / `$name` into [`ExpandedWord`].
 
+use super::arith;
 use super::braced;
 use super::name::{is_name_continue, is_name_start, push_named_parameter};
 use super::ExpandedWord;
 use crate::env::ShellEnvironment;
+use crate::lex::LexError;
 
 pub(super) fn push_parameter(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
@@ -11,7 +13,7 @@ pub(super) fn push_parameter(
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
-) {
+) -> Result<(), LexError> {
     match chars.peek().copied() {
         Some('?') => {
             chars.next();
@@ -26,10 +28,28 @@ pub(super) fn push_parameter(
             out.push_str_literal(&env.star());
         }
         Some('{') => braced::push_braced(chars, env, last_status, out, globable),
+        Some('(') => push_arith_or_literal(chars, env, last_status, out)?,
         Some(c) if c.is_ascii_digit() => push_digits(chars, env, out, globable),
         Some(c) if is_name_start(c) => push_plain_name(chars, env, last_status, out, globable),
         _ => out.push_literal('$'),
     }
+    Ok(())
+}
+
+fn push_arith_or_literal(
+    chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
+    env: &ShellEnvironment,
+    last_status: u8,
+    out: &mut ExpandedWord,
+) -> Result<(), LexError> {
+    chars.next(); // '('
+    if chars.peek() != Some(&'(') {
+        out.push_literal('$');
+        out.push_literal('(');
+        return Ok(());
+    }
+    chars.next(); // second '('
+    arith::push_arith(chars, env, last_status, out)
 }
 
 fn push_status(last_status: u8, out: &mut ExpandedWord) {

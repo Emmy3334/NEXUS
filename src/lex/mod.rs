@@ -5,6 +5,7 @@
 //! `` `…` `` / `\` escapes so that spaces and operators inside quotes stay
 //! part of the word.
 
+mod arith_span;
 mod expand;
 mod quote;
 mod scan;
@@ -87,6 +88,10 @@ pub enum LexError {
     UnclosedQuote,
     /// Command substitution (`` `…` ``) failed to run.
     CommandSubstitution,
+    /// `$((` was opened without a matching `))`.
+    UnclosedArithmetic,
+    /// Arithmetic expression was invalid or divided by zero.
+    Arithmetic,
 }
 
 impl LexError {
@@ -96,6 +101,8 @@ impl LexError {
         match self {
             Self::UnclosedQuote => "Unmatched quote.",
             Self::CommandSubstitution => "Command substitution failed.",
+            Self::UnclosedArithmetic => "Unmatched $((.",
+            Self::Arithmetic => "Arithmetic expansion failed.",
         }
     }
 }
