@@ -34,6 +34,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 - `sandbox install` / `list` / `rm` for the local Wasm module cache (`.wasm` / `.wat`).
 - `@kube logs -f` / `--follow` (stream until EOF or Ctrl-C) and thin non-TTY `@kube exec`
   (`[-n NS] <pod> -- <cmd>…`).
+- `heal` / `doctor` status builtin: configured order/image/quiet, session attach count, and
+  live wasm/kube/docker reachability probes.
 
 ### Fixed
 

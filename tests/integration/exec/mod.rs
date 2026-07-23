@@ -6,6 +6,7 @@ mod heal;
 mod heal_config;
 mod heal_docker;
 mod heal_kube;
+mod heal_status;
 mod heal_suggest;
 mod jobs;
 mod list;

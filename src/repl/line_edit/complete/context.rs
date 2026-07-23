@@ -1,6 +1,6 @@
 //! Classify the completion context from words before the current token.
 
-use super::{docker, kube};
+use super::{docker, heal, kube};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
@@ -9,6 +9,7 @@ pub(super) enum Kind {
     Interpreter { extensions: &'static [&'static str] },
     Docker(docker::Complete),
     Kube(kube::Complete),
+    Heal(heal::Complete),
 }
 
 /// Inspect whitespace-separated words before the token being completed.
@@ -25,6 +26,9 @@ pub(super) fn classify(before: &str) -> Kind {
     }
     if let Some(kube) = kube::classify(&words) {
         return Kind::Kube(kube);
+    }
+    if let Some(heal) = heal::classify(&words) {
+        return Kind::Heal(heal);
     }
     match words.first().copied() {
         Some("python" | "python3") => Kind::Interpreter {

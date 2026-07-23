@@ -45,6 +45,7 @@ pub enum BuiltinResult {
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox/` | Run Wasm (path/cache), soft-host; `install` / `list` / `rm` cache UX |
+| `heal` / `doctor` | `heal/` | Print heal order/image/quiet, session attach count, backend probes |
 | `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `exec`, `get`, `describe` |
 | `@docker` | `docker/` | Native Docker Engine: `ps`, `logs` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
@@ -52,9 +53,18 @@ pub enum BuiltinResult {
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
 
 Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
-Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Kubernetes Pod**, then **Docker** (override with `heal_order` / `NEXUS_HEAL_ORDER`). Image: `heal_image` / `NEXUS_HEAL_IMAGE` (default `alpine:3.20`). Quiet success banners **and** not-found tips/suggestions: `heal_quiet` / `NEXUS_HEAL_QUIET=1`. When heal declines, stderr may include `nexus: did you mean: …` (PATH/cwd/history neighbors) and a one-line heal tip; exit status stays `127`.
+Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Kubernetes Pod**, then **Docker** (override with `heal_order` / `NEXUS_HEAL_ORDER`). Image: `heal_image` / `NEXUS_HEAL_IMAGE` (default `alpine:3.20`). Quiet success banners **and** not-found tips/suggestions: `heal_quiet` / `NEXUS_HEAL_QUIET=1`. When heal declines, stderr may include `nexus: did you mean: …` (PATH/cwd/history neighbors) and a one-line heal tip; exit status stays `127`. Use `heal` / `doctor` to print the configured order, image, quiet flag, how many backends are attached this session, and live wasm/kube/docker reachability (does not re-attach).
 
 Docker and Kube heal forward the **exported** shell environment (same map as external children). Finite stdin bytes from heredocs / buffered pipes are fed into Docker heal; Kube declines when stdin is present so Docker can handle it. Locals are not forwarded.
+
+### `heal` / `doctor`
+
+| Form | Behavior |
+|------|----------|
+| `heal` / `doctor` | Print order, image, quiet, session attach count, per-backend probe |
+| `heal help` / `-h` / `--help` | Usage on stderr, status `1` |
+
+Tab: after `heal ` / `doctor ` → `help`.
 
 ### `sandbox` / Wasm cache
 
@@ -106,7 +116,7 @@ Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running c
 
 `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

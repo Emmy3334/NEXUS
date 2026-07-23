@@ -11,6 +11,7 @@ mod docker;
 mod env_pairs;
 mod kube;
 mod report;
+mod status;
 mod suggest;
 mod wasm;
 
@@ -23,6 +24,7 @@ pub use docker::{
 };
 pub use kube::{attach_kube_backend, KubeResolver, DEFAULT_IMAGE as KUBE_DEFAULT_IMAGE};
 pub(crate) use report::report_spawn_failure;
+pub use status::status_lines;
 pub use wasm::{attach_wasm_backend, WasmResolver};
 
 use crate::env::ShellEnvironment;
