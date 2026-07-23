@@ -1,12 +1,14 @@
 //! Classify the completion context from words before the current token.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use super::kube;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
     Default,
     GitBranch,
     Interpreter { extensions: &'static [&'static str] },
     DockerContainer,
-    KubePod,
+    Kube(kube::Complete),
 }
 
 /// Inspect whitespace-separated words before the token being completed.
@@ -21,8 +23,8 @@ pub(super) fn classify(before: &str) -> Kind {
     if docker_logs_context(&words) {
         return Kind::DockerContainer;
     }
-    if kube_logs_context(&words) {
-        return Kind::KubePod;
+    if let Some(kube) = kube::classify(&words) {
+        return Kind::Kube(kube);
     }
     match words.first().copied() {
         Some("python" | "python3") => Kind::Interpreter {
@@ -47,8 +49,4 @@ fn git_branch_context(words: &[&str]) -> bool {
 
 fn docker_logs_context(words: &[&str]) -> bool {
     words.first().copied() == Some("@docker") && words.iter().skip(1).any(|w| *w == "logs")
-}
-
-fn kube_logs_context(words: &[&str]) -> bool {
-    words.first().copied() == Some("@kube") && words.iter().skip(1).any(|w| *w == "logs")
 }

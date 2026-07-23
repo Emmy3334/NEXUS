@@ -44,7 +44,7 @@ pub enum BuiltinResult {
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox.rs` | Run a Wasm module (path / cache name) via Wasmtime; else host command in a temp HOME with filtered env |
-| `@kube` | `kube.rs` | Native K8s: `nodes`, `pods`, `logs <pod>` |
+| `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `get`, `describe` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
 | `popd` | `dirstack/` | Pop and `cd`; same print flags; `+n` drops entry `n` |
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
@@ -70,11 +70,14 @@ Talks to the cluster via **kube-rs** (default kubeconfig / namespace):
 |---------|----------|
 | `@kube nodes` | List nodes (`NAME STATUS ROLES AGE VERSION`) |
 | `@kube pods` | List pods (`NAME READY STATUS RESTARTS AGE`) |
+| `@kube pods -n NS` | List pods in namespace `NS` |
 | `@kube pods -A` | Same with `NAMESPACE` column (all namespaces) |
-| `@kube logs <pod>` | Last 100 log lines |
+| `@kube logs [-n NS] <pod>` | Last 100 log lines |
+| `@kube get pods\|nodes …` | Alias to `pods` / `nodes` (flags apply to pods) |
+| `@kube describe pod <name> [-n NS]` | Multi-line summary (name, ns, phase, node, restarts, images, conditions) |
 | no cluster / bad kubeconfig | Status `1` + stderr (soft for Tab complete → empty) |
 
-Tab: `@kube logs `<Tab> suggests pod names when the API is reachable.
+Tab: after `@kube ` → subcommands; after `-n` → namespaces; after `logs` / `describe pod` → pod names (when the API is reachable).
 
 Missing external commands may also be healed via an ephemeral alpine Pod when the cluster is reachable (after Wasm / Docker in the default heal chain). The Pod bind-mounts the host cwd via `hostPath` when the node can see that path (same idea as Docker heal).
 

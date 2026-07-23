@@ -40,7 +40,7 @@ Product stages (from project PDFs / standing rules):
 | Git-aware prompt (`$> [branch*] `) | Yes |
 | Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
 | Wasm sandbox (`sandbox`) + module cache heal | Yes |
-| Kubernetes API (`@kube` nodes/pods/logs via kube-rs) | Yes |
+| Kubernetes API (`@kube` nodes/pods/logs/get/describe via kube-rs) | Yes |
 | `foreach` / `while` / `if` | Yes |
 | Scripting / `source` / `.` | Yes |
 | Specials `precmd` / `cwdcmd` / `ignoreeof` | Yes |
