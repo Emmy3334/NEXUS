@@ -76,7 +76,7 @@ tests/                # ALL tests (one integration crate for rust-analyzer)
 - Folders + `mod.rs` when a module would exceed **35 lines/fn** or **7 fns/file** (or otherwise outgrow one file).
 - **Tests:** only under `tests/integration/` (reached from `main.rs`). Do not add `#[cfg(test)]` / `#[test]` inside `src/`.
 - Workspaces only when we truly need separate crates.
-- Binary name: **`nexus`**. `rust-version = "1.75"`, edition **2021**.
+- Binary name: **`nexus`**. `rust-version = "1.89"`, edition **2021**.
 
 ## Clean code (always)
 

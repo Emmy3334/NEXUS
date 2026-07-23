@@ -22,9 +22,10 @@ pub(super) fn spawn_pipeline(
         .env_clear()
         .envs(shell_env.iter())
         .stdin(Stdio::piped());
-    crate::jobs::prepare_child_command(&mut command);
-    crate::jobs::prepare_background_group(&mut command);
+    // Avoid `pre_exec`/`setpgid` here: on macOS, large Rust binaries can hang in
+    // dyld when `setpgid` runs between fork and exec. Set the pgrp in the parent.
     let mut child = command.spawn()?;
+    let _ = crate::jobs::detach_background(&child);
     if let Some(mut stdin) = child.stdin.take() {
         stdin.write_all(script.as_bytes())?;
     }
