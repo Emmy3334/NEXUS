@@ -1,0 +1,35 @@
+//! Ambiguous completion column listing.
+
+use nexus::repl::{format_columns, list_display_lines, list_display_lines_width};
+
+#[test]
+fn columns_are_column_major() {
+    let items = ["a", "b", "c", "d", "e"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    // cell width = 1 + 2 = 3 → 9/3 = 3 cols → 2 rows
+    let lines = format_columns(&items, 9);
+    assert_eq!(lines, vec!["a  c  e".to_string(), "b  d".to_string()]);
+}
+
+#[test]
+fn narrow_terminal_falls_back_to_one_column() {
+    let items = ["alpha", "beta"].map(str::to_owned).to_vec();
+    let lines = format_columns(&items, 4);
+    assert_eq!(lines, vec!["alpha".to_string(), "beta".to_string()]);
+}
+
+#[test]
+fn list_caps_and_notes_omitted() {
+    let items = (0..105).map(|i| format!("n{i:03}")).collect::<Vec<_>>();
+    let lines = list_display_lines_width(&items, 40);
+    assert!(lines.last().is_some_and(|l| l == "... and 5 more"));
+    assert_eq!(lines.len(), format_columns(&items[..100], 40).len() + 1);
+}
+
+#[test]
+fn empty_list_yields_no_lines() {
+    assert!(format_columns(&[], 80).is_empty());
+    assert!(list_display_lines(&[]).is_empty());
+}

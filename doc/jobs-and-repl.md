@@ -52,7 +52,7 @@ While reverse-i-search is active, the prompt shows `(reverse-i-search)\`query': 
 
 Vi command map also binds `b` / `w` for word motion. Words are whitespace-separated.
 
-Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, and on Unix `take_complete_line`.
+Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, `format_columns`, `list_display_lines`, `list_display_lines_width`, and on Unix `take_complete_line`.
 
 ### Context-aware Tab completion
 
@@ -69,6 +69,10 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `@kube … logs …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
 
 Otherwise falls back to builtins + `PATH` + filesystem matches.
+
+Ambiguous matches: insert the shared prefix when it grows, then list remaining choices in
+`$COLUMNS`-aware columns (soft-capped at 100, with an “… and N more” trailer). Unique
+matches replace the token with no listing. No compsys / `zstyle` menu-select yet.
 
 ### Git-aware primary prompt
 

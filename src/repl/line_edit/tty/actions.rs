@@ -92,11 +92,12 @@ fn complete_token(
     prompt: &str,
 ) -> io::Result<Loop> {
     let matches = complete::complete(&mut edit.text, &mut edit.cursor);
-    if !matches.is_empty() {
+    let lines = complete::list_display_lines(&matches);
+    if !lines.is_empty() {
         writeln!(stdout)?;
     }
-    for item in &matches {
-        writeln!(stdout, "{item}")?;
+    for line in &lines {
+        writeln!(stdout, "{line}")?;
     }
     draw::redraw(stdout, prompt, edit)?;
     Ok(Loop::Continue)

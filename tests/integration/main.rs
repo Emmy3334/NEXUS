@@ -7,6 +7,7 @@ mod brace_glob;
 mod builtins;
 mod case_block;
 mod complete_context;
+mod complete_list;
 mod cwd_lock;
 mod exec;
 mod expand;

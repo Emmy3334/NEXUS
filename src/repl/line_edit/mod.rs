@@ -19,6 +19,8 @@ pub use tty::take_complete_line;
 
 /// Tab-complete the token under `cursor` in `buffer` (integration tests / tooling).
 pub use complete::complete;
+/// Column layout helpers for ambiguous completion listings.
+pub use complete::{format_columns, list_display_lines, list_display_lines_width};
 
 use super::prompt;
 use crate::history::History;
