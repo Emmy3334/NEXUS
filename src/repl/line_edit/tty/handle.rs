@@ -5,7 +5,7 @@ use super::buffer::EditBuffer;
 use super::draw;
 use super::event::Event;
 use super::keys::read_event;
-use crate::keybind::{Binding, KeyBindings};
+use crate::keybind::{Action, Binding, KeyBindings};
 use crate::repl::line_edit::recall::HistoryRecall;
 use crate::repl::prompt::PromptLine;
 
@@ -84,6 +84,17 @@ fn dispatch_raw(
 ) -> io::Result<Loop> {
     match bindings.lookup(bytes).cloned() {
         Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding),
+        None if bytes.len() == 2 && bytes[0] == 0x1b => {
+            // Vi: ESC+letter → command mode then letter on the alternate map.
+            if matches!(
+                bindings.lookup(&[0x1b]),
+                Some(Binding::Action(Action::ViCmdMode))
+            ) {
+                bindings.enter_command_map();
+                return dispatch_raw(stdout, edit, bindings, prompt, nav, &bytes[1..]);
+            }
+            Ok(Loop::Continue)
+        }
         None => Ok(Loop::Continue),
     }
 }

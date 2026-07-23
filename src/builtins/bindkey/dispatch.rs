@@ -98,12 +98,20 @@ fn remove_one(
     }
 }
 
-const ALL_ACTIONS: [Action; 12] = [
+const ALL_ACTIONS: [Action; 20] = [
     Action::Accept,
     Action::Backspace,
     Action::Delete,
     Action::MoveLeft,
     Action::MoveRight,
+    Action::MoveWordLeft,
+    Action::MoveWordRight,
+    Action::KillWordForward,
+    Action::KillWordBackward,
+    Action::KillToEol,
+    Action::KillLine,
+    Action::Yank,
+    Action::TransposeWords,
     Action::HistoryUp,
     Action::HistoryDown,
     Action::Complete,

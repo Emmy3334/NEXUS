@@ -18,6 +18,7 @@ mod kube_cloud;
 mod lex;
 mod line_edit;
 mod line_edit_paste;
+mod line_edit_word;
 mod nexusrc;
 mod observability;
 mod parse;

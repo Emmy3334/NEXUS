@@ -72,6 +72,14 @@ fn mutate(
         Action::Delete => buffer::delete(edit),
         Action::MoveLeft => buffer::move_left(edit),
         Action::MoveRight => buffer::move_right(edit),
+        Action::MoveWordLeft => buffer::move_word_left(edit),
+        Action::MoveWordRight => buffer::move_word_right(edit),
+        Action::KillWordForward => buffer::kill_word_forward(edit),
+        Action::KillWordBackward => buffer::kill_word_backward(edit),
+        Action::KillToEol => buffer::kill_to_eol(edit),
+        Action::KillLine => buffer::kill_line(edit),
+        Action::Yank => buffer::yank(edit),
+        Action::TransposeWords => buffer::transpose_words(edit),
         _ => {}
     }
     draw::redraw(stdout, prompt, edit)?;

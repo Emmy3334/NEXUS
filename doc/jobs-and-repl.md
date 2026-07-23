@@ -34,8 +34,20 @@ Missing histfile on load is quiet. Manual `history -S` / `-L` / `-M` still work.
 
 | Platform | Behavior |
 |----------|----------|
-| Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation, history recall, completion, paste queue, bindkey actions |
+| Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation, **word ops / kill-ring / yank**, history recall, completion, paste queue, bindkey actions |
 | Else | Plain line read (`plain.rs`) |
+
+Emacs defaults (also available via `bindkey`):
+
+| Keys | Action |
+|------|--------|
+| `M-b` / `M-f` | Backward / forward word |
+| `C-w` / `M-d` / `M-BS` | Kill word backward / forward |
+| `C-k` / `C-u` | Kill to end of line / kill whole line |
+| `C-y` | Yank from kill-ring |
+| `M-t` | Transpose adjacent words |
+
+Vi command map also binds `b` / `w` for word motion. Words are whitespace-separated.
 
 Public pieces re-exported from `repl`: `Action`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, and on Unix `take_complete_line`.
 
