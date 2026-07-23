@@ -14,6 +14,7 @@ mod history;
 mod jobs;
 mod kube;
 mod repeat;
+mod return_cmd;
 mod sandbox;
 mod set;
 mod setenv;
@@ -70,6 +71,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "pushd"
             | "popd"
             | "dirs"
+            | "return"
     )
 }
 

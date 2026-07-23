@@ -3,10 +3,11 @@
 use super::child_io::run_with_io;
 use super::files::{open_redirect_files, RedirectFiles, StdinSource};
 use super::heredoc::HeredocState;
+use super::stage_shell;
 use crate::builtins;
 use crate::env::ShellEnvironment;
 use crate::exec::io::ExecIo;
-use crate::exec::{execute_command_mode, exit_status_code, CommandResult, StdoutMode};
+use crate::exec::{exit_status_code, CommandResult, StdoutMode};
 use crate::heal;
 use crate::parse::Redirect;
 
@@ -23,7 +24,7 @@ pub(in crate::exec) fn execute_simple<I: BufRead, O: Write, E: Write>(
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
     if redirects.is_empty() {
-        return execute_command_mode(
+        return crate::exec::execute_command_mode(
             io.stdout_mode,
             argv,
             shell_env,
@@ -53,8 +54,14 @@ fn dispatch_with_files<I: BufRead, O: Write, E: Write>(
     last_status: u8,
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
+    if argv
+        .first()
+        .is_some_and(|n| shell_env.function_get(n).is_some())
+    {
+        return stage_shell::run_function(argv, files, shell_env, last_status, io);
+    }
     if argv.first().is_some_and(|n| builtins::is_builtin(n)) {
-        return execute_builtin_with_files(argv, files, shell_env, last_status, io);
+        return stage_shell::run_builtin(argv, files, shell_env, last_status, io);
     }
     Ok(CommandResult::Status(execute_external_with_files(
         io.stdout_mode,
@@ -64,23 +71,6 @@ fn dispatch_with_files<I: BufRead, O: Write, E: Write>(
         io.stdout,
         io.stderr,
     )?))
-}
-
-fn execute_builtin_with_files<I: BufRead, O: Write, E: Write>(
-    argv: &[String],
-    files: RedirectFiles,
-    shell_env: &mut ShellEnvironment,
-    last_status: u8,
-    io: &mut ExecIo<'_, I, O, E>,
-) -> io::Result<CommandResult> {
-    drop(files.stdin);
-    let result = match files.stdout {
-        Some(mut file) => builtins::try_run(argv, shell_env, last_status, &mut file, io.stderr)?,
-        None => builtins::try_run(argv, shell_env, last_status, io.stdout, io.stderr)?,
-    };
-    Ok(result
-        .map(CommandResult::from)
-        .unwrap_or(CommandResult::Status(0)))
 }
 
 fn execute_external_with_files(

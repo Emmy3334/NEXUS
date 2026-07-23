@@ -6,6 +6,7 @@ use super::ReplIo;
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
 use crate::foreach::ForEachHeader;
+use crate::functions::FunctionHeader;
 use crate::history::{self, ExpandOutcome};
 use crate::if_block::IfHeader;
 use crate::lex;
@@ -30,6 +31,8 @@ pub(super) enum ParseOutcome<'a> {
     While(WhileHeader),
     /// `if ( expr ) then` — body collected by the REPL.
     If(IfHeader),
+    /// `name() { … }` / `function name { … }`.
+    Function(FunctionHeader),
 }
 
 /// Read one logical line, expand `!` events, tokenize, and parse.

@@ -11,6 +11,8 @@ mod access;
 mod aliases;
 mod argv;
 mod dirstack;
+mod func_frame;
+mod functions;
 mod mutate;
 mod specials;
 
@@ -32,8 +34,14 @@ pub struct ShellEnvironment {
     pub(super) locals: BTreeMap<String, String>,
     /// Command aliases (not passed to children).
     pub(super) aliases: BTreeMap<String, String>,
+    /// Shell functions (not passed to children).
+    pub(super) functions: BTreeMap<String, String>,
     /// Positional parameters for scripting (`$0`, `$1`, …).
     pub(super) argv: Vec<String>,
+    /// Nesting depth while executing a function body.
+    pub(super) func_depth: u32,
+    /// Set by `return` to stop the current function body.
+    pub(super) pending_return: Option<u8>,
     /// Session command history for `!` events and `history`.
     pub history: History,
     /// Interactive editor bindings for `bindkey` / line edition.
@@ -54,7 +62,10 @@ impl Clone for ShellEnvironment {
             vars: self.vars.clone(),
             locals: self.locals.clone(),
             aliases: self.aliases.clone(),
+            functions: self.functions.clone(),
             argv: self.argv.clone(),
+            func_depth: 0,
+            pending_return: None,
             history: self.history.clone(),
             key_bindings: self.key_bindings.clone(),
             dir_stack: self.dir_stack.clone(),
@@ -71,6 +82,7 @@ impl PartialEq for ShellEnvironment {
         self.vars == other.vars
             && self.locals == other.locals
             && self.aliases == other.aliases
+            && self.functions == other.functions
             && self.argv == other.argv
             && self.history == other.history
             && self.key_bindings == other.key_bindings
@@ -90,7 +102,10 @@ impl ShellEnvironment {
             vars: std::env::vars().collect(),
             locals: BTreeMap::new(),
             aliases: BTreeMap::new(),
+            functions: BTreeMap::new(),
             argv: Vec::new(),
+            func_depth: 0,
+            pending_return: None,
             history: History::default(),
             key_bindings: KeyBindings::new(),
             dir_stack: DirStack::default(),
@@ -111,7 +126,10 @@ impl ShellEnvironment {
             vars,
             locals: BTreeMap::new(),
             aliases: BTreeMap::new(),
+            functions: BTreeMap::new(),
             argv: Vec::new(),
+            func_depth: 0,
+            pending_return: None,
             history: History::default(),
             key_bindings: KeyBindings::new(),
             dir_stack: DirStack::default(),

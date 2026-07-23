@@ -42,7 +42,12 @@ pub(super) fn run_foreach<I: ReplInput, O: Write, E: Write>(
     for item in items {
         shell_env.set_local(&header.var, item);
         match run_body(&body, io, shell_env, status, argv)? {
-            CommandResult::Status(code) => status = code,
+            CommandResult::Status(code) => {
+                status = code;
+                if shell_env.return_requested() {
+                    return Ok(CommandResult::Status(code));
+                }
+            }
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
             CommandResult::Source(_) => return Ok(CommandResult::Status(1)),
         }
@@ -117,6 +122,7 @@ fn replay_lines<I: ReplInput, O: Write, E: Write>(
             Replay::Continue(code) => last_status = code,
             Replay::Eof => return Ok(CommandResult::Status(last_status)),
             Replay::Exit(code) => return Ok(CommandResult::Exit(code)),
+            Replay::Stop(code) => return Ok(CommandResult::Status(code)),
         }
     }
 }
@@ -125,6 +131,8 @@ enum Replay {
     Continue(u8),
     Eof,
     Exit(u8),
+    /// Stop body replay (`return` inside a function); keep `pending_return`.
+    Stop(u8),
 }
 
 fn replay_one<I: ReplInput, O: Write, E: Write>(
@@ -160,6 +168,11 @@ fn replay_one<I: ReplInput, O: Write, E: Write>(
             io,
             shell_env,
         ),
+        line::ParseOutcome::Function(header) => apply_result(
+            super::function_run::run_define(header, io, false, shell_env)?,
+            io,
+            shell_env,
+        ),
     }
 }
 
@@ -169,7 +182,12 @@ fn apply_result<I: ReplInput, O: Write, E: Write>(
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<Replay> {
     match result {
-        CommandResult::Status(code) => Ok(Replay::Continue(code)),
+        CommandResult::Status(code) => {
+            if shell_env.return_requested() {
+                return Ok(Replay::Stop(code));
+            }
+            Ok(Replay::Continue(code))
+        }
         CommandResult::Exit(code) => Ok(Replay::Exit(code)),
         CommandResult::Source(path) => match script::source_path(&path, io, shell_env)? {
             LoopEnd::Status(code) => Ok(Replay::Continue(code)),

@@ -6,6 +6,7 @@
 mod control_collect;
 mod control_parse;
 mod foreach_run;
+mod function_run;
 mod history_persist;
 mod history_suppress;
 mod if_collect;
@@ -205,6 +206,11 @@ fn execute_parsed<I: ReplInput, O: Write, E: Write>(
             io,
             shell_env,
         ),
+        ParseOutcome::Function(header) => finish_result(
+            function_run::run_define(header, io, interactive, shell_env)?,
+            io,
+            shell_env,
+        ),
     }
 }
 
@@ -214,7 +220,13 @@ fn finish_result<I: ReplInput, O: Write, E: Write>(
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<StepOutcome> {
     match result {
-        CommandResult::Status(code) => Ok(StepOutcome::Continue(code)),
+        CommandResult::Status(code) => {
+            if shell_env.func_depth() > 0 && shell_env.take_return().is_some() {
+                // End nested `run_with_env` (function body) without exiting the shell.
+                return Ok(StepOutcome::Eof(code));
+            }
+            Ok(StepOutcome::Continue(code))
+        }
         CommandResult::Exit(code) => Ok(StepOutcome::Exit(code)),
         CommandResult::Source(path) => match script::source_path(&path, io, shell_env)? {
             LoopEnd::Status(code) => Ok(StepOutcome::Continue(code)),

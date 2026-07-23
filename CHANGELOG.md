@@ -23,6 +23,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 - Reverse incremental history search (`C-r` / `history-incremental-search-backward`).
 - Parameter operators: `${var:-word}`, `${var:+word}`, `${#var}`, `${var#pat}` / `##` / `%` / `%%`.
 - Brace expand `{a,b}` and recursive `**` globstar pathname matching.
+- Shell functions (`name() { … }` / `function name { … }`) with positionals and `return`.
 
 ### Fixed
 

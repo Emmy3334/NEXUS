@@ -11,6 +11,7 @@ mod exec;
 mod expand;
 mod expand_param;
 mod foreach;
+mod functions;
 mod git_prompt;
 mod glob;
 mod history_persist;

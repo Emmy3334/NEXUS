@@ -62,6 +62,18 @@ Handled mainly in `src/expand/`:
 
 Unmatched globs stay literal (`src/glob/`).
 
+### Shell functions
+
+```text
+name() { … }
+function name { … }
+function name() { … }
+```
+
+Bodies may be one line or continue until a matching `}`. Calling `name args…` runs the body with `$0`=`name`, `$1…` from the call, and `$#`/`$*` updated for the duration. Nested calls are capped (depth 64). `return [n]` leaves the current function (error if not in one). Function bodies are line-oriented command lists (no nested `foreach`/`while`/`if` collection inside the body runner yet).
+
+Module: `src/functions/` + `env` function table; `return` builtin.
+
 ## Glob
 
 Patterns `*`, `?`, `[…]`, and recursive `**` expand to matching pathnames. A lone `**` component walks descendants (hidden names skipped). `**/` in the middle matches zero or more directories. No match → original word.

@@ -16,6 +16,9 @@ pub(super) fn try_control<'a, E: Write>(
     if let Some(outcome) = try_loop_control(expanded, tokens, stderr)? {
         return Ok(Some(outcome));
     }
+    if let Some(header) = crate::functions::parse_header(expanded, tokens) {
+        return Ok(Some(ParseOutcome::Function(header)));
+    }
     try_if_control(expanded, tokens, stderr)
 }
 
