@@ -10,6 +10,7 @@ use crate::repl::line_edit::isearch::HistoryISearch;
 use std::io::{self, Write};
 
 pub(super) fn sync(edit: &mut EditBuffer, search: &HistoryISearch<'_>) {
+    edit.complete_cycle = None;
     edit.text.clear();
     edit.text.push_str(search.display_line());
     edit.cursor = edit.text.len();

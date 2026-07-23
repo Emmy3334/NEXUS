@@ -1,6 +1,8 @@
 //! Tab completion for the current token.
 
+mod collect;
 mod context;
+mod cycle;
 mod docker;
 mod git;
 mod heal;
@@ -8,13 +10,14 @@ mod interp;
 mod kube;
 mod list;
 mod paths;
+mod token;
 mod vars;
 
-use self::context::Kind;
-use self::paths::{collect_file_matches, collect_path_commands};
-use crate::builtins::NAMES;
+use self::collect::collect_matches;
+use self::token::{apply_match, common_prefix, token_at};
 use crate::env::ShellEnvironment;
 
+pub use cycle::{complete_or_cycle, CompleteCycle};
 pub use list::{format_columns, list_display_lines, list_display_lines_width};
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.
@@ -47,69 +50,4 @@ pub(crate) fn complete_with_names(
             many.to_vec()
         }
     }
-}
-
-fn token_at(buffer: &str, cursor: usize) -> (usize, String) {
-    let bytes = buffer.as_bytes();
-    let mut start = cursor.min(bytes.len());
-    while start > 0 && !bytes[start - 1].is_ascii_whitespace() {
-        start -= 1;
-    }
-    (start, buffer[start..cursor.min(buffer.len())].to_owned())
-}
-
-fn apply_match(buffer: &mut String, cursor: &mut usize, start: usize, value: &str) {
-    let end = (*cursor).min(buffer.len());
-    buffer.replace_range(start..end, value);
-    *cursor = start + value.len();
-}
-
-fn collect_matches(before: &str, prefix: &str, var_names: &[String]) -> Vec<String> {
-    let mut out = Vec::new();
-    if vars::is_var_token(prefix) {
-        vars::collect(prefix, var_names, &mut out);
-        out.sort();
-        out.dedup();
-        return out;
-    }
-    match context::classify(before) {
-        Kind::GitBranch => git::collect_branches(prefix, &mut out),
-        Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),
-        Kind::Docker(kind) => docker::collect(&kind, prefix, &mut out),
-        Kind::Kube(kind) => kube::collect(&kind, prefix, &mut out),
-        Kind::Heal(kind) => heal::collect(&kind, prefix, &mut out),
-        Kind::Default => default_matches(prefix, &mut out),
-    }
-    out.sort();
-    out.dedup();
-    out
-}
-
-fn default_matches(prefix: &str, out: &mut Vec<String>) {
-    if prefix.contains('/') || prefix.starts_with('.') {
-        collect_file_matches(prefix, out);
-        return;
-    }
-    for name in NAMES {
-        if name.starts_with(prefix) {
-            out.push((*name).to_owned());
-        }
-    }
-    collect_path_commands(prefix, out);
-    collect_file_matches(prefix, out);
-}
-
-fn common_prefix(items: &[String]) -> Option<String> {
-    let first = items.first()?;
-    let mut end = first.len();
-    for item in &items[1..] {
-        end = end.min(
-            first
-                .chars()
-                .zip(item.chars())
-                .take_while(|(a, b)| a == b)
-                .count(),
-        );
-    }
-    Some(first.chars().take(end).collect())
 }

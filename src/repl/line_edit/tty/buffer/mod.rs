@@ -19,6 +19,8 @@ pub(super) struct EditBuffer {
     pub(super) text: String,
     pub(super) cursor: usize,
     pub(super) kill_ring: VecDeque<String>,
+    /// Ambiguous Tab cycle; cleared on any non-Complete edit.
+    pub(super) complete_cycle: Option<super::super::complete::CompleteCycle>,
 }
 
 impl EditBuffer {
@@ -37,14 +39,17 @@ impl EditBuffer {
     pub(super) fn clear(&mut self) {
         self.text.clear();
         self.cursor = 0;
+        self.complete_cycle = None;
     }
 
     pub(super) fn insert(&mut self, ch: char) {
+        self.complete_cycle = None;
         self.text.insert(self.cursor, ch);
         self.cursor += ch.len_utf8();
     }
 
     pub(super) fn push_char(&mut self, ch: char) {
+        self.complete_cycle = None;
         self.text.push(ch);
         self.cursor = self.text.len();
     }
