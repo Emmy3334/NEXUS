@@ -8,8 +8,8 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 |--------|------|----------------|
 | **lex** | `src/lex/` | Tokenize input into words and operators; quote / backtick awareness (`scan.rs`, `quote.rs`) |
 | **parse** | `src/parse/` | Build `CommandList` / `Pipeline` / redirects; parser under `parser/` |
-| **expand** | `src/expand/` | `$` / backticks / field splitting pieces → `ExpandedWord` |
-| **glob** | `src/glob/` | Pathname expansion (`* ? […]`); walk + bracket matching |
+| **expand** | `src/expand/` | Brace `{a,b}`, `$` / backticks / field splitting → `ExpandedWord` |
+| **glob** | `src/glob/` | Pathname expansion (`* ? […] **`); walk + globstar + bracket |
 | **alias** | `src/alias.rs` | Post-expand `argv[0]` rewrite |
 
 ## Runtime

@@ -1,4 +1,4 @@
-//! Quote-state machine that fills expanded field(s).
+//! Quote-state machine that fills expanded field(s) (no brace expand).
 
 use super::backtick::push_backtick;
 use super::dollar::push_parameter;
@@ -7,20 +7,8 @@ use super::word::ExpandedWord;
 use crate::env::ShellEnvironment;
 use crate::lex::LexError;
 
-/// Expand a raw word into one field (no command-substitution capture).
-pub fn expand_word_for_exec(
-    raw: &str,
-    env: &ShellEnvironment,
-    last_status: u8,
-) -> Result<ExpandedWord, LexError> {
-    let mut fields = Vec::new();
-    let mut deny = |_: &str| Err(LexError::CommandSubstitution);
-    expand_word_fields_into(raw, env, last_status, &mut fields, &mut deny)?;
-    Ok(fields.into_iter().next().unwrap_or_default())
-}
-
-/// Expand `raw` into one or more fields (backticks may split when unquoted).
-pub fn expand_word_fields_into(
+/// Expand one brace-expanded piece into field(s).
+pub(super) fn expand_word_fields_into(
     raw: &str,
     env: &ShellEnvironment,
     last_status: u8,
@@ -48,16 +36,16 @@ pub fn expand_word_fields_into(
     Ok(())
 }
 
-/// Like [`expand_word_for_exec`], writing into `out` (cleared first).
-pub fn expand_word_for_exec_into(
+/// Expand without brace (parameter operator words / patterns).
+pub(super) fn expand_word_for_exec(
     raw: &str,
     env: &ShellEnvironment,
     last_status: u8,
-    out: &mut ExpandedWord,
-) -> Result<(), LexError> {
-    let word = expand_word_for_exec(raw, env, last_status)?;
-    *out = word;
-    Ok(())
+) -> Result<ExpandedWord, LexError> {
+    let mut fields = Vec::new();
+    let mut deny = |_: &str| Err(LexError::CommandSubstitution);
+    expand_word_fields_into(raw, env, last_status, &mut fields, &mut deny)?;
+    Ok(fields.into_iter().next().unwrap_or_default())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

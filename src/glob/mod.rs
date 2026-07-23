@@ -1,4 +1,4 @@
-//! Pathname expansion (`*`, `?`, `[…]`) after quote / `$` expansion.
+//! Pathname expansion (`*`, `?`, `[…]`, `**`) after quote / `$` expansion.
 //!
 //! Only characters flagged active in [`ExpandedWord`] participate as metas.
 //! No match → the literal word is kept (bash / tcsh-`nonomatch` style).
@@ -6,6 +6,7 @@
 mod bracket;
 mod component;
 mod components;
+mod globstar;
 mod match_name;
 mod walk;
 

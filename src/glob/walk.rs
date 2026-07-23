@@ -2,6 +2,7 @@
 
 use super::component::expand_component;
 use super::components::split_pattern_components;
+use super::globstar;
 use crate::expand::ExpandedWord;
 
 use std::path::{Path, PathBuf};
@@ -63,10 +64,15 @@ fn walk_components(parts: Vec<Vec<(char, bool)>>, absolute: bool) -> Vec<String>
     } else {
         vec![PathBuf::from(".")]
     };
-    for part in &parts {
+    for (i, part) in parts.iter().enumerate() {
         let mut next = Vec::new();
+        let dirs_only = i + 1 < parts.len();
         for base in &bases {
-            next.extend(expand_component(base, part));
+            if globstar::is_globstar(part) {
+                next.extend(globstar::expand(base, dirs_only));
+            } else {
+                next.extend(expand_component(base, part));
+            }
         }
         bases = next;
         if bases.is_empty() {

@@ -22,6 +22,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 - Line-edit word ops + kill-ring (emacs `M-b`/`M-f`/`C-w`/`M-d`/`C-k`/`C-u`/`C-y`/`M-t`; vi `b`/`w`).
 - Reverse incremental history search (`C-r` / `history-incremental-search-backward`).
 - Parameter operators: `${var:-word}`, `${var:+word}`, `${#var}`, `${var#pat}` / `##` / `%` / `%%`.
+- Brace expand `{a,b}` and recursive `**` globstar pathname matching.
 
 ### Fixed
 
