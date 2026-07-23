@@ -47,6 +47,15 @@ cargo test -- --test-threads=1
 
 `--test-threads=1` avoids flaky cwd races between tests that call `cd` / dir-stack builtins.
 
+CI (`.github/workflows/ci.yml`) also runs a **release** build and **`cargo audit`**. Locally:
+
+```bash
+cargo build --release --locked --bin nexus
+cargo audit   # requires: cargo install cargo-audit
+```
+
+Container build notes and hardened `docker run` flags: [security.md](security.md).
+
 ## What tests cover (by area)
 
 | Area | Typical modules |

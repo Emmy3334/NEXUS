@@ -18,6 +18,9 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Security hardening: release profile (LTO / strip / `panic = "abort"`), multi-stage
+  distroless `cc-debian12:nonroot` `Dockerfile`, GitHub Actions CI (`fmt` / `clippy` /
+  test / release build / `cargo audit`), and [doc/security.md](doc/security.md).
 - Expanded `@kube`: `-n` / `-A` scoping, `get pods|nodes`, `describe pod`, richer Tab complete
   (subcommands, namespaces, pods).
 - Heal UX: default chain **Wasm → Kube → Docker**; overrides via `heal_order` /

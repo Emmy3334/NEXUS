@@ -1,0 +1,3 @@
+[target.'cfg(all(target_os = "linux", target_env = "gnu"))']
+# Prefer PIE for release/container Linux builds (ASLR-friendly).
+rustflags = ["-C", "link-arg=-pie"]

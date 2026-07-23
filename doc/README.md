@@ -12,5 +12,6 @@ NEXUS is a Rust **tcsh-style shell** (`nexus`) built as a language processor: **
 | [jobs-and-repl.md](jobs-and-repl.md) | Job control, line edition, scripting, specials |
 | [testing.md](testing.md) | Integration test layout and how to run gates |
 | [conventions.md](conventions.md) | Project rules, layout limits, git-flow |
+| [security.md](security.md) | Release/container hardening, CI audit, run flags |
 
 Start with **overview** then **architecture** if you are new to the repo.
