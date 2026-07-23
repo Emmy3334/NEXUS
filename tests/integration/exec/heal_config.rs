@@ -1,9 +1,9 @@
-//! Heal order / image / quiet / catch-all configuration.
+//! Heal order / image / quiet / catch-all / env-pass configuration.
 
 use super::common::test_env;
 use nexus::heal::{
     attach_default_backends, container_heal_allowed, heal_catch_all, image_for, parse_order,
-    quiet_from, resolve_settings, Backend,
+    quiet_from, resolve_settings, Backend, EnvPass,
 };
 
 #[test]
@@ -94,4 +94,33 @@ fn container_heal_skips_typos_unless_catch_all() {
     assert!(container_heal_allowed("npx", &env));
     env.set_local("heal_catch_all", "1");
     assert!(container_heal_allowed("sdn", &env));
+}
+
+#[test]
+fn env_pass_defaults_to_none() {
+    let env = test_env();
+    assert_eq!(EnvPass::from_shell(&env), EnvPass::None);
+    assert_eq!(resolve_settings(&env).env_pass, "none");
+}
+
+#[test]
+fn env_pass_parse_all_and_allowlist() {
+    assert_eq!(EnvPass::parse("*"), EnvPass::All);
+    assert_eq!(EnvPass::parse("all"), EnvPass::All);
+    assert_eq!(EnvPass::parse("none"), EnvPass::None);
+    let allow = EnvPass::parse("FOO, BAR");
+    assert!(allow.allows("FOO"));
+    assert!(allow.allows("BAR"));
+    assert!(!allow.allows("BAZ"));
+    // Name may be listed; loader-path scrub still drops PATH at forward time.
+    assert!(EnvPass::parse("PATH").allows("PATH"));
+}
+
+#[test]
+fn env_pass_prefers_local_over_default() {
+    let mut env = test_env();
+    env.set_local("heal_env", "FOO,BAR");
+    assert_eq!(resolve_settings(&env).env_pass, "BAR,FOO");
+    env.set_local("heal_env", "*");
+    assert_eq!(resolve_settings(&env).env_pass, "all");
 }

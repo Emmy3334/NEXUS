@@ -55,15 +55,21 @@ pub enum BuiltinResult {
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
 
 Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
-Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Kubernetes Pod**, then **Docker** (override with `heal_order` / `NEXUS_HEAL_ORDER`). Image: `heal_image` / `NEXUS_HEAL_IMAGE` (default `alpine:3.20`). Docker/Kube heal a **built-in command→image map** by default (`python3`→`python:3.12-alpine`, `node`/`npm`/`npx`→`node:22-alpine`, `ruby`→`ruby:3.3-alpine`, `php`→`php:cli-alpine`) so typos stay fast; set `heal_catch_all=1` / `NEXUS_HEAL_CATCH_ALL=1` to also try the base image for any missing command. Quiet success banners **and** not-found tips/suggestions: `heal_quiet` / `NEXUS_HEAL_QUIET=1`. When heal declines, stderr may include `nexus: did you mean: …` (PATH/cwd/history neighbors) and a one-line heal tip; exit status stays `127`. Use `heal` / `doctor` to print the configured order, image, catch_all, quiet flag, how many backends are attached this session, and live wasm/kube/docker reachability (does not re-attach).
+Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Kubernetes Pod**, then **Docker** (override with `heal_order` / `NEXUS_HEAL_ORDER`). Image: `heal_image` / `NEXUS_HEAL_IMAGE` (default `alpine:3.20`). Docker/Kube heal a **built-in command→image map** by default (`python3`→`python:3.12-alpine`, `node`/`npm`/`npx`→`node:22-alpine`, `ruby`→`ruby:3.3-alpine`, `php`→`php:cli-alpine`) so typos stay fast; set `heal_catch_all=1` / `NEXUS_HEAL_CATCH_ALL=1` to also try the base image for any missing command. Quiet success banners **and** not-found tips/suggestions: `heal_quiet` / `NEXUS_HEAL_QUIET=1`. Container env pass defaults to **none** (`heal_env` / `NEXUS_HEAL_ENV`: `none` \| `*`/`all` \| `FOO,BAR`). When heal declines, stderr may include `nexus: did you mean: …` (PATH/cwd/history neighbors) and a one-line heal tip; exit status stays `127`. Use `heal` / `doctor` to print order, image, env, catch_all, quiet, session attach count, and live wasm/kube/docker reachability (does not re-attach).
 
-Docker and Kube heal forward the **exported** shell environment (same map as external children), except host `PATH` / loader-path vars so image binaries stay findable. Finite stdin bytes from heredocs / buffered pipes are fed into Docker heal; Kube declines when stdin is present so Docker can handle it. Locals are not forwarded.
+Docker and Kube heal forward **no** exported shell env by default (`heal_env=none`).
+Opt in with `heal_env` / `NEXUS_HEAL_ENV`: `*` / `all` for every export (still scrubbing
+host `PATH` / loader-path vars), or a comma list (`FOO,BAR`). Locals are never
+forwarded. Finite stdin bytes from heredocs / buffered pipes are fed into Docker
+heal; Kube declines when stdin is present so Docker can handle it. Use `heal` /
+`doctor` to print the configured order, image, env pass, catch_all, quiet flag,
+session attach count, and live wasm/kube/docker probes.
 
 ### `heal` / `doctor`
 
 | Form | Behavior |
 |------|----------|
-| `heal` / `doctor` | Print order, image, catch_all, quiet, session attach count, per-backend probe |
+| `heal` / `doctor` | Print order, image, env, catch_all, quiet, session attach count, per-backend probe |
 | `heal help` / `-h` / `--help` | Usage on stderr, status `1` |
 
 Tab: after `heal ` / `doctor ` → `help`.

@@ -18,6 +18,9 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Heal env pass policy: Docker/Kube forward **no** exports by default
+  (`heal_env` / `NEXUS_HEAL_ENV` = `none`); opt in with `*`/`all` or a comma
+  allowlist. `PATH` / loader-path keys stay scrubbed. Shown on `heal` / `doctor`.
 - Security hardening: release profile (LTO / strip / `panic = "abort"`), multi-stage
   distroless `cc-debian12:nonroot` `Dockerfile`, GitHub Actions CI (`fmt` / `clippy` /
   test / release build / `cargo audit`), and [doc/security.md](doc/security.md).

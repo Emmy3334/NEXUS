@@ -122,6 +122,7 @@ fn kube_forwards_exported_env() {
     };
     let mut env = ShellEnvironment::from_map(Default::default());
     env.set_local("heal_catch_all", "1");
+    env.set_local("heal_env", "NEXUS_HEAL_FOO");
     env.set("NEXUS_HEAL_FOO", "bar");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();

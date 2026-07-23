@@ -10,8 +10,10 @@ you do not need it.
 - Children inherit only the **owned** shell environment (`env_clear` + shell map).
 - Heal Wasm runs on the host Wasmtime runtime; Docker heal talks to the local
   daemon; `@kube` / Kube heal use the active kubeconfig.
-- Prefer heal off, least-privilege Docker socket / kube credentials, and do not
-  export secrets into the shell env you do not need.
+- Docker/Kube heal forward **no** exported vars by default (`heal_env=none`).
+  Opt in with `heal_env` / `NEXUS_HEAL_ENV` (`*`/`all` or `FOO,BAR`); `PATH` /
+  loader-path keys are always scrubbed. Prefer heal off and least-privilege
+  Docker socket / kube credentials.
 
 ## Release binary
 
