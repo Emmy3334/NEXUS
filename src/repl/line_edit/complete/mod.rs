@@ -8,6 +8,7 @@ mod git;
 mod heal;
 mod interp;
 mod kube;
+mod kubectl;
 mod list;
 mod paths;
 mod subcmds;

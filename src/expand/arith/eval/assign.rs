@@ -1,6 +1,7 @@
 //! Assignment operators at the top of `$((…))` (`=` `+=` `-=` `*=` `/=` `%=`).
 
 use super::primary::{is_name_start, lookup_int, skip_ws, take_name};
+use super::store::store;
 use crate::env::ShellEnvironment;
 use crate::lex::LexError;
 
@@ -98,16 +99,5 @@ fn apply(op: Op, left: i64, right: i64) -> Result<i64, LexError> {
         Op::Div => Ok(left.wrapping_div(right)),
         Op::Rem if right == 0 => Err(LexError::Arithmetic),
         Op::Rem => Ok(left.wrapping_rem(right)),
-    }
-}
-
-fn store(env: &mut ShellEnvironment, name: &str, value: i64) {
-    let text = value.to_string();
-    if env.get_local(name).is_some() {
-        env.set_local(name, text);
-    } else if env.contains(name) {
-        env.set(name, text);
-    } else {
-        env.set_local(name, text);
     }
 }

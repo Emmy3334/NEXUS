@@ -67,6 +67,8 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | Context | Suggestions |
 |---------|-------------|
 | Registered CLIs (large static registry: VCS, lang, containers, k8s, cloud/IaC, system, build, data) before first verb | Static subcommand / service lists |
+| `git <verb>` (curated) | Common flags when token starts with `-`; branch names for merge/rebase/checkout/… |
+| `kubectl get` / `describe` | Common resource kinds (`pods`, `deployments`, …) |
 | `git … checkout\|switch\|branch …` (flags allowed) | Local branches under `.git/refs/heads/` |
 | `python` / `python3` | Cwd files ending in `.py` (dirs still listed) |
 | `ruby` | Cwd files ending in `.rb` |

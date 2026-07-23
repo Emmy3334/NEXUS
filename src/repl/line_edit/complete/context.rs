@@ -1,11 +1,12 @@
 //! Classify the completion context from words before the current token.
 
-use super::{docker, heal, kube, subcmds};
+use super::{docker, git, heal, kube, kubectl, subcmds};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
     Default,
-    GitBranch,
+    GitVerb(&'static str),
+    Kubectl(kubectl::Complete),
     Subcommand(&'static [&'static str]),
     Interpreter { extensions: &'static [&'static str] },
     Docker(docker::Complete),
@@ -19,8 +20,11 @@ pub(super) enum Kind {
 #[must_use]
 pub(super) fn classify(before: &str) -> Kind {
     let words: Vec<&str> = before.split_whitespace().collect();
-    if git_branch_context(&words) {
-        return Kind::GitBranch;
+    if let Some(verb) = git::verb_in(&words) {
+        return Kind::GitVerb(verb);
+    }
+    if let Some(kubectl) = kubectl::classify(&words) {
+        return Kind::Kubectl(kubectl);
     }
     if let Some(names) = subcmds::first_verb(&words) {
         return Kind::Subcommand(names);
@@ -43,14 +47,4 @@ pub(super) fn classify(before: &str) -> Kind {
         },
         _ => Kind::Default,
     }
-}
-
-fn git_branch_context(words: &[&str]) -> bool {
-    if words.first().copied() != Some("git") {
-        return false;
-    }
-    words
-        .iter()
-        .skip(1)
-        .any(|w| matches!(*w, "checkout" | "switch" | "branch"))
 }

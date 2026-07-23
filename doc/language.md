@@ -57,9 +57,10 @@ Handled mainly in `src/expand/`:
 | `{a,b}` / `pre{a,b}post` | Brace expand (before `$`); needs a comma; quoted braces stay literal |
 | `$?` / `$status` | Last command status |
 | `$n` / `$#` / `$*` | Positional / count / all (scripting argv) |
-| `$((expr))` | Integer arithmetic: `+ - * / % **`, unary `+ - ! ~`, `(…)`, shifts, bitwise,
-  compare / `&&` `||`, ternary `?:`, assignments `=` / `+=` `-=` `*=` `/=` `%=`,
-  `$name`/`$?`/`$n`, bare names, nested `$((…))` (unset → 0) |
+| `$((expr))` | Integer arithmetic: `+ - * / % **`, unary `+ - ! ~`, prefix/postfix `++`/`--`,
+  `(…)`, shifts, bitwise, compare / `&&` `||`, ternary `?:`, assignments
+  `=` / `+=` `-=` `*=` `/=` `%=`, `$name`/`$?`/`$n`, bare names, nested `$((…))`
+  (unset → 0) |
 | `` `cmd` `` / `$(cmd)` | Capture stdout of nested command (trailing newlines stripped; process
   cwd restored after, like `(…)`) |
 | escapes / quotes | Preserved through lex; decoded at expand |

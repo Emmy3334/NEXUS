@@ -190,3 +190,66 @@ fn assignment_inside_cmdsubst_does_not_leak() {
     assert_eq!(result, CommandResult::Status(0));
     assert!(env.lookup("leak").is_none());
 }
+
+#[test]
+fn prefix_increment_updates_and_returns_new() {
+    let mut env = test_env();
+    env.set_local("x", "1");
+    assert_eq!(
+        expand_word_for_exec("$((++x))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "2"
+    );
+    assert_eq!(env.lookup("x"), Some("2"));
+}
+
+#[test]
+fn postfix_increment_returns_old_then_updates() {
+    let mut env = test_env();
+    env.set_local("x", "1");
+    assert_eq!(
+        expand_word_for_exec("$((x++))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "1"
+    );
+    assert_eq!(env.lookup("x"), Some("2"));
+}
+
+#[test]
+fn prefix_decrement_and_unset_starts_at_zero() {
+    let mut env = test_env();
+    assert_eq!(
+        expand_word_for_exec("$((++z))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "1"
+    );
+    assert_eq!(env.lookup("z"), Some("1"));
+    assert_eq!(
+        expand_word_for_exec("$((--z))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "0"
+    );
+    assert_eq!(env.lookup("z"), Some("0"));
+}
+
+#[test]
+fn postfix_in_expression() {
+    let mut env = test_env();
+    env.set_local("x", "3");
+    assert_eq!(
+        expand_word_for_exec("$((x++ + 5))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "8"
+    );
+    assert_eq!(env.lookup("x"), Some("4"));
+}
+
+#[test]
+fn inc_on_non_lvalue_errors() {
+    assert_eq!(expand("$((1++))"), Err(LexError::Arithmetic));
+}
