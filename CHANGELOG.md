@@ -18,6 +18,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Command substitution `$(cmd)` (lex keeps the span as one word; unquoted field-split
+  like backticks; double-quoted keeps blanks; reuses capture / trailing-newline strip).
 - Line-edit `C-l` clear-screen (`clear-screen`) and Tab completion for `$name` /
   `${name}` against locals ∪ exported vars.
 - Tab completion uses the shared `builtins::NAMES` list (cloud + dirstack +

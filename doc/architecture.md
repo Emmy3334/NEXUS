@@ -57,7 +57,7 @@ After parse, `exec::collect_heredoc_bodies` (driven from the REPL) reads delimit
 
 Per simple command (in exec):
 
-1. Word expand (`$`, backticks, escapes) → `ExpandedWord`
+1. Word expand (`$`, backticks / `$(…)`, escapes) → `ExpandedWord`
 2. Pathname glob (`*` `?` `[…]`); no match → literal
 3. Alias rewrite of `argv[0]` (except `alias` / `unalias`; cycle-safe)
 

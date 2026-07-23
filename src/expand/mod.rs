@@ -1,4 +1,4 @@
-//! Quote-aware word expansion: escapes, `$`, and `` ` `` (glob flags recorded).
+//! Quote-aware word expansion: escapes, `$`, `` ` ``, and `$(…)` (glob flags recorded).
 //!
 //! Pathname expansion lives in [`crate::glob`].
 //! Command substitution capture is injected by callers (avoids expand↔exec cycle).
@@ -8,11 +8,13 @@ mod arith;
 mod backtick;
 mod brace;
 mod braced;
+mod cmd_subst;
 mod decode;
 mod dollar;
 mod fields;
 mod name;
 mod push;
+mod subst_out;
 mod word;
 
 use crate::env::ShellEnvironment;
@@ -32,7 +34,7 @@ pub fn expand_word_for_exec(
     Ok(fields.into_iter().next().unwrap_or_default())
 }
 
-/// Expand `raw` into one or more fields (brace, then `$` / backticks).
+/// Expand `raw` into one or more fields (brace, then `$` / backticks / `$(…)`).
 pub fn expand_word_fields_into(
     raw: &str,
     env: &ShellEnvironment,

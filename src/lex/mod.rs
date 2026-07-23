@@ -6,6 +6,7 @@
 //! part of the word.
 
 mod arith_span;
+mod cmd_subst_span;
 mod expand;
 mod quote;
 mod scan;
@@ -86,10 +87,12 @@ impl Token {
 pub enum LexError {
     /// A `'`, `"`, or `` ` `` was opened and never closed on this line.
     UnclosedQuote,
-    /// Command substitution (`` `…` ``) failed to run.
+    /// Command substitution (`` `…` `` / `$(…)`) failed to run.
     CommandSubstitution,
     /// `$((` was opened without a matching `))`.
     UnclosedArithmetic,
+    /// `$(` was opened without a matching `)`.
+    UnclosedCommandSubst,
     /// Arithmetic expression was invalid or divided by zero.
     Arithmetic,
 }
@@ -102,6 +105,7 @@ impl LexError {
             Self::UnclosedQuote => "Unmatched quote.",
             Self::CommandSubstitution => "Command substitution failed.",
             Self::UnclosedArithmetic => "Unmatched $((.",
+            Self::UnclosedCommandSubst => "Unmatched $(.",
             Self::Arithmetic => "Arithmetic expansion failed.",
         }
     }
