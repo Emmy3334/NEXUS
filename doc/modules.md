@@ -21,7 +21,8 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 | **env** | `src/env/` | `ShellEnvironment`: vars, locals, aliases, functions, argv, history, keys, dirstack, healers, jobs |
 | **builtins** | `src/builtins/` | Builtin implementations + dispatch |
 | **repl** | `src/repl/` | Main loop, script runner, control collect/run, line edition |
-| **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / (related resolution) |
+| **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / spawn; `sanitize_path` jail helper |
+| **harden** | `src/harden/` | PATH jail knobs + opt-in child `setrlimit` (`config`, `rlimit`) |
 | **heal** | `src/heal/` | Self-heal seam + backends + status + opt-in command→image map |
 | **sandbox** | `src/sandbox/` | Wasmtime WASI runner + on-disk module cache (`install`/`list`/`rm`) |
 | **kube** | `src/kube/` | Native Kubernetes client (nodes, pods, logs, exec) via kube-rs |

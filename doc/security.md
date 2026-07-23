@@ -8,6 +8,15 @@ you do not need it.
 ## Runtime model (host)
 
 - Children inherit only the **owned** shell environment (`env_clear` + shell map).
+- **PATH jail** (default on): empty / relative `PATH` components are dropped before
+  search and before passing `PATH` to children (blocks cwd hijack via `PATH=.:…`).
+  Disable with `path_jail=0` or `NEXUS_PATH_JAIL=0`. Explicit `./cmd` and absolute
+  paths are unchanged.
+- **Child rlimits** (default off): set `rlimit=1` / `NEXUS_RLIMIT=1` for modest
+  `setrlimit` on externals (`RLIMIT_CPU` 30s, `RLIMIT_NOFILE` 256; on Linux also
+  `RLIMIT_AS` 512MiB and `RLIMIT_NPROC` 64 — macOS rejects finite address-space
+  limits with `EINVAL`). Override with `rlimit_cpu` / `NEXUS_RLIMIT_CPU` (and
+  `_nofile` / `_as` / `_nproc`). Not a multi-tenant sandbox; no seccomp.
 - Heal Wasm runs on the host Wasmtime runtime; Docker heal talks to the local
   daemon; `@kube` / Kube heal use the active kubeconfig.
 - Docker/Kube heal forward **no** exported vars by default (`heal_env=none`).

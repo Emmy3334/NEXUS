@@ -31,7 +31,7 @@ pub(super) fn spawn_simple<I: BufRead, O: Write, E: Write>(
     };
     let mut command = build_external_command(argv, shell_env);
     apply_bg_stdio(&mut command, files);
-    crate::jobs::prepare_background_group(&mut command);
+    crate::jobs::prepare_background_group(&mut command, shell_env);
     match command.spawn() {
         Ok(child) => register_job(argv, vec![child], shell_env, io.stderr),
         Err(err) => Ok(CommandResult::Status(heal::after_spawn_failure(

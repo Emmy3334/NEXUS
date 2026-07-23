@@ -47,3 +47,22 @@ pub fn take_complete_line(queue: &mut VecDeque<u8>) -> Option<String> {
     }
     Some(String::from_utf8_lossy(&bytes).into_owned())
 }
+
+/// Prepend bytes so a later [`take_complete_line`] / raw read sees them first.
+pub(super) fn push_front_bytes(queue: &mut VecDeque<u8>, bytes: &[u8]) {
+    for &b in bytes.iter().rev() {
+        queue.push_front(b);
+    }
+}
+
+/// Queue remaining paste lines after Accept; ensure a trailing newline so the
+/// last segment is drained instead of reappearing on the next prompt.
+pub(super) fn push_front_lines(queue: &mut VecDeque<u8>, rest: &str) {
+    if rest.is_empty() {
+        return;
+    }
+    if !(rest.ends_with('\n') || rest.ends_with('\r')) {
+        queue.push_front(b'\n');
+    }
+    push_front_bytes(queue, rest.as_bytes());
+}

@@ -81,15 +81,17 @@ pub(crate) fn execute_external_mode<S: AsRef<OsStr>>(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
-    let Some((program, args)) = argv.split_first() else {
+    if argv.is_empty() {
         return Ok(0);
-    };
-    let mut command = Command::new(program);
-    command.args(args).env_clear().envs(shell_env.iter());
-    jobs::prepare_child_command(&mut command);
+    }
+    let owned: Vec<String> = argv
+        .iter()
+        .map(|a| a.as_ref().to_string_lossy().into_owned())
+        .collect();
+    let mut command = super::process::build_external_command(&owned, shell_env);
     match stdout_mode {
         StdoutMode::Inherit => {
-            jobs::prepare_process_group(&mut command, None);
+            jobs::prepare_process_group(&mut command, None, shell_env);
             spawn_inherit(&mut command, argv, shell_env, stdout, stderr)
         }
         StdoutMode::Capture => spawn_captured(&mut command, argv, shell_env, stdout, stderr),

@@ -117,3 +117,31 @@ fn paste_buffer_handles_cr_only_and_empty_lines() {
     assert_eq!(repl::take_complete_line(&mut q).as_deref(), Some("three"));
     assert_eq!(repl::take_complete_line(&mut q), None);
 }
+
+#[cfg(unix)]
+#[test]
+fn multiline_accept_queues_remaining_lines_in_order() {
+    use std::collections::VecDeque;
+
+    // Accept peels the first line and terminates the tail so every segment drains.
+    let mut q = VecDeque::new();
+    let text = "set rlimit=1\nset path_jail=0\nset rlimit_cpu=5";
+    let (first, rest) = text.split_once('\n').unwrap();
+    assert_eq!(first, "set rlimit=1");
+    if !(rest.ends_with('\n') || rest.ends_with('\r')) {
+        q.push_front(b'\n');
+    }
+    for &b in rest.as_bytes().iter().rev() {
+        q.push_front(b);
+    }
+    assert_eq!(
+        repl::take_complete_line(&mut q).as_deref(),
+        Some("set path_jail=0")
+    );
+    assert_eq!(
+        repl::take_complete_line(&mut q).as_deref(),
+        Some("set rlimit_cpu=5")
+    );
+    assert_eq!(repl::take_complete_line(&mut q), None);
+    assert!(q.is_empty());
+}

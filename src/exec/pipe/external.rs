@@ -34,7 +34,7 @@ pub(super) fn run_external_stage<I: BufRead, O: Write, E: Write>(
     let stdin = resolve_stage_stdin(files.stdin, state);
     let stdin_bytes = apply_stage_stdin(&mut command, stdin);
     apply_stdout_for_stage(&mut command, files.stdout, is_last, ctx.stdout_mode);
-    state.prepare_command(&mut command);
+    state.prepare_command(&mut command, ctx.shell_env);
     match spawn_and_feed(&mut command, stdin_bytes)? {
         SpawnFeed::Child(child) => {
             take_spawned(child, stdout_redirected, capturing, is_last, ctx, state)

@@ -36,8 +36,12 @@ impl PipeState {
         let _ = self.buffered_out.take();
     }
 
-    pub(super) fn prepare_command(&self, command: &mut Command) {
-        jobs::prepare_process_group(command, self.pgid);
+    pub(super) fn prepare_command(
+        &self,
+        command: &mut Command,
+        env: &crate::env::ShellEnvironment,
+    ) {
+        jobs::prepare_process_group(command, self.pgid, env);
     }
 
     pub(super) fn push_child(&mut self, child: Child) {

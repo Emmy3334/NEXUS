@@ -1,9 +1,13 @@
-//! Locate executables on `PATH` (for `which` / `where`).
+//! Locate executables on `PATH` (for `which` / `where` / spawn).
+
+mod jail;
+
+pub use jail::sanitize_path;
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Absolute/relative path if executable, else search `path_var`.
+/// Absolute/relative path if executable, else search `path_var` components as given.
 #[must_use]
 pub fn resolve_first(name: &str, path_var: &str) -> Option<PathBuf> {
     if name.contains('/') {
