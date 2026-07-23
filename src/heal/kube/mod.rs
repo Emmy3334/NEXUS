@@ -6,6 +6,8 @@ mod run;
 
 pub use register::attach_kube_backend;
 
+use super::banner;
+use super::config;
 use super::CommandResolver;
 use crate::env::ShellEnvironment;
 use crate::kube;
@@ -39,7 +41,7 @@ impl CommandResolver for KubeResolver {
     fn try_heal(
         &self,
         argv: &[String],
-        _shell_env: &mut ShellEnvironment,
+        shell_env: &mut ShellEnvironment,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {
@@ -47,8 +49,12 @@ impl CommandResolver for KubeResolver {
             return Ok(None);
         }
         match block_on(run::execute(&self.image, argv, stdout, stderr)) {
-            Ok(Ok(127)) => Ok(None),
-            Ok(Ok(code)) => Ok(Some(code)),
+            Ok(Ok((127, _))) => Ok(None),
+            Ok(Ok((code, name))) => {
+                let detail = format!("pod {name}");
+                banner::success(stderr, config::quiet_from(shell_env), "kube", Some(&detail))?;
+                Ok(Some(code))
+            }
             Ok(Err(err)) | Err(err) if is_missing_in_image(&err) => Ok(None),
             Ok(Err(err)) | Err(err) => {
                 writeln!(stderr, "nexus: kube heal failed: {err}")?;

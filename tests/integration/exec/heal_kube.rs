@@ -78,6 +78,7 @@ fn kube_bind_mounts_cwd_when_node_sees_host() {
     if !kube::cluster_reachable() {
         return;
     }
+    let _cwd = super::common::CWD_LOCK.lock().unwrap();
     let dir = std::env::temp_dir().join(format!("nexus_kube_heal_cwd_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
