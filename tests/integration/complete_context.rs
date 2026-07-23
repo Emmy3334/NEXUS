@@ -13,6 +13,82 @@ fn complete_at(line: &str) -> (String, Vec<String>) {
     (buffer, matches)
 }
 
+#[test]
+fn git_subcommand_completes_checkout_prefix() {
+    let (buf, matches) = complete_at("git checko");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "git checkout");
+}
+
+#[test]
+fn git_subcommand_lists_ambiguous_ch() {
+    let (buf, matches) = complete_at("git ch");
+    assert!(matches.iter().any(|m| m == "checkout"));
+    assert!(matches.iter().any(|m| m == "cherry" || m == "cherry-pick"));
+    assert!(buf.starts_with("git ch"));
+}
+
+#[test]
+fn git_space_lists_subcommands() {
+    let (_, matches) = complete_at("git ");
+    assert!(matches.iter().any(|m| m == "status"));
+    assert!(matches.iter().any(|m| m == "checkout"));
+}
+
+#[test]
+fn cargo_subcommand_completes_unique_prefix() {
+    let (buf, matches) = complete_at("cargo clip");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "cargo clippy");
+}
+
+#[test]
+fn docker_subcommand_lists_ambiguous_lo() {
+    let (_, matches) = complete_at("docker lo");
+    assert!(matches.iter().any(|m| m == "logs"));
+    assert!(matches.iter().any(|m| m == "login" || m == "logout"));
+}
+
+#[test]
+fn npm_subcommand_completes_install_prefix() {
+    let (buf, matches) = complete_at("npm instal");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "npm install");
+}
+
+#[test]
+fn unregistered_command_does_not_use_git_verbs() {
+    let (buf, _) = complete_at("mytool checko");
+    assert_ne!(buf, "mytool checkout");
+}
+
+#[test]
+fn helm_subcommand_completes_unique_prefix() {
+    let (buf, matches) = complete_at("helm upgra");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "helm upgrade");
+}
+
+#[test]
+fn brew_subcommand_lists_in() {
+    let (_, matches) = complete_at("brew in");
+    assert!(matches.iter().any(|m| m == "info" || m == "install"));
+}
+
+#[test]
+fn terraform_subcommand_completes_unique_prefix() {
+    let (buf, matches) = complete_at("terraform valid");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "terraform validate");
+}
+
+#[test]
+fn systemctl_subcommand_completes_unique_prefix() {
+    let (buf, matches) = complete_at("systemctl resta");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "systemctl restart");
+}
+
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("nexus_complete_{name}_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

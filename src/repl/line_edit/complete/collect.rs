@@ -2,7 +2,7 @@
 
 use super::context::{self, Kind};
 use super::paths::{collect_file_matches, collect_path_commands};
-use super::{docker, git, heal, interp, kube, vars};
+use super::{docker, git, heal, interp, kube, subcmds, vars};
 use crate::builtins::NAMES;
 
 pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) -> Vec<String> {
@@ -15,6 +15,7 @@ pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) 
     }
     match context::classify(before) {
         Kind::GitBranch => git::collect_branches(prefix, &mut out),
+        Kind::Subcommand(names) => subcmds::collect(names, prefix, &mut out),
         Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),
         Kind::Docker(kind) => docker::collect(&kind, prefix, &mut out),
         Kind::Kube(kind) => kube::collect(&kind, prefix, &mut out),

@@ -10,6 +10,7 @@ mod interp;
 mod kube;
 mod list;
 mod paths;
+mod subcmds;
 mod token;
 mod vars;
 
