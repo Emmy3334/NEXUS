@@ -106,7 +106,8 @@ fn subshell_in_pipeline() {
 fn nested_subshell() {
     let path = temp_file("nest.txt");
     let _ = fs::remove_file(&path);
-    let source = format!("((echo nest)) > {}", path.display());
+    // Spaces required: bare `((…))` is the arithmetic command.
+    let source = format!("( (echo nest) ) > {}", path.display());
     let (result, stderr) = run(&source);
     assert_eq!(result, CommandResult::Status(0));
     assert!(stderr.is_empty());

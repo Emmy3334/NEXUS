@@ -20,6 +20,7 @@ mod word;
 use crate::env::ShellEnvironment;
 use crate::lex::LexError;
 
+pub(crate) use arith::evaluate;
 pub use word::ExpandedWord;
 
 /// Expand a raw word into one field (no command-substitution capture).

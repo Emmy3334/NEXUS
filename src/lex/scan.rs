@@ -7,8 +7,8 @@ use super::{arith_span, cmd_subst_span, quote, LexError, QuoteState, Token, Toke
 /// Clears `tokens` first. One forward scan; no intermediate collections.
 /// Two-character operators (`>>`, `<<`) are preferred over single `>` / `<`.
 /// Operators split words only when outside quotes. `\` escapes the next
-/// character outside quotes (and a few insides `"…"`). `$((…))` / `$(…)` stay
-/// one word.
+/// character outside quotes (and a few insides `"…"`). `$((…))` / `$(…)` /
+/// bare `((…))` stay one word.
 pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) -> Result<(), LexError> {
     tokens.clear();
 
@@ -28,7 +28,10 @@ fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> Result<usi
     let bytes = source.as_bytes();
     let (kind, end) = match bytes[start] {
         b';' => (TokenKind::Semicolon, start + 1),
-        b'(' => (TokenKind::LParen, start + 1),
+        b'(' => match arith_span::try_close_cmd_arith(source, start)? {
+            Some(end) => (TokenKind::Word, end),
+            None => (TokenKind::LParen, start + 1),
+        },
         b')' => (TokenKind::RParen, start + 1),
         b'|' | b'&' | b'>' | b'<' => two_char_op(bytes, start),
         _ => {
@@ -74,6 +77,10 @@ fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
                 return Ok(i);
             }
             if let Some(end) = arith_span::try_close_arith(source, i)? {
+                i = end;
+                continue;
+            }
+            if let Some(end) = arith_span::try_close_cmd_arith(source, i)? {
                 i = end;
                 continue;
             }

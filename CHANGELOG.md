@@ -22,6 +22,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Arithmetic command `((expr))`: same engine as `$((…))` (including `++`/`--` and
+  assignments); status 0 if result ≠ 0, else 1; does not execute the number as a command.
 - Arithmetic prefix/postfix `++` / `--` on bare names in `$((…))` (same writeback as
   assignments: local, else exported, else new local).
 - Richer Tab complete: curated `git <verb>` flags (token starting with `-`) and wider

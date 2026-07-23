@@ -5,6 +5,7 @@
 //! - [`redirect`] applies `<` / `>` / `>>` / `<<` (overrides a pipe on that fd)
 //! - [`process`] holds the child-process helpers shared by the above
 
+mod arith_cmd;
 mod background;
 mod capture;
 mod command;
