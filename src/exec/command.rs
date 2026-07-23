@@ -38,6 +38,9 @@ pub(crate) fn execute_command_mode(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<CommandResult> {
+    if let Some(result) = crate::functions::try_run(argv, shell_env, last_status, stdout, stderr)? {
+        return Ok(result);
+    }
     if let Some(result) = builtins::try_run(argv, shell_env, last_status, stdout, stderr)? {
         return match result {
             builtins::BuiltinResult::Repeat { count, argv } => super::repeat::run_repeat(

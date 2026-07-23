@@ -8,6 +8,7 @@ mod child_io;
 mod files;
 mod heredoc;
 mod stage;
+mod stage_shell;
 
 pub use heredoc::collect_heredoc_bodies;
 

@@ -1,6 +1,6 @@
 //! Bonus builtin handlers (`which`, `repeat`, dir stack, `sandbox`, `@kube`, …).
 
-use super::super::{dirstack, kube, repeat, sandbox, which, BuiltinResult};
+use super::super::{dirstack, kube, repeat, return_cmd, sandbox, which, BuiltinResult};
 use crate::env::ShellEnvironment;
 
 use std::io::{self, Write};
@@ -40,6 +40,7 @@ pub(super) fn run(
             stdout,
             stderr,
         )?),
+        "return" => return_cmd::run(argv, shell_env, last_status, stdout, stderr)?,
         _ => return Ok(None),
     }))
 }

@@ -9,6 +9,7 @@ pub mod env;
 pub mod exec;
 pub mod expand;
 pub mod foreach;
+pub mod functions;
 pub mod glob;
 pub mod heal;
 pub mod history;
