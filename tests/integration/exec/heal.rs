@@ -19,6 +19,7 @@ impl CommandResolver for FixedStatus {
         &self,
         argv: &[String],
         _shell_env: &mut ShellEnvironment,
+        _stdin: Option<&[u8]>,
         stdout: &mut dyn Write,
         _stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {
@@ -39,6 +40,7 @@ impl CommandResolver for Decline {
         &self,
         _argv: &[String],
         _shell_env: &mut ShellEnvironment,
+        _stdin: Option<&[u8]>,
         _stdout: &mut dyn Write,
         _stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {

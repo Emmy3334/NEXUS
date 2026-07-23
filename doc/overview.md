@@ -51,8 +51,8 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Specials `precmd` / `cwdcmd` / `ignoreeof` | Yes |
 | Bonuses `which`/`where`, `repeat`, `pushd`/`popd`/`dirs`, bracketed paste | Yes |
 | Self-heal resolver seam (`CommandResolver` / empty chain → classic 127) | Yes |
-| Docker heal backend (`bollard`, alpine image when daemon up) | Yes |
-| Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s Pod heal yes |
+| Docker heal backend (`bollard`, alpine image when daemon up) | Yes (exported env + finite stdin) |
+| Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s Pod heal yes (exported env; stdin declines to Docker) |
 | Heal-aware “did you mean?” after not-found | Yes (`heal_quiet` suppresses) |
 
 ## Cloud shell status

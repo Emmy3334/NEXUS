@@ -93,6 +93,7 @@ fn kube_bind_mounts_cwd_when_node_sees_host() {
     let result = resolver.try_heal(
         &["cat".into(), "payload.txt".into()],
         &mut env,
+        None,
         &mut stdout,
         &mut stderr,
     );
@@ -105,4 +106,59 @@ fn kube_bind_mounts_cwd_when_node_sees_host() {
         return;
     }
     assert_eq!(String::from_utf8(stdout).unwrap(), "heal-bind\n");
+}
+
+#[test]
+fn kube_forwards_exported_env() {
+    use nexus::env::ShellEnvironment;
+    use nexus::heal::CommandResolver;
+    if !kube::cluster_reachable() {
+        return;
+    }
+    let Some(resolver) = KubeResolver::probe(KUBE_DEFAULT_IMAGE) else {
+        return;
+    };
+    let mut env = ShellEnvironment::from_map(Default::default());
+    env.set("NEXUS_HEAL_FOO", "bar");
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["printenv".into(), "NEXUS_HEAL_FOO".into()],
+            &mut env,
+            None,
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    if code != Some(0) {
+        return;
+    }
+    assert_eq!(String::from_utf8(stdout).unwrap().trim(), "bar");
+}
+
+#[test]
+fn kube_declines_when_stdin_present() {
+    use nexus::env::ShellEnvironment;
+    use nexus::heal::CommandResolver;
+    if !kube::cluster_reachable() {
+        return;
+    }
+    let Some(resolver) = KubeResolver::probe(KUBE_DEFAULT_IMAGE) else {
+        return;
+    };
+    let mut env = ShellEnvironment::from_map(Default::default());
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["cat".into()],
+            &mut env,
+            Some(b"x\n"),
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    assert_eq!(code, None);
+    assert!(stdout.is_empty());
 }

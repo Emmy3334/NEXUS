@@ -36,8 +36,12 @@ pub(super) fn run_external_stage<I: BufRead, O: Write, E: Write>(
     apply_stdout_for_stage(&mut command, files.stdout, is_last, ctx.stdout_mode);
     state.prepare_command(&mut command);
     match spawn_and_feed(&mut command, stdin_bytes)? {
-        Ok(child) => take_spawned(child, stdout_redirected, capturing, is_last, ctx, state),
-        Err(err) => note_spawn_failure(&err, is_last, ctx, state, stage),
+        SpawnFeed::Child(child) => {
+            take_spawned(child, stdout_redirected, capturing, is_last, ctx, state)
+        }
+        SpawnFeed::Failed { err, stdin } => {
+            note_spawn_failure(&err, is_last, ctx, state, stage, stdin.as_deref())
+        }
     }
 }
 
@@ -67,8 +71,10 @@ fn note_spawn_failure<I: BufRead, O: Write, E: Write>(
     ctx: &mut StageCtx<'_, I, O, E>,
     state: &mut PipeState,
     stage: &[String],
+    stdin: Option<&[u8]>,
 ) -> io::Result<Option<CommandResult>> {
-    let code = heal::after_spawn_failure(stage, err, ctx.shell_env, ctx.stdout, ctx.stderr)?;
+    let code =
+        heal::after_spawn_failure_stdin(stage, err, ctx.shell_env, stdin, ctx.stdout, ctx.stderr)?;
     state.drain_pending();
     if is_last {
         state.terminal_status = Some(code);
@@ -128,18 +134,28 @@ fn apply_stage_stdin(command: &mut Command, stdin: StageStdin) -> Option<Vec<u8>
     }
 }
 
-fn spawn_and_feed(
-    command: &mut Command,
-    stdin_bytes: Option<Vec<u8>>,
-) -> io::Result<Result<Child, io::Error>> {
+fn spawn_and_feed(command: &mut Command, stdin_bytes: Option<Vec<u8>>) -> io::Result<SpawnFeed> {
     let mut child = match command.spawn() {
         Ok(child) => child,
-        Err(err) => return Ok(Err(err)),
+        Err(err) => {
+            return Ok(SpawnFeed::Failed {
+                err,
+                stdin: stdin_bytes,
+            })
+        }
     };
     if let Some(bytes) = stdin_bytes {
         if let Some(mut stdin) = child.stdin.take() {
             stdin.write_all(&bytes)?;
         }
     }
-    Ok(Ok(child))
+    Ok(SpawnFeed::Child(child))
+}
+
+enum SpawnFeed {
+    Child(Child),
+    Failed {
+        err: io::Error,
+        stdin: Option<Vec<u8>>,
+    },
 }

@@ -19,7 +19,14 @@ pub(super) fn run_with_io(
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(err) => {
-            return heal::after_spawn_failure(argv, &err, shell_env, stdout, stderr);
+            return heal::after_spawn_failure_stdin(
+                argv,
+                &err,
+                shell_env,
+                stdin_bytes.as_deref(),
+                stdout,
+                stderr,
+            );
         }
     };
     if let Some(bytes) = stdin_bytes {

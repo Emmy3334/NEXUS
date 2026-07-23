@@ -51,11 +51,12 @@ impl ResolverChain {
         &self,
         argv: &[String],
         shell_env: &mut ShellEnvironment,
+        stdin: Option<&[u8]>,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {
         for resolver in self.resolvers.iter() {
-            if let Some(code) = resolver.try_heal(argv, shell_env, stdout, stderr)? {
+            if let Some(code) = resolver.try_heal(argv, shell_env, stdin, stdout, stderr)? {
                 return Ok(Some(code));
             }
         }
