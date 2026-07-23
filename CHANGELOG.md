@@ -22,6 +22,11 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Tab completion registry for first-verb subcommands of many common CLIs (VCS, language
+  toolchains, containers, Kubernetes, cloud/IaC, package managers, systemctl/tmux, build
+  tools, databases/backup). Static lists under `complete/subcmds/`; unregistered commands
+  still use PATH/file complete. `git checko` → `checkout`; after `checkout`/`switch`/
+  `branch`, branch names still complete.
 - Ambiguous Tab completion: after the column listing, further Tabs cycle through matches
   (wrap) until the token is edited (`complete_or_cycle`).
 - Arithmetic assignments in `$((…))`: `=` / `+=` `-=` `*=` `/=` `%=` (right-assoc;
