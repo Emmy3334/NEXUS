@@ -20,6 +20,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 - Heal-aware not-found hints: `nexus: did you mean: …` from PATH/cwd/history, plus a heal
   tip when backends declined; suppressed by `heal_quiet` / `NEXUS_HEAL_QUIET` (status stays 127).
 - Line-edit word ops + kill-ring (emacs `M-b`/`M-f`/`C-w`/`M-d`/`C-k`/`C-u`/`C-y`/`M-t`; vi `b`/`w`).
+- Reverse incremental history search (`C-r` / `history-incremental-search-backward`).
 
 ### Fixed
 

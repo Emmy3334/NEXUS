@@ -22,7 +22,7 @@ mod while_run;
 pub use history_persist::{load_session_history, save_session_history};
 #[cfg(unix)]
 pub use line_edit::take_complete_line;
-pub use line_edit::{complete, Action, HistoryRecall, KeyBindings, ReplInput};
+pub use line_edit::{complete, Action, HistoryISearch, HistoryRecall, KeyBindings, ReplInput};
 pub use prompt::format_primary;
 pub use rc::{load_startup_rc, source_rc, RcLoad};
 pub use script::run_script;

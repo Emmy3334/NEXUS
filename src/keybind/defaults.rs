@@ -53,6 +53,7 @@ fn seed_common(map: &mut Map) {
     put(map, b"\t", Action::Complete);
     put(map, &[0x03], Action::Interrupt);
     put(map, &[0x04], Action::Eof);
+    put(map, &[0x12], Action::HistoryISearch); // C-r
 }
 
 fn seed_word_ops(map: &mut Map) {

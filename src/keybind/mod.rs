@@ -30,6 +30,8 @@ pub enum Action {
     TransposeWords,
     HistoryUp,
     HistoryDown,
+    /// Reverse incremental history search (Ctrl-R).
+    HistoryISearch,
     Complete,
     Interrupt,
     Eof,

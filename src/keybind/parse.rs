@@ -58,6 +58,7 @@ pub fn parse_action(name: &str) -> Option<Action> {
         "transpose-words" => Action::TransposeWords,
         "up-history" => Action::HistoryUp,
         "down-history" => Action::HistoryDown,
+        "history-incremental-search-backward" => Action::HistoryISearch,
         "complete-word" => Action::Complete,
         "tty-sigintr" => Action::Interrupt,
         "end-of-file" => Action::Eof,

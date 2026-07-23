@@ -3,6 +3,7 @@
 mod complete;
 mod continue_line;
 mod input;
+mod isearch;
 mod plain;
 mod probe;
 mod recall;
@@ -11,6 +12,7 @@ mod tty;
 
 pub use crate::keybind::{Action, KeyBindings};
 pub use input::ReplInput;
+pub use isearch::HistoryISearch;
 pub use recall::HistoryRecall;
 #[cfg(unix)]
 pub use tty::take_complete_line;

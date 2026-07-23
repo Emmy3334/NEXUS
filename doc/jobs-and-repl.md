@@ -34,7 +34,7 @@ Missing histfile on load is quiet. Manual `history -S` / `-L` / `-M` still work.
 
 | Platform | Behavior |
 |----------|----------|
-| Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation, **word ops / kill-ring / yank**, history recall, completion, paste queue, bindkey actions |
+| Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation, **word ops / kill-ring / yank**, history recall, **Ctrl-R reverse-i-search**, completion, paste queue, bindkey actions |
 | Else | Plain line read (`plain.rs`) |
 
 Emacs defaults (also available via `bindkey`):
@@ -46,10 +46,13 @@ Emacs defaults (also available via `bindkey`):
 | `C-k` / `C-u` | Kill to end of line / kill whole line |
 | `C-y` | Yank from kill-ring |
 | `M-t` | Transpose adjacent words |
+| `C-r` | Reverse incremental history search |
+
+While reverse-i-search is active, the prompt shows `(reverse-i-search)\`query': ` (or `(failed r-search)…`). Type to refine the query; `C-r` again selects an older match; Backspace edits the query; Enter accepts; Esc / `C-c` aborts and restores the draft line. Other bound actions leave isearch with the current match.
 
 Vi command map also binds `b` / `w` for word motion. Words are whitespace-separated.
 
-Public pieces re-exported from `repl`: `Action`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, and on Unix `take_complete_line`.
+Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, and on Unix `take_complete_line`.
 
 ### Context-aware Tab completion
 
