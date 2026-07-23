@@ -10,6 +10,7 @@ mod expand;
 mod foreach;
 mod git_prompt;
 mod glob;
+mod history_persist;
 mod if_block;
 mod jobs_signals;
 mod lex;

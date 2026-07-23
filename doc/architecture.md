@@ -85,7 +85,7 @@ Per simple command (in exec):
 | `BuiltinResult` | `builtins` | + `Repeat { count, argv }` |
 | `JobTable` | `jobs` | Background jobs |
 | `KeyBindings` | `keybind` | Editor maps for `bindkey` |
-| `History` | `history` | In-memory + file ops |
+| `History` | `history` | In-memory + file ops; TTY sessions auto load/save `~/.nexus_history` |
 
 ## Environment ownership
 

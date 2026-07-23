@@ -79,7 +79,10 @@ fn finish_expand<'a, I: BufRead, O: Write, E: Write>(
     if outcome.print_only {
         return Ok(ParseOutcome::Blank);
     }
-    shell_env.history.push(expanded.as_str());
+    // Scripts / `source` / `~/.nexusrc` can suppress recording.
+    if !shell_env.suppress_history {
+        shell_env.history.push(expanded.as_str());
+    }
     tokenize_and_parse(expanded, tokens, io.stderr)
 }
 

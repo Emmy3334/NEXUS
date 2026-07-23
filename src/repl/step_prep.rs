@@ -36,3 +36,13 @@ pub(super) fn suppress_eof(
     let exit = crate::specials::allow_exit_on_eof(shell_env, eof_streak, stderr)?;
     Ok(!exit)
 }
+
+pub(super) fn notify_completed_jobs(
+    stderr: &mut impl Write,
+    shell_env: &mut ShellEnvironment,
+) -> io::Result<()> {
+    for (id, command, status) in shell_env.jobs.take_notifications() {
+        writeln!(stderr, "[{id}]  Done ({status})                 {command}")?;
+    }
+    Ok(())
+}

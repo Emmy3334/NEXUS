@@ -6,6 +6,8 @@
 mod control_collect;
 mod control_parse;
 mod foreach_run;
+mod history_persist;
+mod history_suppress;
 mod if_collect;
 mod if_run;
 mod line;
@@ -14,8 +16,10 @@ mod prompt;
 mod rc;
 mod script;
 mod step_prep;
+mod tty_session;
 mod while_run;
 
+pub use history_persist::{load_session_history, save_session_history};
 #[cfg(unix)]
 pub use line_edit::take_complete_line;
 pub use line_edit::{complete, Action, HistoryRecall, KeyBindings, ReplInput};
@@ -30,8 +34,6 @@ use crate::lex;
 use line::{read_and_parse, run_ready_command, ParseOutcome};
 use std::collections::VecDeque;
 use std::io::{self, Write};
-
-const SUCCESS_EXIT: u8 = 0;
 
 /// The REPL's own I/O streams, bundled so helper functions don't need one
 /// parameter per stream. `input_queue` holds leftover TTY paste bytes.
@@ -101,20 +103,18 @@ pub fn run_with_env(
     if interactive {
         crate::jobs::install_interactive_handlers()?;
     }
-    let mut last_status = SUCCESS_EXIT;
-    // Real TTY only: Cursor-based interactive tests must not pick up ~/.nexusrc.
-    if interactive && io.stdin.is_terminal() {
-        match rc::load_startup_rc(shell_env, io.stdout, io.stderr)? {
-            RcLoad::Exit(code) => return Ok(code),
-            RcLoad::Continue(code) => last_status = code,
-            RcLoad::Skipped => {}
-        }
+    let tty = interactive && io.stdin.is_terminal();
+    let last_status = match tty_session::boot(tty, shell_env, io.stdout, io.stderr)? {
+        tty_session::Boot::Exit(code) => return Ok(code),
+        tty_session::Boot::Ready(code) => code,
+    };
+    let code = match run_loop(&mut io, interactive, shell_env, last_status)? {
+        LoopEnd::Status(code) | LoopEnd::Exit(code) => code,
+    };
+    if tty {
+        history_persist::save_session_history(shell_env, io.stderr)?;
     }
-    Ok(
-        match run_loop(&mut io, interactive, shell_env, last_status)? {
-            LoopEnd::Status(code) | LoopEnd::Exit(code) => code,
-        },
-    )
+    Ok(code)
 }
 
 pub(super) fn run_loop<I: ReplInput, O: Write, E: Write>(
@@ -149,7 +149,7 @@ fn step<I: ReplInput, O: Write, E: Write>(
     last_status: u8,
     eof_streak: &mut u32,
 ) -> io::Result<StepOutcome> {
-    notify_completed_jobs(io.stderr, shell_env)?;
+    step_prep::notify_completed_jobs(io.stderr, shell_env)?;
     step_prep::run_precmd_if_interactive(interactive, shell_env, last_status, io)?;
     let parsed = read_and_parse(
         io,
@@ -221,14 +221,4 @@ fn finish_result<I: ReplInput, O: Write, E: Write>(
             LoopEnd::Exit(code) => Ok(StepOutcome::Exit(code)),
         },
     }
-}
-
-fn notify_completed_jobs(
-    stderr: &mut impl Write,
-    shell_env: &mut ShellEnvironment,
-) -> io::Result<()> {
-    for (id, command, status) in shell_env.jobs.take_notifications() {
-        writeln!(stderr, "[{id}]  Done ({status})                 {command}")?;
-    }
-    Ok(())
 }

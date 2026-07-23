@@ -1,6 +1,7 @@
 //! Histfile and clear operations for `history`.
 
 use crate::env::ShellEnvironment;
+use crate::history;
 
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -58,12 +59,11 @@ fn resolve_histfile(shell_env: &ShellEnvironment, path: Option<&Path>) -> PathBu
     if let Some(p) = path {
         return p.to_path_buf();
     }
-    if let Some(hf) = shell_env.get_local("histfile") {
-        return PathBuf::from(hf);
-    }
-    let home = shell_env
+    history::histfile_path(shell_env.get_local("histfile"), home_dir(shell_env))
+}
+
+fn home_dir(shell_env: &ShellEnvironment) -> Option<&str> {
+    shell_env
         .lookup("home")
         .or_else(|| shell_env.lookup("HOME"))
-        .unwrap_or(".");
-    PathBuf::from(home).join(".nexus_history")
 }

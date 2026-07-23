@@ -19,6 +19,17 @@ Typical step (`src/repl/`):
 
 Buffers (`line`, `expanded`, `tokens`, `argv`) are reused across steps to avoid alloc churn on the hot path.
 
+## Session history
+
+Interactive TTY sessions:
+
+1. Load `~/.nexusrc` (RC / `source` lines are **not** recorded in history)
+2. Soft-load `~/.nexus_history` (or the `histfile` local if set in RC / env)
+3. Run the REPL (typed lines are recorded)
+4. Soft-save the histfile on exit / EOF
+
+Missing histfile on load is quiet. Manual `history -S` / `-L` / `-M` still work.
+
 ## Line edition
 
 | Platform | Behavior |

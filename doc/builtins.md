@@ -28,7 +28,7 @@ pub enum BuiltinResult {
 | `unset` | `unset.rs` | Remove locals |
 | `alias` | `alias.rs` | Define / list aliases |
 | `unalias` | `unalias.rs` | Remove aliases |
-| `history` | `history/` | Print / save / load / merge / clear history |
+| `history` | `history/` | Print / save / load / merge / clear; TTY auto-persists `~/.nexus_history` |
 | `jobs` | `jobs.rs` | List background jobs; `-l` includes process IDs |
 | `fg` | `jobs.rs` | Bring job to foreground and wait |
 | `bg` | `jobs.rs` | Continue job in background |
