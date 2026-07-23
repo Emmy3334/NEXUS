@@ -163,6 +163,13 @@ fn arithmetic_stays_one_word() {
 }
 
 #[test]
+fn bare_arith_command_stays_one_word() {
+    assert_eq!(kinds("((x=1))"), vec![TokenKind::Word]);
+    assert_eq!(lexemes("((a&&b))"), vec!["((a&&b))"]);
+    assert_eq!(lexemes("((x=1+2))"), vec!["((x=1+2))"]);
+}
+
+#[test]
 fn single_and_double_redirects() {
     assert_eq!(
         kinds("cat < in > out"),

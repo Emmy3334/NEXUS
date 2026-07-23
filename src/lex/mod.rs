@@ -104,7 +104,7 @@ impl LexError {
         match self {
             Self::UnclosedQuote => "Unmatched quote.",
             Self::CommandSubstitution => "Command substitution failed.",
-            Self::UnclosedArithmetic => "Unmatched $((.",
+            Self::UnclosedArithmetic => "Unmatched ((.",
             Self::UnclosedCommandSubst => "Unmatched $(.",
             Self::Arithmetic => "Arithmetic expansion failed.",
         }

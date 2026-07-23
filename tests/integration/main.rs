@@ -3,6 +3,7 @@
 //! Every test file under `tests/integration/` is reached from this module tree.
 
 mod advanced;
+mod arith_cmd;
 mod brace_glob;
 mod builtins;
 mod case_block;
