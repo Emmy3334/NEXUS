@@ -1,6 +1,7 @@
 //! `@kube` builtin and Kubernetes API helpers.
 
 mod kube_complete;
+mod kube_errors;
 mod kube_list;
 mod kube_run;
 

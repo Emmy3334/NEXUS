@@ -9,7 +9,7 @@ use std::io;
 use std::time::Duration;
 
 const POLL: Duration = Duration::from_millis(200);
-const MAX_WAIT: Duration = Duration::from_secs(90);
+const MAX_WAIT: Duration = Duration::from_secs(30);
 
 pub(super) async fn wait_status(client: &Client, name: &str) -> io::Result<u8> {
     let pods: Api<Pod> = Api::default_namespaced(client.clone());

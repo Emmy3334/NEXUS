@@ -31,6 +31,7 @@ fn init_repo(cwd: &PathBuf) -> bool {
 
 #[test]
 fn bare_prompt_outside_git_repo() {
+    let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("bare");
     let prev = std::env::current_dir().unwrap();
     std::env::set_current_dir(&root).unwrap();
@@ -42,6 +43,7 @@ fn bare_prompt_outside_git_repo() {
 
 #[test]
 fn clean_branch_shows_in_brackets() {
+    let _cwd = crate::cwd_lock::lock();
     if Command::new("git")
         .arg("--version")
         .stdout(std::process::Stdio::null())
@@ -73,6 +75,7 @@ fn clean_branch_shows_in_brackets() {
 
 #[test]
 fn dirty_worktree_adds_asterisk() {
+    let _cwd = crate::cwd_lock::lock();
     if Command::new("git")
         .arg("--version")
         .stdout(std::process::Stdio::null())

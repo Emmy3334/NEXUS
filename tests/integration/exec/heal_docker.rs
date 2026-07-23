@@ -88,7 +88,7 @@ fn docker_bind_mounts_cwd_for_host_files() {
     if !docker_available() {
         return;
     }
-    let _cwd = super::common::CWD_LOCK.lock().unwrap();
+    let _cwd = crate::cwd_lock::lock();
     let dir = std::env::temp_dir().join(format!("nexus_heal_cwd_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();

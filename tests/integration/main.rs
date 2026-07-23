@@ -5,6 +5,7 @@
 mod advanced;
 mod builtins;
 mod complete_context;
+mod cwd_lock;
 mod exec;
 mod expand;
 mod foreach;

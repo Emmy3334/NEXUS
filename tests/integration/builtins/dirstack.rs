@@ -21,6 +21,7 @@ fn status_of(result: Option<BuiltinResult>) -> u8 {
 
 #[test]
 fn pushd_popd_round_trip() {
+    let _cwd = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch("stack");
     let _ = fs::remove_dir_all(&dir);
@@ -41,6 +42,7 @@ fn pushd_popd_round_trip() {
 
 #[test]
 fn dirs_v_prints_indexed_lines() {
+    let _cwd = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let a = scratch("va");
     let b = scratch("vb");
@@ -64,6 +66,7 @@ fn dirs_v_prints_indexed_lines() {
 
 #[test]
 fn dirs_c_clears_to_cwd_only() {
+    let _cwd = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch("clear");
     let _ = fs::remove_dir_all(&dir);
@@ -84,6 +87,7 @@ fn dirs_c_clears_to_cwd_only() {
 
 #[test]
 fn dirs_s_and_l_round_trip() {
+    let _cwd = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let a = scratch("sa");
     let b = scratch("sb");
@@ -116,6 +120,7 @@ fn dirs_s_and_l_round_trip() {
 
 #[test]
 fn pushd_plus_rotates_stack() {
+    let _cwd = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let a = scratch("ra");
     let b = scratch("rb");
@@ -144,6 +149,7 @@ fn pushd_plus_rotates_stack() {
 
 #[test]
 fn popd_plus_drops_middle_entry() {
+    let _cwd = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let a = scratch("pa");
     let b = scratch("pb");

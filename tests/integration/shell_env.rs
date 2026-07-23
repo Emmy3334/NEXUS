@@ -30,6 +30,7 @@ fn lookup_falls_back_to_exported() {
 
 #[test]
 fn seed_specials_from_exported_and_cwd() {
+    let _cwd = crate::cwd_lock::lock();
     let mut env = ShellEnvironment::default();
     env.set("HOME", "/tmp/home");
     env.set("USER", "nexus");

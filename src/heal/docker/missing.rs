@@ -2,8 +2,12 @@
 
 use std::io;
 
-/// True when the daemon could not exec argv (missing inside the image).
-pub(super) fn is_missing_in_image(err: &io::Error) -> bool {
+/// True when the next heal backend (or classic not-found) should run.
+pub(super) fn should_decline(err: &io::Error) -> bool {
     let msg = err.to_string().to_ascii_lowercase();
-    msg.contains("executable file not found") || msg.contains("not found in $path")
+    msg.contains("executable file not found")
+        || msg.contains("not found in $path")
+        || msg.contains("no such file or directory")
+        || msg.contains("invalid volume")
+        || msg.contains("invalid mount")
 }

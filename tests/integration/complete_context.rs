@@ -21,6 +21,7 @@ fn temp_dir(name: &str) -> PathBuf {
 
 #[test]
 fn git_checkout_lists_ambiguous_branches() {
+    let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("git");
     let heads = root.join(".git/refs/heads");
     fs::create_dir_all(&heads).unwrap();
@@ -39,6 +40,7 @@ fn git_checkout_lists_ambiguous_branches() {
 
 #[test]
 fn git_checkout_unique_branch_prefix() {
+    let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("git2");
     let heads = root.join(".git/refs/heads");
     fs::create_dir_all(&heads).unwrap();
@@ -57,6 +59,7 @@ fn git_checkout_unique_branch_prefix() {
 
 #[test]
 fn git_checkout_dash_b_still_completes_branches() {
+    let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("git3");
     let heads = root.join(".git/refs/heads");
     fs::create_dir_all(&heads).unwrap();
@@ -75,6 +78,7 @@ fn git_checkout_dash_b_still_completes_branches() {
 
 #[test]
 fn python_prefers_py_files() {
+    let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("py");
     fs::write(root.join("app.py"), "").unwrap();
     fs::write(root.join("readme.md"), "").unwrap();
@@ -92,6 +96,7 @@ fn python_prefers_py_files() {
 
 #[test]
 fn ruby_prefers_rb_files() {
+    let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("rb");
     fs::write(root.join("app.py"), "").unwrap();
     fs::write(root.join("script.rb"), "").unwrap();
