@@ -39,6 +39,25 @@ fn git_checkout_lists_ambiguous_branches() {
 }
 
 #[test]
+fn git_checkout_extends_common_prefix() {
+    let _cwd = crate::cwd_lock::lock();
+    let root = temp_dir("git_prefix");
+    let heads = root.join(".git/refs/heads");
+    fs::create_dir_all(&heads).unwrap();
+    fs::write(heads.join("main"), "abc\n").unwrap();
+    fs::write(heads.join("master"), "def\n").unwrap();
+    let prev = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&root).unwrap();
+
+    let (buf, matches) = complete_at("git checkout m");
+    let _ = std::env::set_current_dir(prev);
+    let _ = fs::remove_dir_all(root);
+
+    assert_eq!(matches, vec!["main".to_string(), "master".to_string()]);
+    assert_eq!(buf, "git checkout ma");
+}
+
+#[test]
 fn git_checkout_unique_branch_prefix() {
     let _cwd = crate::cwd_lock::lock();
     let root = temp_dir("git2");

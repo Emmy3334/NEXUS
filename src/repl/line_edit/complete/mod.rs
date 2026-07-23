@@ -5,10 +5,13 @@ mod docker;
 mod git;
 mod interp;
 mod kube;
+mod list;
 mod paths;
 
 use self::context::Kind;
 use self::paths::{collect_file_matches, collect_path_commands};
+
+pub use list::{format_columns, list_display_lines, list_display_lines_width};
 
 const BUILTINS: &[&str] = &[
     "alias", "bg", "cd", "disown", "env", "exit", "fg", "history", "jobs", "set", "setenv",
