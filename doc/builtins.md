@@ -50,7 +50,7 @@ pub enum BuiltinResult {
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
 
 Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
-Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache** then **Docker** (when reachable).
+Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Docker** (when reachable), then **Kubernetes Pod** (when the API is reachable).
 
 ### `sandbox` / Wasm cache
 
@@ -75,6 +75,8 @@ Talks to the cluster via **kube-rs** (default kubeconfig / namespace):
 | no cluster / bad kubeconfig | Status `1` + stderr (soft for Tab complete → empty) |
 
 Tab: `@kube logs `<Tab> suggests pod names when the API is reachable.
+
+Missing external commands may also be healed via an ephemeral alpine Pod when the cluster is reachable (after Wasm / Docker in the default heal chain). The Pod bind-mounts the host cwd via `hostPath` when the node can see that path (same idea as Docker heal).
 
 ## Recognition list
 
