@@ -44,6 +44,8 @@ pub struct ShellEnvironment {
     pub healers: ResolverChain,
     /// Background jobs for `&` / `jobs` / `fg` / `bg`.
     pub jobs: JobTable,
+    /// When set, expanded lines are not pushed (startup RC / `source`).
+    pub(crate) suppress_history: bool,
 }
 
 impl Clone for ShellEnvironment {
@@ -59,6 +61,7 @@ impl Clone for ShellEnvironment {
             healers: self.healers.clone(),
             // Subshells must not inherit live child processes.
             jobs: JobTable::default(),
+            suppress_history: self.suppress_history,
         }
     }
 }
@@ -93,6 +96,7 @@ impl ShellEnvironment {
             dir_stack: DirStack::default(),
             healers: ResolverChain::empty(),
             jobs: JobTable::default(),
+            suppress_history: false,
         };
         env.seed_specials();
         crate::heal::attach_default_backends(&mut env);
@@ -113,6 +117,7 @@ impl ShellEnvironment {
             dir_stack: DirStack::default(),
             healers: ResolverChain::empty(),
             jobs: JobTable::default(),
+            suppress_history: false,
         }
     }
 }

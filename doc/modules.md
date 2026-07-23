@@ -41,7 +41,7 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 
 | Module | Path | Responsibility |
 |--------|------|----------------|
-| **history** | `src/history/` | Store + `!` expand (`store/`, `expand/`) |
+| **history** | `src/history/` | Store + `!` expand (`store/`, `expand/`); histfile path helper |
 | **jobs** | `src/jobs/` | Job table; Unix pgrp/tty vs stub |
 | **keybind** | `src/keybind/` | Emacs/vi maps, parse/display for `bindkey` |
 | **specials** | `src/specials/` | `precmd`, `cwdcmd`, `ignoreeof` |

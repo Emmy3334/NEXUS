@@ -46,7 +46,9 @@ pub(super) fn source_file<O: Write, E: Write>(
         stderr,
         input_queue: VecDeque::new(),
     };
-    run_loop(&mut nested, false, shell_env, 0)
+    super::history_suppress::with_suppressed(shell_env, |shell_env| {
+        run_loop(&mut nested, false, shell_env, 0)
+    })
 }
 
 fn run_with_cursor(
