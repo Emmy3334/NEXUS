@@ -16,6 +16,7 @@ mod history;
 mod jobs;
 mod kube;
 mod local_cmd;
+mod names;
 mod repeat;
 mod return_cmd;
 mod sandbox;
@@ -26,6 +27,8 @@ mod unalias;
 mod unset;
 mod unsetenv;
 mod which;
+
+pub use names::{is_builtin, NAMES};
 
 use crate::env::ShellEnvironment;
 
@@ -43,44 +46,6 @@ pub enum BuiltinResult {
     Source(String),
     /// Run `argv` `count` times (handled by exec to avoid cycles).
     Repeat { count: u32, argv: Vec<String> },
-}
-
-/// Whether `name` is a shell builtin.
-#[must_use]
-pub fn is_builtin(name: &str) -> bool {
-    matches!(
-        name,
-        "cd" | "setenv"
-            | "unsetenv"
-            | "env"
-            | "exit"
-            | "set"
-            | "unset"
-            | "alias"
-            | "unalias"
-            | "history"
-            | "jobs"
-            | "fg"
-            | "bg"
-            | "source"
-            | "."
-            | "@"
-            | "bindkey"
-            | "which"
-            | "where"
-            | "repeat"
-            | "sandbox"
-            | "heal"
-            | "doctor"
-            | "@kube"
-            | "@docker"
-            | "pushd"
-            | "popd"
-            | "dirs"
-            | "return"
-            | "local"
-            | "disown"
-    )
 }
 
 /// Run a builtin if `argv[0]` matches one; otherwise return `Ok(None)`.

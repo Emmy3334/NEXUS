@@ -73,7 +73,7 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `@kube … logs …` / `exec …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
 | `heal ` / `doctor ` | `help` |
 
-Otherwise falls back to builtins + `PATH` + filesystem matches.
+Otherwise falls back to **all** builtins (`builtins::NAMES`, including `@docker` / `@kube` / `sandbox` / dirstack / …) + `PATH` + filesystem matches.
 
 Ambiguous matches: insert the shared prefix when it grows, then list remaining choices in
 `$COLUMNS`-aware columns (soft-capped at 100, with an “… and N more” trailer). Unique

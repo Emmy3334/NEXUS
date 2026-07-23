@@ -1,6 +1,8 @@
 # Builtins
 
-Dispatch lives in `src/builtins/mod.rs` (`is_builtin`, `try_run`) and `src/builtins/dispatch/{core,bonus}.rs`. Each builtin is a focused module under `src/builtins/`.
+Dispatch lives in `src/builtins/mod.rs` (`try_run`) and `src/builtins/dispatch/{core,bonus}.rs`.
+Canonical names live in `src/builtins/names.rs` (`NAMES` / `is_builtin`) and feed Tab complete.
+Each builtin is a focused module under `src/builtins/`.
 
 ## Result kinds
 
@@ -122,7 +124,7 @@ Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running c
 
 ## Recognition list
 
-`is_builtin` matches exactly:
+`NAMES` / `is_builtin` matches exactly:
 
 `cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`.
 
