@@ -1,6 +1,7 @@
 //! Hook spawn failures into the heal chain before classic reporting.
 
 use super::report_spawn_failure;
+use super::suggest;
 use crate::env::ShellEnvironment;
 
 use std::ffi::OsStr;
@@ -20,11 +21,16 @@ pub fn after_spawn_failure(
         return report_spawn_failure(program, err, stderr);
     }
     let chain = shell_env.healers.clone();
+    let healers_tried = !chain.is_empty();
     if let Some(code) = chain.try_heal(argv, shell_env, stdout, stderr)? {
         tracing::info!(argv0 = program, status = code, "heal chain handled");
         return Ok(code);
     }
-    report_spawn_failure(program, err, stderr)
+    let code = report_spawn_failure(program, err, stderr)?;
+    if code == 127 {
+        suggest::write_after_not_found(program, shell_env, healers_tried, stderr)?;
+    }
+    Ok(code)
 }
 
 /// Same as [`after_spawn_failure`] when argv is only known as `OsStr` slices.

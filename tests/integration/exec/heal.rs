@@ -100,7 +100,7 @@ fn declining_resolver_falls_through_to_127() {
     let code =
         execute_external(&["nexus_still_missing"], &mut env, &mut stdout, &mut stderr).unwrap();
     assert_eq!(code, 127);
-    assert!(String::from_utf8(stderr)
-        .unwrap()
-        .contains("Command not found"));
+    let err = String::from_utf8(stderr).unwrap();
+    assert!(err.contains("Command not found"));
+    assert!(err.contains("heal tried"));
 }
