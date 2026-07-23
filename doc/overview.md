@@ -12,7 +12,7 @@ Product stages (from project PDFs / standing rules):
 
 1. **Minishell** — prompt, lex/parse/exec, builtins, pipes, redirects, env
 2. **42sh-class** — jobs, history/`!`, aliases, line edit, control structures, `&&`/`||`, bonuses
-3. **Cloud / self-healing** — resolver seam + Wasm cache + Docker backend + native `@kube` (kube-rs); K8s not-found heal not implemented yet
+3. **Cloud / self-healing** — resolver seam + Wasm cache + Docker backend + native `@kube` (kube-rs) + K8s Pod heal
 
 ## Package facts
 
@@ -47,7 +47,7 @@ Product stages (from project PDFs / standing rules):
 | Bonuses `which`/`where`, `repeat`, `pushd`/`popd`/`dirs`, bracketed paste | Yes |
 | Self-heal resolver seam (`CommandResolver` / empty chain → classic 127) | Yes |
 | Docker heal backend (`bollard`, alpine image when daemon up) | Yes |
-| Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s heal-not-found not yet |
+| Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s Pod heal yes |
 
 ## Top-level layout
 
