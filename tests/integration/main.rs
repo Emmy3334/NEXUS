@@ -8,6 +8,7 @@ mod complete_context;
 mod cwd_lock;
 mod exec;
 mod expand;
+mod expand_param;
 mod foreach;
 mod git_prompt;
 mod glob;

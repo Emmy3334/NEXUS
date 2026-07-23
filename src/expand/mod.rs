@@ -4,6 +4,7 @@
 //! Command substitution capture is injected by callers (avoids expand↔exec cycle).
 
 mod backtick;
+mod braced;
 mod decode;
 mod dollar;
 mod fields;
