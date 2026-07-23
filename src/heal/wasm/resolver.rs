@@ -16,6 +16,7 @@ impl CommandResolver for WasmResolver {
         &self,
         argv: &[String],
         shell_env: &mut ShellEnvironment,
+        _stdin: Option<&[u8]>,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {

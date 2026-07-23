@@ -103,6 +103,7 @@ fn docker_bind_mounts_cwd_for_host_files() {
     let result = resolver.try_heal(
         &["cat".into(), "payload.txt".into()],
         &mut env,
+        None,
         &mut stdout,
         &mut stderr,
     );
@@ -112,4 +113,68 @@ fn docker_bind_mounts_cwd_for_host_files() {
     let code = result.expect("try_heal io");
     assert_eq!(code, Some(0), "stderr={}", String::from_utf8_lossy(&stderr));
     assert_eq!(String::from_utf8(stdout).unwrap(), "heal-bind\n");
+}
+
+#[test]
+fn docker_forwards_exported_env() {
+    use nexus::env::ShellEnvironment;
+    use nexus::heal::CommandResolver;
+    if !docker_available() {
+        return;
+    }
+    let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
+    let mut env = ShellEnvironment::from_map(Default::default());
+    env.set("NEXUS_HEAL_FOO", "bar");
+    env.set_local("NEXUS_HEAL_LOCAL", "nope");
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["printenv".into(), "NEXUS_HEAL_FOO".into()],
+            &mut env,
+            None,
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    assert_eq!(code, Some(0), "stderr={}", String::from_utf8_lossy(&stderr));
+    assert_eq!(String::from_utf8(stdout).unwrap().trim(), "bar");
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["printenv".into(), "NEXUS_HEAL_LOCAL".into()],
+            &mut env,
+            None,
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    assert_ne!(code, Some(0));
+    assert!(String::from_utf8(stdout).unwrap().trim().is_empty());
+}
+
+#[test]
+fn docker_feeds_stdin_bytes() {
+    use nexus::env::ShellEnvironment;
+    use nexus::heal::CommandResolver;
+    if !docker_available() {
+        return;
+    }
+    let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
+    let mut env = ShellEnvironment::from_map(Default::default());
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["cat".into()],
+            &mut env,
+            Some(b"hello-stdin\n"),
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    assert_eq!(code, Some(0), "stderr={}", String::from_utf8_lossy(&stderr));
+    assert_eq!(String::from_utf8(stdout).unwrap(), "hello-stdin\n");
 }

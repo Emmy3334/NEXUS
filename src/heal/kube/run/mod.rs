@@ -6,6 +6,7 @@ mod spawn;
 mod wait;
 
 use crate::tokio_rt::io_other;
+use k8s_openapi::api::core::v1::EnvVar;
 use kube::Client;
 use logs::copy_logs;
 use remove::delete_pod;
@@ -17,11 +18,12 @@ use std::io::{self, Write};
 pub(super) async fn execute(
     image: &str,
     argv: &[String],
+    env: Vec<EnvVar>,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> io::Result<(u8, String)> {
     let client = Client::try_default().await.map_err(io_other)?;
-    let name = create_pod(&client, image, argv).await?;
+    let name = create_pod(&client, image, argv, env).await?;
     let code = match wait_status(&client, &name).await {
         Ok(code) => code,
         Err(err) => {

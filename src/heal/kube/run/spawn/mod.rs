@@ -4,7 +4,7 @@ mod cwd;
 
 use crate::tokio_rt::io_other;
 use cwd::{cwd_string, host_cwd_volume, host_cwd_volume_mount};
-use k8s_openapi::api::core::v1::{Container, Pod, PodSpec};
+use k8s_openapi::api::core::v1::{Container, EnvVar, Pod, PodSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, PostParams};
 use kube::{Client, ResourceExt};
@@ -16,9 +16,10 @@ pub(super) async fn create_pod(
     client: &Client,
     image: &str,
     argv: &[String],
+    env: Vec<EnvVar>,
 ) -> io::Result<String> {
     let pods: Api<Pod> = Api::default_namespaced(client.clone());
-    let pod = heal_pod(image, argv);
+    let pod = heal_pod(image, argv, env);
     let name = pod.name_any();
     pods.create(&PostParams::default(), &pod)
         .await
@@ -26,7 +27,7 @@ pub(super) async fn create_pod(
     Ok(name)
 }
 
-fn heal_pod(image: &str, argv: &[String]) -> Pod {
+fn heal_pod(image: &str, argv: &[String], env: Vec<EnvVar>) -> Pod {
     let cwd = cwd_string();
     Pod {
         metadata: ObjectMeta {
@@ -40,6 +41,7 @@ fn heal_pod(image: &str, argv: &[String]) -> Pod {
                 name: "heal".into(),
                 image: Some(image.to_owned()),
                 command: Some(argv.to_vec()),
+                env: Some(env),
                 image_pull_policy: Some("IfNotPresent".into()),
                 working_dir: Some(cwd.clone()),
                 volume_mounts: Some(vec![host_cwd_volume_mount(&cwd)]),

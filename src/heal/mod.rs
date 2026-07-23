@@ -8,12 +8,13 @@ mod banner;
 mod chain;
 mod config;
 mod docker;
+mod env_pairs;
 mod kube;
 mod report;
 mod suggest;
 mod wasm;
 
-pub use after_spawn::{after_spawn_failure, after_spawn_failure_os};
+pub use after_spawn::{after_spawn_failure, after_spawn_failure_os, after_spawn_failure_stdin};
 pub use chain::ResolverChain;
 pub use config::{parse_order, quiet_from, resolve as resolve_settings, Backend, Settings};
 pub use docker::{
@@ -58,11 +59,15 @@ pub fn attach_default_backends(shell_env: &mut ShellEnvironment) {
 ///
 /// Return `Ok(Some(status))` when the command was handled, `Ok(None)` to try
 /// the next resolver (or fall through to the classic not-found message).
+///
+/// `stdin` is finite bytes only (heredoc / buffered pipe); live TTY is never
+/// forwarded into ephemeral containers or Pods.
 pub trait CommandResolver: Send + Sync {
     fn try_heal(
         &self,
         argv: &[String],
         shell_env: &mut ShellEnvironment,
+        stdin: Option<&[u8]>,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>>;

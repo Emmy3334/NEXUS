@@ -54,6 +54,8 @@ pub enum BuiltinResult {
 Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
 Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Kubernetes Pod**, then **Docker** (override with `heal_order` / `NEXUS_HEAL_ORDER`). Image: `heal_image` / `NEXUS_HEAL_IMAGE` (default `alpine:3.20`). Quiet success banners **and** not-found tips/suggestions: `heal_quiet` / `NEXUS_HEAL_QUIET=1`. When heal declines, stderr may include `nexus: did you mean: …` (PATH/cwd/history neighbors) and a one-line heal tip; exit status stays `127`.
 
+Docker and Kube heal forward the **exported** shell environment (same map as external children). Finite stdin bytes from heredocs / buffered pipes are fed into Docker heal; Kube declines when stdin is present so Docker can handle it. Locals are not forwarded.
+
 ### `sandbox` / Wasm cache
 
 | Piece | Role |
