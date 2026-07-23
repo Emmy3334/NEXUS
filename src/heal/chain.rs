@@ -40,6 +40,12 @@ impl ResolverChain {
         self.resolvers.is_empty()
     }
 
+    /// Number of registered backends (tests / diagnostics).
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.resolvers.len()
+    }
+
     /// Run resolvers until one returns `Some(status)`.
     pub fn try_heal(
         &self,

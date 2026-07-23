@@ -19,13 +19,17 @@ pub(super) async fn execute(
     argv: &[String],
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> io::Result<u8> {
+) -> io::Result<(u8, String)> {
     ensure_image(docker, image).await?;
     let id = create_and_start(docker, image, argv).await?;
     let code = wait_status(docker, &id).await?;
     copy_logs(docker, &id, stdout, stderr).await?;
     let _ = remove(docker, &id).await;
-    Ok(code)
+    Ok((code, short_id(&id)))
+}
+
+fn short_id(id: &str) -> String {
+    id.chars().take(12).collect()
 }
 
 async fn remove(docker: &Docker, id: &str) -> io::Result<()> {

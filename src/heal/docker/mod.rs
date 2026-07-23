@@ -10,6 +10,8 @@ mod runtime;
 pub use list::running_names;
 pub use register::attach_docker_backend;
 
+use super::banner;
+use super::config;
 use super::CommandResolver;
 use crate::env::ShellEnvironment;
 use client::Docker;
@@ -47,7 +49,7 @@ impl CommandResolver for DockerResolver {
     fn try_heal(
         &self,
         argv: &[String],
-        _shell_env: &mut ShellEnvironment,
+        shell_env: &mut ShellEnvironment,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {
@@ -61,8 +63,11 @@ impl CommandResolver for DockerResolver {
             stdout,
             stderr,
         )) {
-            Ok(Ok(127)) => Ok(None),
-            Ok(Ok(code)) => Ok(Some(code)),
+            Ok(Ok((127, _))) => Ok(None),
+            Ok(Ok((code, id))) => {
+                banner::success(stderr, config::quiet_from(shell_env), "docker", Some(&id))?;
+                Ok(Some(code))
+            }
             Ok(Err(err)) | Err(err) if is_missing_in_image(&err) => Ok(None),
             Ok(Err(err)) | Err(err) => {
                 writeln!(stderr, "nexus: docker heal failed: {err}")?;

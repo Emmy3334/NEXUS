@@ -1,5 +1,7 @@
 //! Heal missing commands via the local Wasm module cache.
 
+use super::super::banner;
+use super::super::config;
 use super::super::CommandResolver;
 use crate::env::ShellEnvironment;
 use crate::sandbox;
@@ -13,7 +15,7 @@ impl CommandResolver for WasmResolver {
     fn try_heal(
         &self,
         argv: &[String],
-        _shell_env: &mut ShellEnvironment,
+        shell_env: &mut ShellEnvironment,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<Option<u8>> {
@@ -25,6 +27,7 @@ impl CommandResolver for WasmResolver {
         };
         let args = &argv[1..];
         let code = sandbox::run_module(&path, args, stdout, stderr)?;
+        banner::success(stderr, config::quiet_from(shell_env), "wasm", Some(name))?;
         Ok(Some(code))
     }
 }

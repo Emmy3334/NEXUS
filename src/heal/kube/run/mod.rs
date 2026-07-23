@@ -19,7 +19,7 @@ pub(super) async fn execute(
     argv: &[String],
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> io::Result<u8> {
+) -> io::Result<(u8, String)> {
     let client = Client::try_default().await.map_err(io_other)?;
     let name = create_pod(&client, image, argv).await?;
     let code = match wait_status(&client, &name).await {
@@ -31,5 +31,5 @@ pub(super) async fn execute(
     };
     let _ = copy_logs(&client, &name, code, stdout, stderr).await;
     let _ = delete_pod(&client, &name).await;
-    Ok(code)
+    Ok((code, name))
 }

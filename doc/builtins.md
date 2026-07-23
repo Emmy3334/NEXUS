@@ -50,7 +50,7 @@ pub enum BuiltinResult {
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
 
 Directory stack state is `ShellEnvironment::dir_stack` (`src/env/dirstack/`).
-Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Docker** (when reachable), then **Kubernetes Pod** (when the API is reachable).
+Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty chain keeps classic `127`. Default order: **Wasm cache**, then **Kubernetes Pod**, then **Docker** (override with `heal_order` / `NEXUS_HEAL_ORDER`). Image: `heal_image` / `NEXUS_HEAL_IMAGE` (default `alpine:3.20`). Quiet success banners: `heal_quiet` / `NEXUS_HEAL_QUIET=1`.
 
 ### `sandbox` / Wasm cache
 
@@ -79,7 +79,7 @@ Talks to the cluster via **kube-rs** (default kubeconfig / namespace):
 
 Tab: after `@kube ` → subcommands; after `-n` → namespaces; after `logs` / `describe pod` → pod names (when the API is reachable).
 
-Missing external commands may also be healed via an ephemeral alpine Pod when the cluster is reachable (after Wasm / Docker in the default heal chain). The Pod bind-mounts the host cwd via `hostPath` when the node can see that path (same idea as Docker heal).
+Missing external commands may also be healed via an ephemeral alpine Pod when the cluster is reachable (default heal chain: Wasm → Kube → Docker). The Pod bind-mounts the host cwd via `hostPath` when the node can see that path (same idea as Docker heal). Success prints `nexus: healed via kube (pod …)` / `docker (…)` / `wasm (…)` unless quiet.
 
 ## Recognition list
 

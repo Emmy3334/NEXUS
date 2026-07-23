@@ -3,6 +3,7 @@
 mod common;
 mod external;
 mod heal;
+mod heal_config;
 mod heal_docker;
 mod heal_kube;
 mod jobs;
