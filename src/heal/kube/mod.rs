@@ -12,7 +12,7 @@ use super::CommandResolver;
 use crate::env::ShellEnvironment;
 use crate::kube;
 use crate::tokio_rt::block_on;
-use missing::is_missing_in_image;
+use missing::should_decline;
 
 use std::io::{self, Write};
 
@@ -58,7 +58,7 @@ impl CommandResolver for KubeResolver {
                 banner::success(stderr, config::quiet_from(shell_env), "kube", Some(&detail))?;
                 Ok(Some(code))
             }
-            Ok(Err(err)) | Err(err) if is_missing_in_image(&err) => Ok(None),
+            Ok(Err(err)) | Err(err) if should_decline(&err) => Ok(None),
             Ok(Err(err)) | Err(err) => {
                 tracing::warn!(argv0, backend = "kube", error = %err, "heal failed");
                 writeln!(stderr, "nexus: kube heal failed: {err}")?;

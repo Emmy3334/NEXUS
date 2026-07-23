@@ -3,10 +3,6 @@
 use nexus::env::ShellEnvironment;
 use nexus::parse::CommandList;
 use std::collections::BTreeMap;
-use std::sync::Mutex;
-
-/// Serialize tests that mutate process-global `current_dir`.
-pub static CWD_LOCK: Mutex<()> = Mutex::new(());
 
 pub fn test_env() -> ShellEnvironment {
     let path = std::env::var("PATH").unwrap_or_default();

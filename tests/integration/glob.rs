@@ -7,10 +7,6 @@ use nexus::glob::{expand_globs, expand_globs_one};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
-
-static CWD_LOCK: Mutex<()> = Mutex::new(());
-
 fn test_env() -> ShellEnvironment {
     let path = std::env::var("PATH").unwrap_or_default();
     let mut map = BTreeMap::new();
@@ -51,9 +47,7 @@ fn scratch_dir(name: &str) -> PathBuf {
 
 #[test]
 fn star_expands_sorted_non_hidden() {
-    let _guard = CWD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch_dir("star");
     let _ = fs::remove_dir_all(&dir);
@@ -75,9 +69,7 @@ fn star_expands_sorted_non_hidden() {
 
 #[test]
 fn question_matches_one_char() {
-    let _guard = CWD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch_dir("q");
     let _ = fs::remove_dir_all(&dir);
@@ -95,9 +87,7 @@ fn question_matches_one_char() {
 
 #[test]
 fn bracket_class_and_range() {
-    let _guard = CWD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch_dir("bracket");
     let _ = fs::remove_dir_all(&dir);
@@ -143,9 +133,7 @@ fn no_match_keeps_literal() {
 
 #[test]
 fn exec_printf_globs_to_file() {
-    let _guard = CWD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch_dir("exec");
     let _ = fs::remove_dir_all(&dir);
@@ -168,9 +156,7 @@ fn exec_printf_globs_to_file() {
 
 #[test]
 fn ambiguous_redirect_is_error() {
-    let _guard = CWD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch_dir("ambig");
     let _ = fs::remove_dir_all(&dir);
@@ -190,9 +176,7 @@ fn ambiguous_redirect_is_error() {
 
 #[test]
 fn redirect_single_glob_ok() {
-    let _guard = CWD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = crate::cwd_lock::lock();
     let start = std::env::current_dir().unwrap();
     let dir = scratch_dir("one");
     let _ = fs::remove_dir_all(&dir);

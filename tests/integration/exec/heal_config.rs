@@ -42,6 +42,15 @@ fn quiet_from_local_and_default() {
 }
 
 #[test]
+fn parse_order_aliases_kubernetes() {
+    assert_eq!(parse_order("k8s,wasm"), vec![Backend::Kube, Backend::Wasm]);
+    assert_eq!(
+        parse_order("kubernetes, docker "),
+        vec![Backend::Kube, Backend::Docker]
+    );
+}
+
+#[test]
 fn attach_default_wasm_only_order() {
     let mut env = test_env();
     env.set_local("heal_order", "wasm");

@@ -53,6 +53,10 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Docker heal backend (`bollard`, alpine image when daemon up) | Yes |
 | Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s Pod heal yes |
 
+## Cloud shell status
+
+The cloud MVP on `develop` (resolver seam → Docker → Wasm → `@kube` → K8s Pod heal, PRs [#37](https://github.com/Emmy3334/NEXUS/pull/37)–[#45](https://github.com/Emmy3334/NEXUS/pull/45)) is complete. Follow-on Cloud UX (expanded `@kube`, heal order/image/quiet, tracing) is tracked in [CHANGELOG.md](../CHANGELOG.md).
+
 ## Top-level layout
 
 ```text

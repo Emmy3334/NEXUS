@@ -15,7 +15,7 @@ use super::config;
 use super::CommandResolver;
 use crate::env::ShellEnvironment;
 use client::Docker;
-use missing::is_missing_in_image;
+use missing::should_decline;
 use runtime::block_on;
 
 use std::io::{self, Write};
@@ -71,7 +71,7 @@ impl CommandResolver for DockerResolver {
                 banner::success(stderr, config::quiet_from(shell_env), "docker", Some(&id))?;
                 Ok(Some(code))
             }
-            Ok(Err(err)) | Err(err) if is_missing_in_image(&err) => Ok(None),
+            Ok(Err(err)) | Err(err) if should_decline(&err) => Ok(None),
             Ok(Err(err)) | Err(err) => {
                 tracing::warn!(argv0, backend = "docker", error = %err, "heal failed");
                 writeln!(stderr, "nexus: docker heal failed: {err}")?;
