@@ -10,6 +10,7 @@ mod config;
 mod docker;
 mod kube;
 mod report;
+mod suggest;
 mod wasm;
 
 pub use after_spawn::{after_spawn_failure, after_spawn_failure_os};
