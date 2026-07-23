@@ -8,6 +8,7 @@ mod bindkey;
 mod cd;
 mod dirstack;
 mod dispatch;
+mod docker;
 mod env;
 mod exit;
 mod history;
@@ -68,6 +69,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "repeat"
             | "sandbox"
             | "@kube"
+            | "@docker"
             | "pushd"
             | "popd"
             | "dirs"

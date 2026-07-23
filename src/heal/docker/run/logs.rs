@@ -6,7 +6,7 @@ use futures_util::StreamExt;
 
 use std::io::{self, Write};
 
-pub(super) async fn copy_logs(
+pub(in crate::heal::docker) async fn copy_logs(
     docker: &Docker,
     id: &str,
     stdout: &mut dyn Write,

@@ -27,6 +27,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 - `case` / `esac` with glob patterns, and `disown` to drop a job from the table.
 - Ambiguous Tab completion lists matches in `$COLUMNS`-aware columns (soft-capped), after
   common-prefix insert.
+- Native `@docker` builtin (`ps`, `logs`) via bollard, with Tab for subcommands and
+  running container names.
 
 ### Fixed
 

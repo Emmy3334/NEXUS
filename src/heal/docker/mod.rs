@@ -1,13 +1,17 @@
 //! Ephemeral Docker container heal backend (bollard).
 
 mod client;
+mod cmd_logs;
 mod list;
 mod missing;
+mod ps;
 mod register;
 mod run;
 mod runtime;
 
+pub use cmd_logs::write_container_logs;
 pub use list::running_names;
+pub use ps::list_ps_lines;
 pub use register::attach_docker_backend;
 
 use super::banner;
@@ -22,6 +26,15 @@ use std::io::{self, Write};
 
 /// Default image for missing-command healing.
 pub const DEFAULT_IMAGE: &str = "alpine:3.20";
+
+/// True when the local Docker daemon accepts a ping.
+#[must_use]
+pub fn daemon_reachable() -> bool {
+    let Ok(docker) = client::connect() else {
+        return false;
+    };
+    matches!(block_on(client::ping(&docker)), Ok(Ok(())))
+}
 
 /// Runs a missing command inside an ephemeral Docker container.
 pub struct DockerResolver {

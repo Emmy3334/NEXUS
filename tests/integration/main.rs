@@ -9,6 +9,7 @@ mod case_block;
 mod complete_context;
 mod complete_list;
 mod cwd_lock;
+mod docker_cloud;
 mod exec;
 mod expand;
 mod expand_param;
