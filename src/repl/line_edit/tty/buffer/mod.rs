@@ -1,13 +1,22 @@
 //! Core UTF-8 edit buffer storage.
 
+mod kill;
 mod nav;
+mod transpose;
+mod word;
 
+use std::collections::VecDeque;
+
+pub(super) use kill::{kill_line, kill_to_eol, kill_word_backward, kill_word_forward, yank};
 pub(super) use nav::{backspace, delete, move_left, move_right};
+pub(super) use transpose::transpose_words;
+pub(super) use word::{move_word_left, move_word_right};
 
 #[derive(Debug, Default)]
 pub(super) struct EditBuffer {
     pub(super) text: String,
     pub(super) cursor: usize,
+    pub(super) kill_ring: VecDeque<String>,
 }
 
 impl EditBuffer {

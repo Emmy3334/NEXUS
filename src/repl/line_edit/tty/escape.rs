@@ -1,4 +1,4 @@
-//! Decode CSI / SS3 escape sequences from the input queue.
+//! Decode CSI / SS3 / Meta escape sequences from the input queue.
 
 use super::event::Event;
 use super::queue;
@@ -17,7 +17,7 @@ pub(super) fn decode_escape(q: &mut VecDeque<u8>) -> io::Result<Event> {
         drain(q, seq.len());
         return Ok(Event::PasteEnd);
     }
-    if is_complete_escape(&seq) {
+    if is_meta_chord(&seq) || is_complete_escape(&seq) {
         drain(q, seq.len());
         return Ok(Event::Raw(seq));
     }
@@ -49,6 +49,10 @@ fn peek_escape(q: &VecDeque<u8>) -> Vec<u8> {
         }
     }
     seq
+}
+
+fn is_meta_chord(seq: &[u8]) -> bool {
+    matches!(seq, [0x1b, b] if *b != b'[' && *b != b'O')
 }
 
 fn is_complete_escape(seq: &[u8]) -> bool {
