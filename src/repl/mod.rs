@@ -3,6 +3,8 @@
 //! Dragon Book pipeline: acquire line → history expansion → lexical analysis →
 //! list/pipeline parse → execute against an owned environment copy.
 
+mod case_collect;
+mod case_run;
 mod control_collect;
 mod control_parse;
 mod foreach_run;
@@ -208,6 +210,11 @@ fn execute_parsed<I: ReplInput, O: Write, E: Write>(
         ),
         ParseOutcome::Function(header) => finish_result(
             function_run::run_define(header, io, interactive, shell_env)?,
+            io,
+            shell_env,
+        ),
+        ParseOutcome::Case(header) => finish_result(
+            case_run::run_case(header, io, interactive, shell_env, last_status, argv)?,
             io,
             shell_env,
         ),

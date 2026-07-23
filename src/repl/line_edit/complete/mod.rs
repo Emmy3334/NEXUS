@@ -11,8 +11,8 @@ use self::context::Kind;
 use self::paths::{collect_file_matches, collect_path_commands};
 
 const BUILTINS: &[&str] = &[
-    "alias", "bg", "cd", "env", "exit", "fg", "history", "jobs", "set", "setenv", "source",
-    "unalias", "unset", "unsetenv",
+    "alias", "bg", "cd", "disown", "env", "exit", "fg", "history", "jobs", "set", "setenv",
+    "source", "unalias", "unset", "unsetenv",
 ];
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.

@@ -30,6 +30,7 @@ pub(super) fn run(
         "jobs" => BuiltinResult::Status(jobs::jobs_cmd(argv, shell_env, stdout, stderr)?),
         "fg" => BuiltinResult::Status(jobs::fg_cmd(argv, shell_env, stderr)?),
         "bg" => BuiltinResult::Status(jobs::bg_cmd(argv, shell_env, stderr)?),
+        "disown" => BuiltinResult::Status(jobs::disown_cmd(argv, shell_env, stderr)?),
         "source" | "." => source::source(argv, shell_env, stderr)?,
         "@" => BuiltinResult::Status(at::at_cmd(argv, shell_env, stderr)?),
         "exit" => exit::exit_cmd(argv, last_status, stderr)?,

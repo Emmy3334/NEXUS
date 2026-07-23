@@ -72,6 +72,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "popd"
             | "dirs"
             | "return"
+            | "disown"
     )
 }
 

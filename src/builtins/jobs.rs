@@ -58,6 +58,25 @@ pub(super) fn bg_cmd(
     }
 }
 
+/// `disown [job]` — remove a job from the table without killing it.
+pub(super) fn disown_cmd(
+    argv: &[String],
+    shell_env: &mut ShellEnvironment,
+    stderr: &mut impl Write,
+) -> io::Result<u8> {
+    let spec = match parse_spec(argv, stderr)? {
+        Ok(spec) => spec,
+        Err(code) => return Ok(code),
+    };
+    match shell_env.jobs.disown(spec) {
+        Ok(()) => Ok(0),
+        Err(err) => {
+            writeln!(stderr, "disown: {}", err.message())?;
+            Ok(1)
+        }
+    }
+}
+
 fn parse_jobs_flags(args: &[String], stderr: &mut impl Write) -> io::Result<Result<bool, u8>> {
     let mut long = false;
     for arg in args {

@@ -5,6 +5,7 @@
 
 pub mod alias;
 pub mod builtins;
+pub mod case_block;
 pub mod env;
 pub mod exec;
 pub mod expand;

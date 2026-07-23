@@ -124,4 +124,21 @@ endif
 
 Module: `src/if_block/` + `src/repl/if_collect.rs` / `if_run.rs`.
 
+### `case`
+
+```text
+case word in
+  pat|pat2)
+    …body…
+    ;;
+  *)
+    …body…
+    ;;
+esac
+```
+
+Subject and patterns are expanded; patterns use `*` / `?` and `|` alternation (string match, not pathname glob). First matching arm runs; no match leaves the previous status. Nested `case` is supported via brace-depth collection until `esac`.
+
+Module: `src/case_block/` + `src/repl/case_collect.rs` / `case_run.rs`.
+
 Expressions for `while` / `if` are evaluated by the while-loop expression engine (comparisons, file tests, etc. as implemented under `while_loop/expr/`).

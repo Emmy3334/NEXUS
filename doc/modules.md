@@ -48,6 +48,7 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 | **keybind** | `src/keybind/` | Emacs/vi maps, parse/display for `bindkey` |
 | **specials** | `src/specials/` | `precmd`, `cwdcmd`, `ignoreeof` |
 | **foreach** | `src/foreach/` | Header parse / `end` helpers |
+| **case_block** | `src/case_block/` | `case` / `esac` header + pattern match |
 | **while_loop** | `src/while_loop/` | Header + expression evaluator |
 | **if_block** | `src/if_block/` | `if` / `else if` / `else` / `endif` headers |
 
