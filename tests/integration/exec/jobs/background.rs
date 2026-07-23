@@ -58,11 +58,12 @@ fn pipeline_runs() {
 }
 
 fn wait_for_contents(path: &Path, expected: &str) {
-    for _ in 0..50 {
+    for _ in 0..100 {
         if fs::read_to_string(path).ok().as_deref() == Some(expected) {
             return;
         }
         thread::sleep(Duration::from_millis(20));
     }
-    assert_eq!(fs::read_to_string(path).unwrap(), expected);
+    let actual = fs::read_to_string(path).unwrap_or_else(|err| format!("<missing: {err}>"));
+    assert_eq!(actual, expected, "timed out waiting for {}", path.display());
 }

@@ -44,6 +44,7 @@ pub enum BuiltinResult {
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox.rs` | Run a Wasm module (path / cache name) via Wasmtime; else host command in a temp HOME with filtered env |
+| `@kube` | `kube.rs` | Native K8s: `nodes`, `pods`, `logs <pod>` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
 | `popd` | `dirstack/` | Pop and `cd`; same print flags; `+n` drops entry `n` |
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
@@ -61,11 +62,25 @@ Self-heal backends hang off `ShellEnvironment::healers` (`src/heal/`); empty cha
 
 Install helpers for tests/tools: `sandbox::install_from_wat` / `install_from_wat_into`.
 
+### `@kube` (Kubernetes)
+
+Talks to the cluster via **kube-rs** (default kubeconfig / namespace):
+
+| Command | Behavior |
+|---------|----------|
+| `@kube nodes` | List nodes (`NAME STATUS ROLES AGE VERSION`) |
+| `@kube pods` | List pods (`NAME READY STATUS RESTARTS AGE`) |
+| `@kube pods -A` | Same with `NAMESPACE` column (all namespaces) |
+| `@kube logs <pod>` | Last 100 log lines |
+| no cluster / bad kubeconfig | Status `1` + stderr (soft for Tab complete → empty) |
+
+Tab: `@kube logs `<Tab> suggests pod names when the API is reachable.
+
 ## Recognition list
 
 `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `pushd`, `popd`, `dirs`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `@kube`, `pushd`, `popd`, `dirs`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

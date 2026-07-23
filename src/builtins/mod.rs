@@ -12,6 +12,7 @@ mod env;
 mod exit;
 mod history;
 mod jobs;
+mod kube;
 mod repeat;
 mod sandbox;
 mod set;
@@ -65,6 +66,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "where"
             | "repeat"
             | "sandbox"
+            | "@kube"
             | "pushd"
             | "popd"
             | "dirs"

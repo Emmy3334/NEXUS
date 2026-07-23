@@ -24,7 +24,7 @@ pub(super) fn expand_designator(
     current: &str,
 ) -> Result<DesignatorOut, HistoryError> {
     bump(s, i); // skip '!'
-    if peek(s, *i).map_or(true, is_literal_bang_follower) {
+    if peek(s, *i).is_none_or(is_literal_bang_follower) {
         return Ok(DesignatorOut {
             text: "!".into(),
             print_only: false,
