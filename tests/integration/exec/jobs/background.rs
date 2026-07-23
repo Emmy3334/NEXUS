@@ -1,12 +1,9 @@
 //! Background external, builtin, subshell, and pipeline coverage.
 
-use super::{run, temp_file};
+use super::{run, temp_file, wait_for_contents};
 use crate::exec::common::test_env;
 use nexus::exec::CommandResult;
 use std::fs;
-use std::path::Path;
-use std::thread;
-use std::time::Duration;
 
 #[test]
 fn external_registers_job() {
@@ -55,15 +52,4 @@ fn pipeline_runs() {
     assert!(stderr.contains("[1]"), "{stderr}");
     wait_for_contents(&path, "hello");
     let _ = fs::remove_file(path);
-}
-
-fn wait_for_contents(path: &Path, expected: &str) {
-    for _ in 0..100 {
-        if fs::read_to_string(path).ok().as_deref() == Some(expected) {
-            return;
-        }
-        thread::sleep(Duration::from_millis(20));
-    }
-    let actual = fs::read_to_string(path).unwrap_or_else(|err| format!("<missing: {err}>"));
-    assert_eq!(actual, expected, "timed out waiting for {}", path.display());
 }

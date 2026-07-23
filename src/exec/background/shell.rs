@@ -37,6 +37,13 @@ pub(super) fn spawn_pipeline(
 }
 
 fn nexus_path() -> io::Result<PathBuf> {
+    // Integration tests: Cargo sets this to the package binary it just built.
+    if let Ok(path) = std::env::var("CARGO_BIN_EXE_nexus") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Ok(path);
+        }
+    }
     let current = std::env::current_exe()?;
     if current.file_stem().is_some_and(|name| name == "nexus") {
         return Ok(current);

@@ -53,6 +53,10 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Fixed
 
+- Background job tests wait longer for nested-`nexus` pipelines (Wasmtime-sized
+  debug binary cold-start) and prefer `CARGO_BIN_EXE_nexus` when spawning the
+  isolated shell child.
+
 - Heal no longer forwards host `PATH` / loader-path vars into Docker/Kube containers, so
   mapped images keep their default binary search path.
 
