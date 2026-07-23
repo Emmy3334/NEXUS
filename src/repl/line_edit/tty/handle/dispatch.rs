@@ -22,6 +22,7 @@ pub(super) fn action<'a>(
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
     action: Action,
+    var_names: &[String],
 ) -> io::Result<Loop> {
     if let Some(result) = isearch_mode::on_action(stdout, edit, isearch, action)? {
         return Ok(result);
@@ -29,7 +30,15 @@ pub(super) fn action<'a>(
     if action == Action::HistoryISearch {
         return isearch_mode::begin(stdout, edit, history, isearch);
     }
-    actions::apply(stdout, edit, bindings, action, prompt.as_str(), nav)
+    actions::apply(
+        stdout,
+        edit,
+        bindings,
+        action,
+        prompt.as_str(),
+        nav,
+        var_names,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -42,14 +51,23 @@ pub(super) fn isearch_raw<'a>(
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
     bytes: &[u8],
+    var_names: &[String],
 ) -> io::Result<Loop> {
     match bindings.lookup(bytes).cloned() {
-        Some(Binding::Action(act)) => {
-            action(stdout, edit, bindings, prompt, nav, history, isearch, act)
-        }
+        Some(Binding::Action(act)) => action(
+            stdout, edit, bindings, prompt, nav, history, isearch, act, var_names,
+        ),
         Some(binding) => {
             isearch_mode::abort(edit, isearch);
-            apply_binding(stdout, edit, bindings, prompt.as_str(), nav, binding)
+            apply_binding(
+                stdout,
+                edit,
+                bindings,
+                prompt.as_str(),
+                nav,
+                binding,
+                var_names,
+            )
         }
         None if bytes == [0x1b] => {
             isearch_mode::abort(edit, isearch);
@@ -67,16 +85,17 @@ pub(super) fn raw(
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
     bytes: &[u8],
+    var_names: &[String],
 ) -> io::Result<Loop> {
     match bindings.lookup(bytes).cloned() {
-        Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding),
+        Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding, var_names),
         None if bytes.len() == 2 && bytes[0] == 0x1b => {
             if matches!(
                 bindings.lookup(&[0x1b]),
                 Some(Binding::Action(Action::ViCmdMode))
             ) {
                 bindings.enter_command_map();
-                return raw(stdout, edit, bindings, prompt, nav, &bytes[1..]);
+                return raw(stdout, edit, bindings, prompt, nav, &bytes[1..], var_names);
             }
             Ok(Loop::Continue)
         }
@@ -91,12 +110,13 @@ pub(super) fn insert_bound(
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
     text: &str,
+    var_names: &[String],
 ) -> io::Result<Loop> {
     for ch in text.chars() {
         let mut buf = [0u8; 4];
         let encoded = ch.encode_utf8(&mut buf);
         if let Some(binding) = bindings.lookup(encoded.as_bytes()).cloned() {
-            let result = apply_binding(stdout, edit, bindings, prompt, nav, binding)?;
+            let result = apply_binding(stdout, edit, bindings, prompt, nav, binding, var_names)?;
             if !matches!(result, Loop::Continue) {
                 return Ok(result);
             }
@@ -112,9 +132,12 @@ fn apply_binding(
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
     binding: Binding,
+    var_names: &[String],
 ) -> io::Result<Loop> {
     match binding {
-        Binding::Action(action) => actions::apply(stdout, edit, bindings, action, prompt, nav),
+        Binding::Action(action) => {
+            actions::apply(stdout, edit, bindings, action, prompt, nav, var_names)
+        }
         Binding::Command(cmd) => {
             edit.clear();
             for ch in cmd.chars() {

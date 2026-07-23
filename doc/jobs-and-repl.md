@@ -43,6 +43,7 @@ Emacs defaults (also available via `bindkey`):
 |------|--------|
 | `C-a` / `C-e` | Beginning / end of line |
 | `C-b` / `C-f` | Backward / forward char (same as ← / →) |
+| `C-l` | Clear screen and redraw the current line |
 | `Home` / `End` | Beginning / end of line (`\e[H` / `\e[F`, also `\eOH` / `\eOF`) |
 | `M-b` / `M-f` | Backward / forward word |
 | `C-w` / `M-d` / `M-BS` | Kill word backward / forward |
@@ -74,6 +75,8 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `heal ` / `doctor ` | `help` |
 
 Otherwise falls back to **all** builtins (`builtins::NAMES`, including `@docker` / `@kube` / `sandbox` / dirstack / …) + `PATH` + filesystem matches.
+
+Tokens starting with `$` / `${` complete against shell locals ∪ exported names (`$HOME`, `${HOME}`).
 
 Ambiguous matches: insert the shared prefix when it grows, then list remaining choices in
 `$COLUMNS`-aware columns (soft-capped at 100, with an “… and N more” trailer). Unique

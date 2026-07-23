@@ -29,6 +29,7 @@ use std::collections::VecDeque;
 use std::io::{self, Write};
 
 /// Read one logical command line (may span physical lines when quotes are open).
+#[allow(clippy::too_many_arguments)]
 pub(super) fn read_logical_line(
     stdin: &mut impl ReplInput,
     stdout: &mut impl Write,
@@ -37,10 +38,11 @@ pub(super) fn read_logical_line(
     bindings: &mut Bindings,
     buffer: &mut String,
     queue: &mut VecDeque<u8>,
+    var_names: &[String],
 ) -> io::Result<ReadOutcome> {
     buffer.clear();
     if interactive && stdin.is_terminal() {
-        return read_tty(stdout, buffer, history, bindings, queue);
+        return read_tty(stdout, buffer, history, bindings, queue, var_names);
     }
     prompt::write_primary(stdout, interactive)?;
     if !plain::read_into(stdin, buffer, queue)? {
@@ -64,14 +66,15 @@ fn read_tty(
     history: &History,
     bindings: &mut Bindings,
     queue: &mut VecDeque<u8>,
+    var_names: &[String],
 ) -> io::Result<ReadOutcome> {
     #[cfg(unix)]
     {
-        tty::edit_line(stdout, buffer, history, bindings, queue)
+        tty::edit_line(stdout, buffer, history, bindings, queue, var_names)
     }
     #[cfg(not(unix))]
     {
-        let _ = (stdout, buffer, history, bindings, queue);
+        let _ = (stdout, buffer, history, bindings, queue, var_names);
         Ok(ReadOutcome::Eof)
     }
 }

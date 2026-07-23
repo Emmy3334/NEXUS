@@ -9,6 +9,7 @@ mod case_block;
 mod complete_builtins;
 mod complete_context;
 mod complete_list;
+mod complete_vars;
 mod cwd_lock;
 mod docker_cloud;
 mod exec;

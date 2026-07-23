@@ -3,6 +3,10 @@
 use super::buffer::EditBuffer;
 use std::io::{self, Write};
 
+pub(super) fn clear_screen(stdout: &mut impl Write) -> io::Result<()> {
+    write!(stdout, "\x1b[H\x1b[2J")
+}
+
 pub(super) fn redraw(stdout: &mut impl Write, prompt: &str, edit: &EditBuffer) -> io::Result<()> {
     let (line, cursor_in_line) = visible_line(edit);
     write!(stdout, "\r\x1b[2K{prompt}{line}")?;

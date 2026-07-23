@@ -22,6 +22,8 @@ pub enum Action {
     MoveRight,
     MoveHome,
     MoveEnd,
+    /// Clear the terminal and redraw the current line (Ctrl-L).
+    ClearScreen,
     MoveWordLeft,
     MoveWordRight,
     KillWordForward,

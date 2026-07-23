@@ -1,7 +1,12 @@
 //! Tab completion uses the shared builtin name list.
 
 use nexus::builtins::{is_builtin, NAMES};
+use nexus::env::ShellEnvironment;
 use nexus::repl::complete;
+
+fn empty_env() -> ShellEnvironment {
+    ShellEnvironment::default()
+}
 
 #[test]
 fn names_are_sorted_for_binary_search() {
@@ -34,7 +39,7 @@ fn tab_suggests_cloud_and_extra_builtins() {
     ] {
         let mut buffer = prefix.to_owned();
         let mut cursor = buffer.len();
-        let matches = complete(&mut buffer, &mut cursor);
+        let matches = complete(&mut buffer, &mut cursor, &empty_env());
         let hit = buffer.starts_with(name) || matches.iter().any(|m| m == name);
         assert!(
             hit,

@@ -1,5 +1,6 @@
 //! Context-aware Tab completion (git / interpreter / @docker).
 
+use nexus::env::ShellEnvironment;
 use nexus::repl::complete;
 use std::fs;
 use std::path::PathBuf;
@@ -8,7 +9,7 @@ use std::process::Command;
 fn complete_at(line: &str) -> (String, Vec<String>) {
     let mut buffer = line.to_owned();
     let mut cursor = buffer.len();
-    let matches = complete(&mut buffer, &mut cursor);
+    let matches = complete(&mut buffer, &mut cursor, &ShellEnvironment::default());
     (buffer, matches)
 }
 

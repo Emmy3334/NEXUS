@@ -8,18 +8,30 @@ mod interp;
 mod kube;
 mod list;
 mod paths;
+mod vars;
 
 use self::context::Kind;
 use self::paths::{collect_file_matches, collect_path_commands};
 use crate::builtins::NAMES;
+use crate::env::ShellEnvironment;
 
 pub use list::{format_columns, list_display_lines, list_display_lines_width};
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.
-pub fn complete(buffer: &mut String, cursor: &mut usize) -> Vec<String> {
+pub fn complete(buffer: &mut String, cursor: &mut usize, env: &ShellEnvironment) -> Vec<String> {
+    let names = env.var_names();
+    complete_with_names(buffer, cursor, &names)
+}
+
+/// Like [`complete`], using a precomputed variable-name snapshot (TTY editor).
+pub(crate) fn complete_with_names(
+    buffer: &mut String,
+    cursor: &mut usize,
+    var_names: &[String],
+) -> Vec<String> {
     let (start, prefix) = token_at(buffer, *cursor);
     let before = &buffer[..start];
-    let matches = collect_matches(before, &prefix);
+    let matches = collect_matches(before, &prefix, var_names);
     match matches.as_slice() {
         [] => Vec::new(),
         [only] => {
@@ -52,8 +64,14 @@ fn apply_match(buffer: &mut String, cursor: &mut usize, start: usize, value: &st
     *cursor = start + value.len();
 }
 
-fn collect_matches(before: &str, prefix: &str) -> Vec<String> {
+fn collect_matches(before: &str, prefix: &str, var_names: &[String]) -> Vec<String> {
     let mut out = Vec::new();
+    if vars::is_var_token(prefix) {
+        vars::collect(prefix, var_names, &mut out);
+        out.sort();
+        out.dedup();
+        return out;
+    }
     match context::classify(before) {
         Kind::GitBranch => git::collect_branches(prefix, &mut out),
         Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),

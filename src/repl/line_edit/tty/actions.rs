@@ -23,6 +23,7 @@ pub(super) fn apply(
     action: Action,
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
+    var_names: &[String],
 ) -> io::Result<Loop> {
     match action {
         Action::Accept => Ok(Loop::Accept),
@@ -43,7 +44,12 @@ pub(super) fn apply(
             apply_recall(stdout, edit, prompt, |n, line| n.newer(line), nav)
         }
         Action::HistoryUp | Action::HistoryDown => Ok(Loop::Continue),
-        Action::Complete => complete_token(stdout, edit, prompt),
+        Action::ClearScreen => {
+            draw::clear_screen(stdout)?;
+            draw::redraw(stdout, prompt, edit)?;
+            Ok(Loop::Continue)
+        }
+        Action::Complete => complete_token(stdout, edit, prompt, var_names),
         other => mutate(stdout, edit, other, prompt),
     }
 }
@@ -92,8 +98,9 @@ fn complete_token(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
     prompt: &str,
+    var_names: &[String],
 ) -> io::Result<Loop> {
-    let matches = complete::complete(&mut edit.text, &mut edit.cursor);
+    let matches = complete::complete_with_names(&mut edit.text, &mut edit.cursor, var_names);
     let lines = complete::list_display_lines(&matches);
     if !lines.is_empty() {
         writeln!(stdout)?;

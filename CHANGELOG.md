@@ -18,6 +18,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Line-edit `C-l` clear-screen (`clear-screen`) and Tab completion for `$name` /
+  `${name}` against locals ∪ exported vars.
 - Tab completion uses the shared `builtins::NAMES` list (cloud + dirstack +
   `bindkey` / `which` / …), so prefix complete stays in sync with `is_builtin`.
 - Line-edit BOL/EOL and emacs char motion: `C-a` / `C-e`, `C-b` / `C-f`, Home/End

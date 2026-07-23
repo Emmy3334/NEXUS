@@ -28,6 +28,7 @@ pub(super) fn handle_event<'a>(
     pasting: &mut bool,
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
+    var_names: &[String],
 ) -> io::Result<Loop> {
     match read_event(queue)? {
         Event::PasteStart => {
@@ -39,7 +40,7 @@ pub(super) fn handle_event<'a>(
             Ok(Loop::Continue)
         }
         Event::Action(action) if !*pasting => dispatch::action(
-            stdout, edit, bindings, prompt, nav, history, isearch, action,
+            stdout, edit, bindings, prompt, nav, history, isearch, action, var_names,
         ),
         Event::Action(_) => Ok(Loop::Continue),
         Event::InsertRun(text) if *pasting => insert_text(stdout, edit, prompt.as_str(), &text),
@@ -48,13 +49,29 @@ pub(super) fn handle_event<'a>(
             None if !bindings.alternate_active() => {
                 insert_text(stdout, edit, prompt.as_str(), &text)
             }
-            None => dispatch::insert_bound(stdout, edit, bindings, prompt.as_str(), nav, &text),
+            None => dispatch::insert_bound(
+                stdout,
+                edit,
+                bindings,
+                prompt.as_str(),
+                nav,
+                &text,
+                var_names,
+            ),
         },
         Event::Raw(bytes) if *pasting => insert_raw_paste(stdout, edit, prompt.as_str(), &bytes),
         Event::Raw(bytes) if isearch.is_some() => dispatch::isearch_raw(
-            stdout, edit, bindings, prompt, nav, history, isearch, &bytes,
+            stdout, edit, bindings, prompt, nav, history, isearch, &bytes, var_names,
         ),
-        Event::Raw(bytes) => dispatch::raw(stdout, edit, bindings, prompt.as_str(), nav, &bytes),
+        Event::Raw(bytes) => dispatch::raw(
+            stdout,
+            edit,
+            bindings,
+            prompt.as_str(),
+            nav,
+            &bytes,
+            var_names,
+        ),
     }
 }
 
