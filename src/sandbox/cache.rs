@@ -17,12 +17,24 @@ pub fn cache_dir() -> PathBuf {
         .join("wasm")
 }
 
-/// `cache_dir()/name.wasm` when that file exists.
+/// `cache_dir()/{stem}.wasm` when that file exists.
 #[must_use]
 pub fn resolve_named(name: &str) -> Option<PathBuf> {
-    let base = Path::new(name).file_name()?.to_str()?;
-    let path = cache_dir().join(format!("{base}.wasm"));
+    let path = cached_wasm_path(name)?;
     path.is_file().then_some(path)
+}
+
+/// Path `cache_dir()/{stem}.wasm` (does not require the file to exist).
+#[must_use]
+pub fn cached_wasm_path(name: &str) -> Option<PathBuf> {
+    Some(cache_dir().join(format!("{}.wasm", module_stem(name)?)))
+}
+
+/// Bare module name without a trailing `.wasm`.
+#[must_use]
+pub(crate) fn module_stem(name: &str) -> Option<&str> {
+    let base = Path::new(name).file_name()?.to_str()?;
+    Some(base.strip_suffix(".wasm").unwrap_or(base))
 }
 
 fn home_dir() -> Option<PathBuf> {

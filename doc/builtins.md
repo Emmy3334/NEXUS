@@ -44,7 +44,7 @@ pub enum BuiltinResult {
 | `which` | `which.rs` | First match: builtin or PATH (`pathfind`) |
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
-| `sandbox` | `sandbox.rs` | Run a Wasm module (path / cache name) via Wasmtime; else host command in a temp HOME with filtered env |
+| `sandbox` | `sandbox/` | Run Wasm (path/cache), soft-host; `install` / `list` / `rm` cache UX |
 | `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `get`, `describe` |
 | `@docker` | `docker/` | Native Docker Engine: `ps`, `logs` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
@@ -61,10 +61,13 @@ Docker and Kube heal forward the **exported** shell environment (same map as ext
 | Piece | Role |
 |-------|------|
 | `sandbox <name\|path.wasm> [args…]` | Run a WASI Preview1 module via Wasmtime; if not a module, run the host command in a temp `HOME`/`TMPDIR` with only `PATH`/`TERM`/`LANG`/… (no heal backends) |
+| `sandbox install <path> [name]` | Copy/assemble a local `.wasm` or `.wat` into the cache as `{name}.wasm` (default name = path stem) |
+| `sandbox list` | Print cached module names (one per line) |
+| `sandbox rm <name…>` | Delete cached modules (fail-fast on missing) |
 | `NEXUS_WASM_CACHE` | Override cache directory (default `~/.nexus/wasm`) |
 | `~/.nexus/wasm/<name>.wasm` | Module looked up by `sandbox <name>` and by the Wasm heal backend |
 
-Install helpers for tests/tools: `sandbox::install_from_wat` / `install_from_wat_into`.
+Programmatic helpers: `sandbox::install_from_wat` / `install_from_wat_into` / `install_from_path`.
 
 ### `@kube` (Kubernetes)
 
