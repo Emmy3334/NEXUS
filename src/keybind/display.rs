@@ -13,6 +13,7 @@ pub fn action_name(action: Action) -> &'static str {
         Action::MoveRight => "forward-char",
         Action::MoveHome => "beginning-of-line",
         Action::MoveEnd => "end-of-line",
+        Action::ClearScreen => "clear-screen",
         Action::MoveWordLeft => "backward-word",
         Action::MoveWordRight => "forward-word",
         Action::KillWordForward => "kill-word",

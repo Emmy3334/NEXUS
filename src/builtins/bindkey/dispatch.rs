@@ -98,7 +98,7 @@ fn remove_one(
     }
 }
 
-const ALL_ACTIONS: [Action; 23] = [
+const ALL_ACTIONS: [Action; 24] = [
     Action::Accept,
     Action::Backspace,
     Action::Delete,
@@ -106,6 +106,7 @@ const ALL_ACTIONS: [Action; 23] = [
     Action::MoveRight,
     Action::MoveHome,
     Action::MoveEnd,
+    Action::ClearScreen,
     Action::MoveWordLeft,
     Action::MoveWordRight,
     Action::KillWordForward,

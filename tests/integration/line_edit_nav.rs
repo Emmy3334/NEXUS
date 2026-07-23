@@ -37,6 +37,10 @@ fn emacs_defaults_include_line_motion() {
         bindings.lookup(b"\x1bOF"),
         Some(&Binding::Action(Action::MoveEnd))
     );
+    assert_eq!(
+        bindings.lookup(&[0x0c]),
+        Some(&Binding::Action(Action::ClearScreen))
+    );
 }
 
 #[test]
@@ -65,6 +69,7 @@ fn line_motion_action_names_round_trip() {
         ("end-of-line", Action::MoveEnd),
         ("backward-char", Action::MoveLeft),
         ("forward-char", Action::MoveRight),
+        ("clear-screen", Action::ClearScreen),
     ] {
         assert_eq!(parse_action(name), Some(action), "parse {name}");
         assert_eq!(action_name(action), name, "name {action:?}");

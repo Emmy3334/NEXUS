@@ -57,6 +57,7 @@ fn collect_body<I: ReplInput, O: Write, E: Write>(
             &mut shell_env.key_bindings,
             &mut line_buf,
             &mut io.input_queue,
+            &[],
         )? {
             ReadOutcome::Eof => {
                 writeln!(io.stderr, "function: Unexpected end of file.")?;

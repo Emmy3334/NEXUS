@@ -50,6 +50,7 @@ pub fn parse_action(name: &str) -> Option<Action> {
         "forward-char" => Action::MoveRight,
         "beginning-of-line" => Action::MoveHome,
         "end-of-line" => Action::MoveEnd,
+        "clear-screen" => Action::ClearScreen,
         "backward-word" => Action::MoveWordLeft,
         "forward-word" => Action::MoveWordRight,
         "kill-word" => Action::KillWordForward,

@@ -47,6 +47,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     tokens: &mut Vec<lex::Token>,
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<ParseOutcome<'a>> {
+    let var_names = shell_env.var_names();
     match line_edit::read_logical_line(
         io.stdin,
         io.stdout,
@@ -55,6 +56,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         &mut shell_env.key_bindings,
         line_buffer,
         &mut io.input_queue,
+        &var_names,
     )? {
         ReadOutcome::Eof => return Ok(ParseOutcome::Eof),
         ReadOutcome::Line => {}

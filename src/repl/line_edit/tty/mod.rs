@@ -32,6 +32,7 @@ pub(super) fn edit_line(
     history: &History,
     bindings: &mut KeyBindings,
     queue: &mut VecDeque<u8>,
+    var_names: &[String],
 ) -> io::Result<ReadOutcome> {
     let _guard = term::RawMode::enter()?;
     let mut edit = EditBuffer::new();
@@ -52,6 +53,7 @@ pub(super) fn edit_line(
             &mut pasting,
             history,
             &mut isearch,
+            var_names,
         )? {
             Loop::Continue => {}
             Loop::Accept => {

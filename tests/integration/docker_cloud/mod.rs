@@ -5,6 +5,7 @@ mod docker_run;
 
 use docker_run::run_docker;
 use nexus::builtins::BuiltinResult;
+use nexus::env::ShellEnvironment;
 use nexus::heal;
 use nexus::repl::complete;
 use std::process::Command;
@@ -48,7 +49,7 @@ fn docker_logs_requires_target() {
 fn docker_complete_subcommands() {
     let mut buffer = "@docker ".to_owned();
     let mut cursor = buffer.len();
-    let matches = complete(&mut buffer, &mut cursor);
+    let matches = complete(&mut buffer, &mut cursor, &ShellEnvironment::default());
     assert!(matches.iter().any(|m| m == "ps"));
     assert!(matches.iter().any(|m| m == "logs"));
 }

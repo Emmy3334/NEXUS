@@ -15,6 +15,7 @@ mod func_frame;
 mod functions;
 mod local_scope;
 mod mutate;
+mod names;
 mod specials;
 
 pub use dirstack::DirStack;
