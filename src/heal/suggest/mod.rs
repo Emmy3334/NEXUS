@@ -23,14 +23,30 @@ pub(super) fn write_after_not_found(
         writeln!(stderr, "nexus: did you mean: {} ?", suggestions.join(", "))?;
     }
     if healers_tried {
-        let order = config::resolve(shell_env).order;
-        writeln!(
-            stderr,
-            "nexus: tip: heal tried {} — set heal_order=… or NEXUS_LOG=nexus::heal=debug",
-            order_csv(&order)
-        )?;
+        write_heal_tip(program, shell_env, stderr)?;
     }
     Ok(())
+}
+
+fn write_heal_tip(
+    program: &str,
+    shell_env: &ShellEnvironment,
+    stderr: &mut impl Write,
+) -> io::Result<()> {
+    if !super::image_map::container_heal_allowed(program, shell_env) {
+        writeln!(
+            stderr,
+            "nexus: tip: docker/kube heal mapped commands only (python3, node, npx, …); \
+             set heal_catch_all=1 for alpine catch-all"
+        )?;
+        return Ok(());
+    }
+    let order = config::resolve(shell_env).order;
+    writeln!(
+        stderr,
+        "nexus: tip: heal tried {} — set heal_order=… or NEXUS_LOG=nexus::heal=debug",
+        order_csv(&order)
+    )
 }
 
 fn order_csv(order: &[Backend]) -> String {

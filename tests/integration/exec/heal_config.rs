@@ -1,7 +1,10 @@
-//! Heal order / image / quiet configuration.
+//! Heal order / image / quiet / catch-all configuration.
 
 use super::common::test_env;
-use nexus::heal::{attach_default_backends, parse_order, quiet_from, resolve_settings, Backend};
+use nexus::heal::{
+    attach_default_backends, container_heal_allowed, heal_catch_all, image_for, parse_order,
+    quiet_from, resolve_settings, Backend,
+};
 
 #[test]
 fn parse_order_default_tokens() {
@@ -56,4 +59,39 @@ fn attach_default_wasm_only_order() {
     env.set_local("heal_order", "wasm");
     attach_default_backends(&mut env);
     assert_eq!(env.healers.len(), 1);
+}
+
+#[test]
+fn catch_all_off_by_default() {
+    let env = test_env();
+    assert!(!heal_catch_all(&env));
+    assert!(!resolve_settings(&env).catch_all);
+}
+
+#[test]
+fn catch_all_enabled_from_local() {
+    let mut env = test_env();
+    env.set_local("heal_catch_all", "1");
+    assert!(heal_catch_all(&env));
+    assert!(resolve_settings(&env).catch_all);
+}
+
+#[test]
+fn image_for_maps_known_commands() {
+    let base = "alpine:3.20";
+    assert_eq!(image_for("python3", base), "python:3.12-alpine");
+    assert_eq!(image_for("node", base), "node:22-alpine");
+    assert_eq!(image_for("npm", base), "node:22-alpine");
+    assert_eq!(image_for("/usr/bin/ruby", base), "ruby:3.3-alpine");
+    assert_eq!(image_for("ls", base), base);
+}
+
+#[test]
+fn container_heal_skips_typos_unless_catch_all() {
+    let mut env = test_env();
+    assert!(!container_heal_allowed("sdn", &env));
+    assert!(!container_heal_allowed("npde", &env));
+    assert!(container_heal_allowed("npx", &env));
+    env.set_local("heal_catch_all", "1");
+    assert!(container_heal_allowed("sdn", &env));
 }

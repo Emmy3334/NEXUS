@@ -16,18 +16,20 @@ pub struct Settings {
     pub order: Vec<Backend>,
     pub image: String,
     pub quiet: bool,
+    pub catch_all: bool,
 }
 
 const DEFAULT_IMAGE: &str = "alpine:3.20";
 const DEFAULT_ORDER: &[Backend] = &[Backend::Wasm, Backend::Kube, Backend::Docker];
 
-/// Resolve order / image / quiet from shell locals then process env.
+/// Resolve order / image / quiet / catch_all from shell locals then process env.
 #[must_use]
 pub fn resolve(shell_env: &ShellEnvironment) -> Settings {
     Settings {
         order: order_from(shell_env),
         image: image_from(shell_env),
         quiet: quiet_from(shell_env),
+        catch_all: super::image_map::catch_all(shell_env),
     }
 }
 
@@ -81,7 +83,7 @@ fn image_from(shell_env: &ShellEnvironment) -> String {
     std::env::var("NEXUS_HEAL_IMAGE").unwrap_or_else(|_| DEFAULT_IMAGE.to_owned())
 }
 
-fn truthy(value: &str) -> bool {
+pub(crate) fn truthy(value: &str) -> bool {
     matches!(
         value.trim().to_ascii_lowercase().as_str(),
         "1" | "true" | "yes" | "on"

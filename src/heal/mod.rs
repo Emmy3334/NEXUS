@@ -9,6 +9,7 @@ mod chain;
 mod config;
 mod docker;
 mod env_pairs;
+mod image_map;
 mod kube;
 mod report;
 mod status;
@@ -22,6 +23,7 @@ pub use docker::{
     attach_docker_backend, daemon_reachable, list_ps_lines, running_names, write_container_logs,
     DockerResolver, DEFAULT_IMAGE,
 };
+pub use image_map::{catch_all as heal_catch_all, container_heal_allowed, image_for};
 pub use kube::{attach_kube_backend, KubeResolver, DEFAULT_IMAGE as KUBE_DEFAULT_IMAGE};
 pub(crate) use report::report_spawn_failure;
 pub use status::status_lines;
