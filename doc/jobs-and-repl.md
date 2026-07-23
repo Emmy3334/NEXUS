@@ -68,6 +68,7 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `@kube …` after `@kube ` | Subcommands (`nodes`, `pods`, `logs`, `exec`, `get`, `describe`, …) |
 | `@kube … -n ` | Namespace names via kube-rs |
 | `@kube … logs …` / `exec …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
+| `heal ` / `doctor ` | `help` |
 
 Otherwise falls back to builtins + `PATH` + filesystem matches.
 

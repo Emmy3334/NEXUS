@@ -3,6 +3,7 @@
 mod context;
 mod docker;
 mod git;
+mod heal;
 mod interp;
 mod kube;
 mod list;
@@ -14,8 +15,8 @@ use self::paths::{collect_file_matches, collect_path_commands};
 pub use list::{format_columns, list_display_lines, list_display_lines_width};
 
 const BUILTINS: &[&str] = &[
-    "alias", "bg", "cd", "disown", "env", "exit", "fg", "history", "jobs", "set", "setenv",
-    "source", "unalias", "unset", "unsetenv",
+    "alias", "bg", "cd", "disown", "doctor", "env", "exit", "fg", "heal", "history", "jobs", "set",
+    "setenv", "source", "unalias", "unset", "unsetenv",
 ];
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.
@@ -62,6 +63,7 @@ fn collect_matches(before: &str, prefix: &str) -> Vec<String> {
         Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),
         Kind::Docker(kind) => docker::collect(&kind, prefix, &mut out),
         Kind::Kube(kind) => kube::collect(&kind, prefix, &mut out),
+        Kind::Heal(kind) => heal::collect(&kind, prefix, &mut out),
         Kind::Default => default_matches(prefix, &mut out),
     }
     out.sort();

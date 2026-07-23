@@ -1,6 +1,8 @@
 //! Bonus builtin handlers (`which`, `repeat`, dir stack, `sandbox`, `@kube`, …).
 
-use super::super::{dirstack, docker, kube, repeat, return_cmd, sandbox, which, BuiltinResult};
+use super::super::{
+    dirstack, docker, heal, kube, repeat, return_cmd, sandbox, which, BuiltinResult,
+};
 use crate::env::ShellEnvironment;
 
 use std::io::{self, Write};
@@ -18,6 +20,7 @@ pub(super) fn run(
         "where" => BuiltinResult::Status(which::where_cmd(argv, shell_env, stdout, stderr)?),
         "repeat" => return repeat::repeat_cmd(argv, stderr),
         "sandbox" => sandbox::sandbox_cmd(argv, shell_env, stdout, stderr)?,
+        "heal" | "doctor" => heal::heal_cmd(argv, shell_env, stdout, stderr)?,
         "@kube" => kube::kube_cmd(argv, shell_env, stdout, stderr)?,
         "@docker" => docker::docker_cmd(argv, shell_env, stdout, stderr)?,
         "pushd" => BuiltinResult::Status(dirstack::pushd_cmd(

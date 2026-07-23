@@ -11,6 +11,7 @@ mod dispatch;
 mod docker;
 mod env;
 mod exit;
+mod heal;
 mod history;
 mod jobs;
 mod kube;
@@ -68,6 +69,8 @@ pub fn is_builtin(name: &str) -> bool {
             | "where"
             | "repeat"
             | "sandbox"
+            | "heal"
+            | "doctor"
             | "@kube"
             | "@docker"
             | "pushd"
