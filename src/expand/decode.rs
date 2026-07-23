@@ -1,6 +1,7 @@
 //! Quote-state machine that fills expanded field(s) (no brace expand).
 
 use super::backtick::push_backtick;
+use super::cmd_subst::{self, push_dollar_paren};
 use super::dollar::push_parameter;
 use super::fields::FieldBuilder;
 use super::word::ExpandedWord;
@@ -104,7 +105,11 @@ fn step_normal(
             Ok(QuoteState::Normal)
         }
         '$' => {
-            push_parameter(chars, env, last_status, fields.current(), true)?;
+            if cmd_subst::looks_like(chars) {
+                push_dollar_paren(chars, fields, true, capture)?;
+            } else {
+                push_parameter(chars, env, last_status, fields.current(), true)?;
+            }
             Ok(QuoteState::Normal)
         }
         _ => {
@@ -133,7 +138,11 @@ fn step_double(
             Ok(QuoteState::Double)
         }
         '$' => {
-            push_parameter(chars, env, last_status, fields.current(), false)?;
+            if cmd_subst::looks_like(chars) {
+                push_dollar_paren(chars, fields, false, capture)?;
+            } else {
+                push_parameter(chars, env, last_status, fields.current(), false)?;
+            }
             Ok(QuoteState::Double)
         }
         _ => {

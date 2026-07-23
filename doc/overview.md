@@ -36,7 +36,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | `;` `&` `&&` `\|\|` `\|` | Yes |
 | Redirects `<` `>` `>>` `<<` (heredoc) | Yes |
 | Subshells `( … )` | Yes |
-| `$` / `$?` / backticks / globs / aliases | Yes |
+| `$` / `$?` / backticks / `$(…)` / globs / aliases | Yes |
 | History store + `!` designators | Yes |
 | Jobs `&` / `jobs` / `fg` / `bg` (Unix) | Yes |
 | Line edition + `bindkey` (Unix TTY) | Yes |

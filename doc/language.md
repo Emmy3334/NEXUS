@@ -60,7 +60,7 @@ Handled mainly in `src/expand/`:
 | `$((expr))` | Integer arithmetic: `+ - * / % **`, unary `+ - ! ~`, `(…)`, shifts, bitwise,
   compare / `&&` `||`, ternary `?:`, `$name`/`$?`/`$n`, bare names, nested `$((…))`
   (unset → 0) |
-| `` `cmd` `` | Capture stdout of nested command |
+| `` `cmd` `` / `$(cmd)` | Capture stdout of nested command (trailing newlines stripped) |
 | escapes / quotes | Preserved through lex; decoded at expand |
 
 Unmatched globs stay literal (`src/glob/`).

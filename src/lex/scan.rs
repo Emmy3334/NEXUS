@@ -1,13 +1,14 @@
 //! Splitting a source line into [`Token`] spans.
 
-use super::{arith_span, quote, LexError, QuoteState, Token, TokenKind};
+use super::{arith_span, cmd_subst_span, quote, LexError, QuoteState, Token, TokenKind};
 
 /// Tokenize `source` into `tokens`, reusing `tokens`' capacity.
 ///
 /// Clears `tokens` first. One forward scan; no intermediate collections.
 /// Two-character operators (`>>`, `<<`) are preferred over single `>` / `<`.
 /// Operators split words only when outside quotes. `\` escapes the next
-/// character outside quotes (and a few insides `"…"`). `$((…))` stays one word.
+/// character outside quotes (and a few insides `"…"`). `$((…))` / `$(…)` stay
+/// one word.
 pub fn tokenize_into(source: &str, tokens: &mut Vec<Token>) -> Result<(), LexError> {
     tokens.clear();
 
@@ -73,6 +74,10 @@ fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
                 return Ok(i);
             }
             if let Some(end) = arith_span::try_close_arith(source, i)? {
+                i = end;
+                continue;
+            }
+            if let Some(end) = cmd_subst_span::try_close(source, i)? {
                 i = end;
                 continue;
             }
