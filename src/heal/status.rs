@@ -9,7 +9,7 @@ use crate::sandbox;
 #[must_use]
 pub fn status_lines(shell_env: &ShellEnvironment) -> Vec<String> {
     let settings = resolve(shell_env);
-    let mut lines = Vec::with_capacity(4 + settings.order.len());
+    let mut lines = Vec::with_capacity(5 + settings.order.len());
     push_settings(&settings, shell_env.healers.len(), &mut lines);
     for backend in &settings.order {
         lines.push(backend_line(*backend));
@@ -20,6 +20,10 @@ pub fn status_lines(shell_env: &ShellEnvironment) -> Vec<String> {
 fn push_settings(settings: &Settings, attached: usize, lines: &mut Vec<String>) {
     lines.push(format!("order: {}", order_csv(&settings.order)));
     lines.push(format!("image: {}", settings.image));
+    lines.push(format!(
+        "catch_all: {}",
+        if settings.catch_all { "on" } else { "off" }
+    ));
     lines.push(format!(
         "quiet: {}",
         if settings.quiet { "on" } else { "off" }

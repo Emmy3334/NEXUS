@@ -52,10 +52,14 @@ impl CommandResolver for KubeResolver {
             return Ok(None);
         }
         let argv0 = argv.first().map(String::as_str).unwrap_or("");
+        if !super::image_map::container_heal_allowed(argv0, shell_env) {
+            return Ok(None);
+        }
         let env = env_pairs::kube_env(shell_env);
-        tracing::debug!(argv0, backend = "kube", "heal try_heal");
+        let image = super::image_map::image_for(argv0, &self.image);
+        tracing::debug!(argv0, backend = "kube", %image, "heal try_heal");
         map_run(
-            block_on(run::execute(&self.image, argv, env, stdout, stderr)),
+            block_on(run::execute(image, argv, env, stdout, stderr)),
             argv0,
             shell_env,
             stderr,

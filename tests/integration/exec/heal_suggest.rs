@@ -58,6 +58,7 @@ fn suggests_nearby_path_command_and_keeps_127() {
 fn heal_tip_when_backends_declined() {
     let mut env = test_env();
     env.set_local("heal_order", "wasm");
+    env.set_local("heal_catch_all", "1");
     env.healers = ResolverChain::from_resolvers(vec![Arc::new(Decline)]);
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();

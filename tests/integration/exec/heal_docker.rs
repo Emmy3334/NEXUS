@@ -156,6 +156,30 @@ fn docker_forwards_exported_env() {
 }
 
 #[test]
+fn docker_heal_ignores_host_path() {
+    use nexus::env::ShellEnvironment;
+    use nexus::heal::CommandResolver;
+    if !docker_available() {
+        return;
+    }
+    let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
+    let mut env = ShellEnvironment::from_map(Default::default());
+    env.set("PATH", "/nonexistent");
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["apk".into(), "--version".into()],
+            &mut env,
+            None,
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    assert_eq!(code, Some(0), "stderr={}", String::from_utf8_lossy(&stderr));
+}
+
+#[test]
 fn docker_feeds_stdin_bytes() {
     use nexus::env::ShellEnvironment;
     use nexus::heal::CommandResolver;

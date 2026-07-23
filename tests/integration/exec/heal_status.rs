@@ -31,6 +31,7 @@ fn heal_status_default_shape() {
     assert!(err.is_empty());
     assert!(out.contains("order:"));
     assert!(out.contains("image:"));
+    assert!(out.contains("catch_all: off"));
     assert!(out.contains("quiet: off"));
     assert!(out.contains("session:"));
     assert!(out.contains("wasm: ready"));

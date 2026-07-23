@@ -54,7 +54,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Docker heal backend (`bollard`, alpine image when daemon up) | Yes (exported env + finite stdin) |
 | Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s Pod heal yes (exported env; stdin declines to Docker) |
 | Heal-aware “did you mean?” after not-found | Yes (`heal_quiet` suppresses) |
-| `heal` / `doctor` status builtin | Yes (order/image/quiet + live probes) |
+| `heal` / `doctor` status builtin | Yes (order/image/catch_all/quiet + live probes) |
 
 ## Cloud shell status
 

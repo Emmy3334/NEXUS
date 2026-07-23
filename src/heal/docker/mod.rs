@@ -72,11 +72,15 @@ impl CommandResolver for DockerResolver {
             return Ok(None);
         }
         let argv0 = argv.first().map(String::as_str).unwrap_or("");
+        if !super::image_map::container_heal_allowed(argv0, shell_env) {
+            return Ok(None);
+        }
         let env = env_pairs::docker_env(shell_env);
-        tracing::debug!(argv0, backend = "docker", "heal try_heal");
+        let image = super::image_map::image_for(argv0, &self.image);
+        tracing::debug!(argv0, backend = "docker", %image, "heal try_heal");
         let ran = block_on(run::execute(
             &self.docker,
-            &self.image,
+            image,
             argv,
             &env,
             stdin,

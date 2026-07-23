@@ -36,8 +36,13 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
   (`[-n NS] <pod> -- <cmd>…`).
 - `heal` / `doctor` status builtin: configured order/image/quiet, session attach count, and
   live wasm/kube/docker reachability probes.
+- Heal command→image map (python/node/ruby/php family) for Docker/Kube by default; unmapped
+  typos skip containers (fast). Opt-in alpine catch-all: `heal_catch_all` / `NEXUS_HEAL_CATCH_ALL`.
 
 ### Fixed
+
+- Heal no longer forwards host `PATH` / loader-path vars into Docker/Kube containers, so
+  mapped images keep their default binary search path.
 
 - Shared process-wide cwd lock across integration tests that mutate `current_dir`
   (glob, git prompt, complete, dirstack, heal bind-mount) to reduce parallel flakes.
