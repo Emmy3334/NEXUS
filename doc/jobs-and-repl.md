@@ -63,7 +63,8 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `git … checkout\|switch\|branch …` (flags allowed) | Local branches under `.git/refs/heads/` |
 | `python` / `python3` | Cwd files ending in `.py` (dirs still listed) |
 | `ruby` | Cwd files ending in `.rb` |
-| `@docker … logs …` (flags allowed) | Running container names via bollard |
+| `@docker ` (no subcommand yet) | `ps` / `logs` / `help` |
+| `@docker … logs …` | Running container names via bollard |
 | `@kube …` after `@kube ` | Subcommands (`nodes`, `pods`, `logs`, `get`, `describe`, …) |
 | `@kube … -n ` | Namespace names via kube-rs |
 | `@kube … logs …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |

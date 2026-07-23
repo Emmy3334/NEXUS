@@ -7,7 +7,7 @@ mod wait;
 
 use super::client::Docker;
 use ensure::ensure_image;
-use logs::copy_logs;
+pub(super) use logs::copy_logs;
 use spawn::create_and_start;
 use wait::wait_status;
 

@@ -46,6 +46,7 @@ pub enum BuiltinResult {
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox.rs` | Run a Wasm module (path / cache name) via Wasmtime; else host command in a temp HOME with filtered env |
 | `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `get`, `describe` |
+| `@docker` | `docker/` | Native Docker Engine: `ps`, `logs` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
 | `popd` | `dirstack/` | Pop and `cd`; same print flags; `+n` drops entry `n` |
 | `dirs` | `dirstack/` | Print stack (`-l`/`-n`/`-v`/`-p`); `-c` clear; `-S`/`-L` [file] save/load |
@@ -82,11 +83,23 @@ Tab: after `@kube ` → subcommands; after `-n` → namespaces; after `logs` / `
 
 Missing external commands may also be healed via an ephemeral alpine Pod when the cluster is reachable (default heal chain: Wasm → Kube → Docker). The Pod bind-mounts the host cwd via `hostPath` when the node can see that path (same idea as Docker heal). Success prints `nexus: healed via kube (pod …)` / `docker (…)` / `wasm (…)` unless quiet.
 
+### `@docker` (Docker Engine)
+
+Uses bollard against the local Docker socket (same stack as Docker heal / Tab).
+
+| Form | Behavior |
+|------|----------|
+| `@docker ps` | Running containers (Docker CLI–style columns) |
+| `@docker logs <name\|id>` | Container logs to stdout |
+| daemon down / API error | Status `1` + stderr |
+
+Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running container names (soft-empty if daemon down).
+
 ## Recognition list
 
 `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `@kube`, `pushd`, `popd`, `dirs`, `return`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 
