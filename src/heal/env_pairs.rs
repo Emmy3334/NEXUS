@@ -1,26 +1,26 @@
 //! Exported shell env as Docker/Kube assignment lists.
 
+use super::env_policy::EnvPass;
 use crate::env::ShellEnvironment;
 
-/// `KEY=VALUE` pairs from the exported shell map (same as external children).
-///
-/// Host `PATH` / loader paths are omitted so image binaries stay on the
-/// container’s default search path (heal command→image map depends on this).
+/// `KEY=VALUE` pairs for Docker heal (allowlist + loader-path scrub).
 #[must_use]
 pub fn docker_env(shell_env: &ShellEnvironment) -> Vec<String> {
+    let pass = EnvPass::from_shell(shell_env);
     shell_env
         .iter()
-        .filter(|(k, _)| forward_key(k))
+        .filter(|(k, _)| should_forward(k, &pass))
         .map(|(k, v)| format!("{k}={v}"))
         .collect()
 }
 
-/// Kubernetes `EnvVar` list from the exported shell map.
+/// Kubernetes `EnvVar` list for Kube heal (allowlist + loader-path scrub).
 #[must_use]
 pub fn kube_env(shell_env: &ShellEnvironment) -> Vec<k8s_openapi::api::core::v1::EnvVar> {
+    let pass = EnvPass::from_shell(shell_env);
     shell_env
         .iter()
-        .filter(|(k, _)| forward_key(k))
+        .filter(|(k, _)| should_forward(k, &pass))
         .map(|(k, v)| k8s_openapi::api::core::v1::EnvVar {
             name: k.to_owned(),
             value: Some(v.to_owned()),
@@ -29,7 +29,11 @@ pub fn kube_env(shell_env: &ShellEnvironment) -> Vec<k8s_openapi::api::core::v1:
         .collect()
 }
 
-fn forward_key(key: &str) -> bool {
+fn should_forward(key: &str, pass: &EnvPass) -> bool {
+    scrub_ok(key) && pass.allows(key)
+}
+
+fn scrub_ok(key: &str) -> bool {
     !matches!(
         key,
         "PATH" | "LD_LIBRARY_PATH" | "DYLD_LIBRARY_PATH" | "DYLD_FALLBACK_LIBRARY_PATH"

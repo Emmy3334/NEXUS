@@ -17,12 +17,14 @@ pub struct Settings {
     pub image: String,
     pub quiet: bool,
     pub catch_all: bool,
+    /// Display form of `heal_env` (`none` / `all` / `FOO,BAR`).
+    pub env_pass: String,
 }
 
 const DEFAULT_IMAGE: &str = "alpine:3.20";
 const DEFAULT_ORDER: &[Backend] = &[Backend::Wasm, Backend::Kube, Backend::Docker];
 
-/// Resolve order / image / quiet / catch_all from shell locals then process env.
+/// Resolve order / image / quiet / catch_all / env_pass from shell locals then process env.
 #[must_use]
 pub fn resolve(shell_env: &ShellEnvironment) -> Settings {
     Settings {
@@ -30,6 +32,7 @@ pub fn resolve(shell_env: &ShellEnvironment) -> Settings {
         image: image_from(shell_env),
         quiet: quiet_from(shell_env),
         catch_all: super::image_map::catch_all(shell_env),
+        env_pass: super::env_policy::EnvPass::from_shell(shell_env).label(),
     }
 }
 

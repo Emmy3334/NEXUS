@@ -127,6 +127,7 @@ fn docker_forwards_exported_env() {
     let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
     let mut env = ShellEnvironment::from_map(Default::default());
     env.set_local("heal_catch_all", "1");
+    env.set_local("heal_env", "NEXUS_HEAL_FOO");
     env.set("NEXUS_HEAL_FOO", "bar");
     env.set_local("NEXUS_HEAL_LOCAL", "nope");
     let mut stdout = Vec::new();
@@ -155,6 +156,36 @@ fn docker_forwards_exported_env() {
         )
         .expect("try_heal io");
     assert_ne!(code, Some(0));
+    assert!(String::from_utf8(stdout).unwrap().trim().is_empty());
+}
+
+#[test]
+fn docker_env_default_none_blocks_exports() {
+    use nexus::env::ShellEnvironment;
+    use nexus::heal::CommandResolver;
+    if !docker_available() {
+        return;
+    }
+    let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
+    let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
+    env.set("NEXUS_HEAL_FOO", "secret");
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let code = resolver
+        .try_heal(
+            &["printenv".into(), "NEXUS_HEAL_FOO".into()],
+            &mut env,
+            None,
+            &mut stdout,
+            &mut stderr,
+        )
+        .expect("try_heal io");
+    assert_ne!(
+        code,
+        Some(0),
+        "default heal_env=none must not forward exports"
+    );
     assert!(String::from_utf8(stdout).unwrap().trim().is_empty());
 }
 
