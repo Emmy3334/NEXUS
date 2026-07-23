@@ -19,6 +19,9 @@ pub(super) fn try_control<'a, E: Write>(
     if let Some(header) = crate::functions::parse_header(expanded, tokens) {
         return Ok(Some(ParseOutcome::Function(header)));
     }
+    if let Some(outcome) = try_case_control(expanded, tokens, stderr)? {
+        return Ok(Some(outcome));
+    }
     try_if_control(expanded, tokens, stderr)
 }
 
@@ -51,6 +54,29 @@ fn try_loop_control<'a, E: Write>(
     }
     if foreach::is_end_line(expanded) {
         writeln!(stderr, "end: Not in while/foreach.")?;
+        return Ok(Some(ParseOutcome::Failed(1)));
+    }
+    Ok(None)
+}
+
+fn try_case_control<'a, E: Write>(
+    expanded: &'a str,
+    tokens: &[lex::Token],
+    stderr: &mut E,
+) -> io::Result<Option<ParseOutcome<'a>>> {
+    if let Some(header) = crate::case_block::parse_header(expanded, tokens) {
+        return Ok(Some(ParseOutcome::Case(header)));
+    }
+    if crate::case_block::starts_with_case(expanded, tokens) {
+        writeln!(
+            stderr,
+            "{}",
+            crate::case_block::case_syntax_message(expanded, tokens)
+        )?;
+        return Ok(Some(ParseOutcome::Failed(1)));
+    }
+    if crate::case_block::is_esac_line(expanded) {
+        writeln!(stderr, "esac: Not in case.")?;
         return Ok(Some(ParseOutcome::Failed(1)));
     }
     Ok(None)

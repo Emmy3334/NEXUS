@@ -99,7 +99,7 @@ API surface: `src/jobs/mod.rs` + `JobTable` in `jobs/table/`.
 | Feature | Unix | Non-Unix |
 |---------|------|----------|
 | `&` background jobs | Real pgrp / session helpers | Stub / limited |
-| `jobs` / `fg` / `bg` | Wait / continue via tty ownership | Stub |
+| `jobs` / `fg` / `bg` / `disown` | Wait / continue / drop-from-table via tty ownership | Stub |
 | SIGTSTP → status | `128 + SIGTSTP` | N/A |
 
 Unix pieces live under `src/jobs/unix/` (child setup, `wait_fg`, tty/`tcsetpgrp`). Stubs under `src/jobs/stub/`.

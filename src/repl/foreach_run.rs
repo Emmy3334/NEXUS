@@ -173,6 +173,11 @@ fn replay_one<I: ReplInput, O: Write, E: Write>(
             io,
             shell_env,
         ),
+        line::ParseOutcome::Case(header) => apply_result(
+            super::case_run::run_case(header, io, false, shell_env, last_status, argv)?,
+            io,
+            shell_env,
+        ),
     }
 }
 

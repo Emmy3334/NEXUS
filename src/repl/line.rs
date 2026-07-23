@@ -3,6 +3,7 @@
 use super::control_parse;
 use super::line_edit::{self, ReadOutcome, ReplInput};
 use super::ReplIo;
+use crate::case_block::CaseHeader;
 use crate::env::ShellEnvironment;
 use crate::exec::{self, CommandResult};
 use crate::foreach::ForEachHeader;
@@ -33,6 +34,8 @@ pub(super) enum ParseOutcome<'a> {
     If(IfHeader),
     /// `name() { … }` / `function name { … }`.
     Function(FunctionHeader),
+    /// `case word in` — arms collected by the REPL.
+    Case(CaseHeader),
 }
 
 /// Read one logical line, expand `!` events, tokenize, and parse.

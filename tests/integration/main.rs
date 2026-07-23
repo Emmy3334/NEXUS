@@ -5,6 +5,7 @@
 mod advanced;
 mod brace_glob;
 mod builtins;
+mod case_block;
 mod complete_context;
 mod cwd_lock;
 mod exec;

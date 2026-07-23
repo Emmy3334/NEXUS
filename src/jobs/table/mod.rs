@@ -1,5 +1,6 @@
 //! Mutable table of background / suspended pipeline jobs.
 
+mod disown;
 mod resolve;
 mod wait;
 
