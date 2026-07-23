@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use nexus::env::ShellEnvironment;
+use nexus::observability;
 use nexus::repl;
 
 const PROGRAM_FAILURE_EXIT: u8 = 84;
@@ -21,6 +22,7 @@ fn main() -> ExitCode {
 }
 
 fn run() -> io::Result<u8> {
+    observability::init();
     let mut args: Vec<String> = env::args().collect();
     let program = args.first().cloned().unwrap_or_else(|| "nexus".into());
     if args.len() >= 2 {

@@ -11,6 +11,7 @@ use std::io;
 
 /// Multi-line describe text for one pod.
 pub fn describe_pod(name: &str, namespace: Option<&str>) -> io::Result<String> {
+    tracing::debug!(name, ?namespace, "kube describe_pod");
     let client = try_client()?;
     block_on(fetch(client, name, namespace))?
 }

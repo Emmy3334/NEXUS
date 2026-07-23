@@ -15,11 +15,13 @@ pub fn after_spawn_failure(
     stderr: &mut impl Write,
 ) -> io::Result<u8> {
     let program = argv.first().map(String::as_str).unwrap_or("");
+    tracing::debug!(argv0 = program, error = %err, "heal after_spawn_failure");
     if err.kind() != io::ErrorKind::NotFound {
         return report_spawn_failure(program, err, stderr);
     }
     let chain = shell_env.healers.clone();
     if let Some(code) = chain.try_heal(argv, shell_env, stdout, stderr)? {
+        tracing::info!(argv0 = program, status = code, "heal chain handled");
         return Ok(code);
     }
     report_spawn_failure(program, err, stderr)

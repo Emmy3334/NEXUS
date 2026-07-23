@@ -12,6 +12,7 @@ use std::io;
 
 /// Kubectl-like node table lines (includes header).
 pub fn list_nodes_table() -> io::Result<Vec<String>> {
+    tracing::debug!("kube list_nodes_table");
     let client = try_client()?;
     block_on(build_table(client))?
 }

@@ -17,12 +17,14 @@ pub(crate) use ready::{ready_count, restarts};
 
 /// Kubectl-like pod table lines (includes header).
 pub fn list_pods_table(scope: &PodScope) -> io::Result<Vec<String>> {
+    tracing::debug!(?scope, "kube list_pods_table");
     let client = try_client()?;
     block_on(build_table(client, scope))?
 }
 
 /// Pod names for Tab completion (`namespace` `None` ⇒ default ns).
 pub fn list_pod_names(prefix: &str, namespace: Option<&str>) -> Vec<String> {
+    tracing::debug!(prefix, ?namespace, "kube list_pod_names");
     let Ok(client) = try_client() else {
         return Vec::new();
     };

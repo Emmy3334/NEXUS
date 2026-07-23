@@ -18,6 +18,7 @@ mod lex;
 mod line_edit;
 mod line_edit_paste;
 mod nexusrc;
+mod observability;
 mod parse;
 mod repl;
 mod sandbox_wasm;
