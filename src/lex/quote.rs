@@ -2,15 +2,16 @@
 
 use super::QuoteState;
 
-/// Advance the quote state by one character, consuming an escaped character
-/// from `chars` when `ch` is a backslash in an escapable position.
-pub(super) fn advance(
-    state: QuoteState,
-    ch: char,
-    chars: &mut std::str::CharIndices<'_>,
-) -> QuoteState {
+/// Advance quote state for `ch` at `source[i]` (backslash handled by caller).
+pub(super) fn advance_at(state: QuoteState, source: &str, i: usize) -> QuoteState {
+    let ch = source[i..].chars().next().expect("i in range");
     match state {
-        QuoteState::Normal => advance_normal(ch, chars),
+        QuoteState::Normal => match ch {
+            '\'' => QuoteState::Single,
+            '"' => QuoteState::Double,
+            '`' => QuoteState::Backtick,
+            _ => QuoteState::Normal,
+        },
         QuoteState::Single => {
             if ch == '\'' {
                 QuoteState::Normal
@@ -18,36 +19,27 @@ pub(super) fn advance(
                 QuoteState::Single
             }
         }
-        QuoteState::Double => advance_pair(ch, chars, '"', QuoteState::Double),
-        QuoteState::Backtick => advance_pair(ch, chars, '`', QuoteState::Backtick),
+        QuoteState::Double => {
+            if ch == '"' {
+                QuoteState::Normal
+            } else {
+                QuoteState::Double
+            }
+        }
+        QuoteState::Backtick => {
+            if ch == '`' {
+                QuoteState::Normal
+            } else {
+                QuoteState::Backtick
+            }
+        }
     }
 }
 
-fn advance_normal(ch: char, chars: &mut std::str::CharIndices<'_>) -> QuoteState {
-    match ch {
-        '\'' => QuoteState::Single,
-        '"' => QuoteState::Double,
-        '`' => QuoteState::Backtick,
-        '\\' => {
-            let _ = chars.next();
-            QuoteState::Normal
-        }
-        _ => QuoteState::Normal,
-    }
-}
-
-fn advance_pair(
-    ch: char,
-    chars: &mut std::str::CharIndices<'_>,
-    closer: char,
-    inside: QuoteState,
-) -> QuoteState {
-    match ch {
-        '\\' => {
-            let _ = chars.next();
-            inside
-        }
-        c if c == closer => QuoteState::Normal,
-        _ => inside,
-    }
+/// True when `\` escapes the next character in this quote state.
+pub(super) const fn escapes(state: QuoteState) -> bool {
+    matches!(
+        state,
+        QuoteState::Normal | QuoteState::Double | QuoteState::Backtick
+    )
 }

@@ -18,6 +18,9 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Arithmetic expansion `$((expr))`: integers, `+ - * / %`, unary `+/-`, `(…)`, and
+  `$name` / `$?` / `$n` inside the expression (unset → 0). Unquoted form stays one
+  lex word; div-by-zero / bad expr → expand error.
 - Heal env pass policy: Docker/Kube forward **no** exports by default
   (`heal_env` / `NEXUS_HEAL_ENV` = `none`); opt in with `*`/`all` or a comma
   allowlist. `PATH` / loader-path keys stay scrubbed. Shown on `heal` / `doctor`.

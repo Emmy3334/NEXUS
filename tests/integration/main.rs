@@ -12,6 +12,7 @@ mod cwd_lock;
 mod docker_cloud;
 mod exec;
 mod expand;
+mod expand_arith;
 mod expand_param;
 mod foreach;
 mod functions;

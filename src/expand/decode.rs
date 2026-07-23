@@ -104,7 +104,7 @@ fn step_normal(
             Ok(QuoteState::Normal)
         }
         '$' => {
-            push_parameter(chars, env, last_status, fields.current(), true);
+            push_parameter(chars, env, last_status, fields.current(), true)?;
             Ok(QuoteState::Normal)
         }
         _ => {
@@ -133,7 +133,7 @@ fn step_double(
             Ok(QuoteState::Double)
         }
         '$' => {
-            push_parameter(chars, env, last_status, fields.current(), false);
+            push_parameter(chars, env, last_status, fields.current(), false)?;
             Ok(QuoteState::Double)
         }
         _ => {

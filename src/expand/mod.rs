@@ -4,6 +4,7 @@
 //! Command substitution capture is injected by callers (avoids expand↔exec cycle).
 //! Brace `{a,b}` runs in [`brace`] before these entry points.
 
+mod arith;
 mod backtick;
 mod brace;
 mod braced;
