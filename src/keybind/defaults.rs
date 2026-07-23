@@ -13,6 +13,7 @@ fn put(map: &mut Map, keys: &[u8], action: Action) {
 pub(super) fn seed_emacs(primary: &mut Map, alternate: &mut Map) {
     seed_common(primary);
     seed_word_ops(primary);
+    seed_line_motion(primary);
     put(primary, b"\x1b[D", Action::MoveLeft);
     put(primary, b"\x1b[C", Action::MoveRight);
     put(primary, b"\x1b[A", Action::HistoryUp);
@@ -24,6 +25,7 @@ pub(super) fn seed_emacs(primary: &mut Map, alternate: &mut Map) {
 pub(super) fn seed_vi(primary: &mut Map, alternate: &mut Map) {
     seed_common(primary);
     seed_word_ops(primary);
+    seed_line_motion(primary);
     put(primary, b"\x1b", Action::ViCmdMode);
     put(primary, b"\x1b[D", Action::MoveLeft);
     put(primary, b"\x1b[C", Action::MoveRight);
@@ -34,6 +36,9 @@ pub(super) fn seed_vi(primary: &mut Map, alternate: &mut Map) {
     alternate.clear();
     put(alternate, b"h", Action::MoveLeft);
     put(alternate, b"l", Action::MoveRight);
+    put(alternate, b"0", Action::MoveHome);
+    put(alternate, b"^", Action::MoveHome);
+    put(alternate, b"$", Action::MoveEnd);
     put(alternate, b"b", Action::MoveWordLeft);
     put(alternate, b"w", Action::MoveWordRight);
     put(alternate, b"k", Action::HistoryUp);
@@ -54,6 +59,17 @@ fn seed_common(map: &mut Map) {
     put(map, &[0x03], Action::Interrupt);
     put(map, &[0x04], Action::Eof);
     put(map, &[0x12], Action::HistoryISearch); // C-r
+}
+
+fn seed_line_motion(map: &mut Map) {
+    put(map, &[0x01], Action::MoveHome); // C-a
+    put(map, &[0x05], Action::MoveEnd); // C-e
+    put(map, &[0x02], Action::MoveLeft); // C-b
+    put(map, &[0x06], Action::MoveRight); // C-f
+    put(map, b"\x1b[H", Action::MoveHome); // Home
+    put(map, b"\x1b[F", Action::MoveEnd); // End
+    put(map, b"\x1bOH", Action::MoveHome);
+    put(map, b"\x1bOF", Action::MoveEnd);
 }
 
 fn seed_word_ops(map: &mut Map) {

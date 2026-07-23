@@ -72,6 +72,8 @@ fn mutate(
         Action::Delete => buffer::delete(edit),
         Action::MoveLeft => buffer::move_left(edit),
         Action::MoveRight => buffer::move_right(edit),
+        Action::MoveHome => buffer::move_home(edit),
+        Action::MoveEnd => buffer::move_end(edit),
         Action::MoveWordLeft => buffer::move_word_left(edit),
         Action::MoveWordRight => buffer::move_word_right(edit),
         Action::KillWordForward => buffer::kill_word_forward(edit),
