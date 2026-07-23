@@ -45,7 +45,7 @@ pub enum BuiltinResult {
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox/` | Run Wasm (path/cache), soft-host; `install` / `list` / `rm` cache UX |
-| `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `get`, `describe` |
+| `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `exec`, `get`, `describe` |
 | `@docker` | `docker/` | Native Docker Engine: `ps`, `logs` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
 | `popd` | `dirstack/` | Pop and `cd`; same print flags; `+n` drops entry `n` |
@@ -80,11 +80,13 @@ Talks to the cluster via **kube-rs** (default kubeconfig / namespace):
 | `@kube pods -n NS` | List pods in namespace `NS` |
 | `@kube pods -A` | Same with `NAMESPACE` column (all namespaces) |
 | `@kube logs [-n NS] <pod>` | Last 100 log lines |
+| `@kube logs [-n NS] -f\|--follow <pod>` | Stream logs until EOF or Ctrl-C |
+| `@kube exec [-n NS] <pod> -- <cmd> [args…]` | Thin non-TTY exec (no `-it`); `--` optional |
 | `@kube get pods\|nodes …` | Alias to `pods` / `nodes` (flags apply to pods) |
 | `@kube describe pod <name> [-n NS]` | Multi-line summary (name, ns, phase, node, restarts, images, conditions) |
 | no cluster / bad kubeconfig | Status `1` + stderr (soft for Tab complete → empty) |
 
-Tab: after `@kube ` → subcommands; after `-n` → namespaces; after `logs` / `describe pod` → pod names (when the API is reachable).
+Tab: after `@kube ` → subcommands; after `-n` → namespaces; after `logs` / `exec` / `describe pod` → pod names (when the API is reachable).
 
 Missing external commands may also be healed via an ephemeral alpine Pod when the cluster is reachable (default heal chain: Wasm → Kube → Docker). The Pod bind-mounts the host cwd via `hostPath` when the node can see that path (same idea as Docker heal). Success prints `nexus: healed via kube (pod …)` / `docker (…)` / `wasm (…)` unless quiet.
 

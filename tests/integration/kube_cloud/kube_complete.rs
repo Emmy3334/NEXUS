@@ -22,7 +22,10 @@ fn complete_kube_subcommand() {
     // Ambiguous → list; or single shared prefix applied into buffer.
     let joined = format!("{buf}{}", matches.join(" "));
     assert!(
-        joined.contains("pods") || joined.contains("logs") || joined.contains("describe"),
+        joined.contains("pods")
+            || joined.contains("logs")
+            || joined.contains("exec")
+            || joined.contains("describe"),
         "buf={buf} matches={matches:?}"
     );
 }

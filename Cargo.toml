@@ -30,6 +30,7 @@ kube = { version = "4", default-features = false, features = [
     "rustls-tls",
     "ring",
     "http-proxy",
+    "ws",
 ] }
 nix = { version = "0.29", default-features = false, features = ["fs", "process", "signal", "term"] }
 tokio = { version = "1", features = ["rt-multi-thread", "time"] }
