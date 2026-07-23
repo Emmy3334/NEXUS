@@ -14,7 +14,7 @@ use std::io::{BufRead, Write};
 /// remain reachable). Alias bodies are lexed as words, then `$`/`` ` ``/glob expanded.
 pub fn apply_aliases(
     argv: &mut Vec<String>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -30,17 +30,17 @@ pub fn apply_aliases(
         if !seen.insert(cmd.to_owned()) {
             return Ok(());
         }
-        let Some(body) = shell_env.alias_get(cmd) else {
+        let Some(body) = shell_env.alias_get(cmd).map(str::to_owned) else {
             return Ok(());
         };
-        let words = expand_alias_body(body, shell_env, last_status, stdin, stderr)?;
+        let words = expand_alias_body(&body, shell_env, last_status, stdin, stderr)?;
         replace_command_word(argv, words);
     }
 }
 
 fn expand_alias_body(
     body: &str,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -54,9 +54,9 @@ fn expand_alias_body(
             continue;
         }
         let raw = token.lexeme(body);
-        let mut capture = |src: &str| {
-            crate::exec::capture_command_output(src, shell_env, last_status, stdin, stderr)
-        };
+        let snap = shell_env.clone();
+        let mut capture =
+            |src: &str| crate::exec::capture_command_output(src, &snap, last_status, stdin, stderr);
         expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut capture)?;
         for field in fields.drain(..) {
             words.extend(glob::expand_globs(&field));

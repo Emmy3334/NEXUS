@@ -6,7 +6,12 @@ use super::trim;
 use super::value;
 use crate::env::ShellEnvironment;
 
-pub(super) fn length(name: &str, env: &ShellEnvironment, last_status: u8, out: &mut ExpandedWord) {
+pub(super) fn length(
+    name: &str,
+    env: &mut ShellEnvironment,
+    last_status: u8,
+    out: &mut ExpandedWord,
+) {
     let value = value::resolve(name, env, last_status);
     let n = value.chars().count();
     out.push_str_literal(&n.to_string());
@@ -15,7 +20,7 @@ pub(super) fn length(name: &str, env: &ShellEnvironment, last_status: u8, out: &
 pub(super) fn with_default(
     name: &str,
     word: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
@@ -30,7 +35,7 @@ pub(super) fn with_default(
 pub(super) fn alternate(
     name: &str,
     word: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
@@ -45,7 +50,7 @@ pub(super) fn strip_prefix(
     name: &str,
     pat: &str,
     longest: bool,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
@@ -59,7 +64,7 @@ pub(super) fn strip_suffix(
     name: &str,
     pat: &str,
     longest: bool,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,

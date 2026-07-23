@@ -5,7 +5,7 @@ use crate::env::ShellEnvironment;
 
 pub(super) fn push_named_parameter(
     name: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,

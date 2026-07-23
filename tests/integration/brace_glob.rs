@@ -10,10 +10,10 @@ use std::fs;
 use std::path::PathBuf;
 
 fn fields(raw: &str) -> Vec<String> {
-    let env = ShellEnvironment::default();
+    let mut env = ShellEnvironment::default();
     let mut out = Vec::new();
     let mut deny = |_: &str| Err(LexError::CommandSubstitution);
-    expand_word_fields_into(raw, &env, 0, &mut out, &mut deny).unwrap();
+    expand_word_fields_into(raw, &mut env, 0, &mut out, &mut deny).unwrap();
     out.into_iter().map(|w| w.into_string()).collect()
 }
 
@@ -90,7 +90,7 @@ fn brace_then_dollar() {
     env.set_local("X", "z");
     let mut out = Vec::new();
     let mut deny = |_: &str| Err(LexError::CommandSubstitution);
-    expand_word_fields_into("pre{$X,y}", &env, 0, &mut out, &mut deny).unwrap();
+    expand_word_fields_into("pre{$X,y}", &mut env, 0, &mut out, &mut deny).unwrap();
     let got: Vec<_> = out.into_iter().map(|w| w.into_string()).collect();
     assert_eq!(got, vec!["prez".to_owned(), "prey".to_owned()]);
 }
@@ -118,7 +118,7 @@ fn globstar_finds_nested_file() {
     fs::write(dir.join("skip.txt"), "").unwrap();
     std::env::set_current_dir(&dir).unwrap();
 
-    let word = expand_word_for_exec("**/target.txt", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("**/target.txt", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(expand_globs(&word), vec!["a/b/target.txt".to_owned()]);
 
     std::env::set_current_dir(&start).unwrap();
@@ -136,7 +136,7 @@ fn globstar_trailing_lists_descendants() {
     fs::write(dir.join("top"), "").unwrap();
     std::env::set_current_dir(&dir).unwrap();
 
-    let word = expand_word_for_exec("**", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("**", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(
         expand_globs(&word),
         vec!["d".to_owned(), "d/f".to_owned(), "top".to_owned()]

@@ -25,7 +25,7 @@ pub(in crate::exec) struct RedirectFiles {
 pub(in crate::exec) fn open_redirect_files(
     redirects: &[Redirect<'_>],
     heredocs: &mut HeredocState,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -58,15 +58,15 @@ pub(in crate::exec) fn open_redirect_files(
 
 fn resolve_redirect_path(
     redirect: &Redirect<'_>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> io::Result<Result<String, u8>> {
     let mut fields = Vec::new();
-    let mut capture = |body: &str| {
-        crate::exec::capture_command_output(body, shell_env, last_status, stdin, stderr)
-    };
+    let snap = shell_env.clone();
+    let mut capture =
+        |body: &str| crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr);
     match expand::expand_word_fields_into(
         redirect.path,
         shell_env,

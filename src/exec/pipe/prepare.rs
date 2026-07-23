@@ -20,7 +20,7 @@ pub(super) enum PreparedStage<'a> {
 
 pub(super) fn build_stages<'a, I: BufRead, O: Write, E: Write>(
     pipeline: &'a Pipeline<'a>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<Result<Vec<PreparedStage<'a>>, CommandResult>> {
@@ -37,7 +37,7 @@ pub(super) fn build_stages<'a, I: BufRead, O: Write, E: Write>(
 
 fn prepare_command<'a, I: BufRead, O: Write, E: Write>(
     command: &'a PipelineCommand<'a>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     io: &mut ExecIo<'_, I, O, E>,
     fields: &mut Vec<crate::expand::ExpandedWord>,
@@ -55,7 +55,7 @@ fn prepare_command<'a, I: BufRead, O: Write, E: Write>(
 
 fn prepare_simple<'a, I: BufRead, O: Write, E: Write>(
     simple: &'a crate::parse::SimpleCommand<'a>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     io: &mut ExecIo<'_, I, O, E>,
     fields: &mut Vec<crate::expand::ExpandedWord>,
@@ -81,14 +81,15 @@ fn prepare_simple<'a, I: BufRead, O: Write, E: Write>(
 
 fn expand_stage_word<I: BufRead, O: Write, E: Write>(
     word: &str,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     io: &mut ExecIo<'_, I, O, E>,
     fields: &mut Vec<crate::expand::ExpandedWord>,
     argv: &mut Vec<String>,
 ) -> io::Result<Result<(), CommandResult>> {
+    let snap = shell_env.clone();
     let mut capture = |body: &str| {
-        crate::exec::capture_command_output(body, shell_env, last_status, io.stdin, io.stderr)
+        crate::exec::capture_command_output(body, &snap, last_status, io.stdin, io.stderr)
     };
     match crate::expand::expand_word_fields_into(word, shell_env, last_status, fields, &mut capture)
     {

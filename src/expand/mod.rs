@@ -25,7 +25,7 @@ pub use word::ExpandedWord;
 /// Expand a raw word into one field (no command-substitution capture).
 pub fn expand_word_for_exec(
     raw: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<ExpandedWord, LexError> {
     let mut fields = Vec::new();
@@ -37,7 +37,7 @@ pub fn expand_word_for_exec(
 /// Expand `raw` into one or more fields (brace, then `$` / backticks / `$(…)`).
 pub fn expand_word_fields_into(
     raw: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     fields_out: &mut Vec<ExpandedWord>,
     capture: &mut dyn FnMut(&str) -> Result<String, LexError>,
@@ -54,7 +54,7 @@ pub fn expand_word_fields_into(
 /// Like [`expand_word_for_exec`], writing into `out` (cleared first).
 pub fn expand_word_for_exec_into(
     raw: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
 ) -> Result<(), LexError> {

@@ -255,13 +255,13 @@ fn missing_redirect_target_is_error() {
 
 #[test]
 fn fill_argv_reuses_string_capacity() {
-    let env = ShellEnvironment::default();
+    let mut env = ShellEnvironment::default();
     let mut argv = Vec::new();
     let mut stderr = Vec::new();
     fill_argv(
         &["one", "two"],
         &mut argv,
-        &env,
+        &mut env,
         0,
         &mut std::io::empty(),
         &mut stderr,
@@ -272,7 +272,7 @@ fn fill_argv_reuses_string_capacity() {
     fill_argv(
         &["aaa", "bbb"],
         &mut argv,
-        &env,
+        &mut env,
         0,
         &mut std::io::empty(),
         &mut stderr,
@@ -283,13 +283,13 @@ fn fill_argv_reuses_string_capacity() {
 
 #[test]
 fn fill_argv_expands_quotes() {
-    let env = ShellEnvironment::default();
+    let mut env = ShellEnvironment::default();
     let mut argv = Vec::new();
     let mut stderr = Vec::new();
     fill_argv(
         &[r#""hello world""#, r"a\|b"],
         &mut argv,
-        &env,
+        &mut env,
         0,
         &mut std::io::empty(),
         &mut stderr,

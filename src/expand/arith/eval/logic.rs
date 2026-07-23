@@ -10,7 +10,7 @@ use std::str::Chars;
 
 pub(super) fn parse_or(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_and(chars, env, last_status)?;
@@ -26,7 +26,7 @@ pub(super) fn parse_or(
 
 fn parse_and(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_bitor(chars, env, last_status)?;

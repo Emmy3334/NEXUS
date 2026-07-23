@@ -10,7 +10,7 @@ use std::str::Chars;
 
 pub(super) fn parse_ternary(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let cond = parse_or(chars, env, last_status)?;

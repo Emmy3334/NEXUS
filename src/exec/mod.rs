@@ -8,6 +8,7 @@
 mod background;
 mod capture;
 mod command;
+mod cwd;
 mod io;
 mod list;
 mod pipe;

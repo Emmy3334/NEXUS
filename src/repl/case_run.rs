@@ -58,7 +58,7 @@ fn run_plan<I: ReplInput, O: Write, E: Write>(
 fn arm_matches(
     subject: &str,
     patterns: &[String],
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
 ) -> bool {
     for raw in patterns {

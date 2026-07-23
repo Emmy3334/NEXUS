@@ -5,19 +5,19 @@ use super::super::name::push_named_parameter;
 use super::super::ExpandedWord;
 use crate::env::ShellEnvironment;
 
-pub(super) fn resolve(name: &str, env: &ShellEnvironment, last_status: u8) -> String {
+pub(super) fn resolve(name: &str, env: &mut ShellEnvironment, last_status: u8) -> String {
     let mut buf = ExpandedWord::default();
     push_named_parameter(name, env, last_status, &mut buf, false);
     buf.into_string()
 }
 
-pub(super) fn is_set_nonempty(name: &str, env: &ShellEnvironment, last_status: u8) -> bool {
+pub(super) fn is_set_nonempty(name: &str, env: &mut ShellEnvironment, last_status: u8) -> bool {
     !resolve(name, env, last_status).is_empty()
 }
 
 pub(super) fn push_expanded_word(
     word: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
@@ -28,7 +28,7 @@ pub(super) fn push_expanded_word(
     }
 }
 
-pub(super) fn expand_pattern(pat: &str, env: &ShellEnvironment, last_status: u8) -> String {
+pub(super) fn expand_pattern(pat: &str, env: &mut ShellEnvironment, last_status: u8) -> String {
     expand_word_for_exec(pat, env, last_status)
         .map(ExpandedWord::into_string)
         .unwrap_or_else(|_| pat.to_owned())

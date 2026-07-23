@@ -16,7 +16,7 @@ fn nexus_bin() -> std::path::PathBuf {
     env!("CARGO_BIN_EXE_nexus").into()
 }
 
-fn expand(raw: &str, env: &ShellEnvironment) -> String {
+fn expand(raw: &str, env: &mut ShellEnvironment) -> String {
     expand_word_for_exec(raw, env, 0).unwrap().into_string()
 }
 
@@ -24,12 +24,12 @@ fn expand(raw: &str, env: &ShellEnvironment) -> String {
 fn positional_expansion_from_argv() {
     let mut env = ShellEnvironment::default();
     env.set_argv(vec!["script".into(), "one".into(), "two".into()]);
-    assert_eq!(expand("$0", &env), "script");
-    assert_eq!(expand("$1", &env), "one");
-    assert_eq!(expand("$2", &env), "two");
-    assert_eq!(expand("$#", &env), "2");
-    assert_eq!(expand("$*", &env), "one two");
-    assert_eq!(expand("$3", &env), "");
+    assert_eq!(expand("$0", &mut env), "script");
+    assert_eq!(expand("$1", &mut env), "one");
+    assert_eq!(expand("$2", &mut env), "two");
+    assert_eq!(expand("$#", &mut env), "2");
+    assert_eq!(expand("$*", &mut env), "one two");
+    assert_eq!(expand("$3", &mut env), "");
 }
 
 #[test]

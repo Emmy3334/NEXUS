@@ -45,7 +45,7 @@ pub fn eval_condition(
 
 fn expand_pieces(
     expr: &[String],
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<Vec<String>, String> {
     let mut out = Vec::with_capacity(expr.len());

@@ -9,7 +9,7 @@ use std::str::Chars;
 
 pub(super) fn parse_add(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_mul(chars, env, last_status)?;
@@ -31,7 +31,7 @@ pub(super) fn parse_add(
 
 fn parse_mul(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_power(chars, env, last_status)?;
@@ -65,7 +65,7 @@ fn parse_mul(
 
 fn parse_power(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let base = parse_unary(chars, env, last_status)?;
