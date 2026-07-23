@@ -44,3 +44,12 @@ wasmtime = { version = "36.0.7", default-features = false, features = [
 ] }
 wasmtime-wasi = "36.0.7"
 wat = "1"
+
+# Harden release binaries: smaller surface, no panic unwind tables, stripped symbols.
+# Prefer speed (`opt-level = 3`) over extreme size (`"z"`) for an interactive shell.
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = 3
