@@ -26,9 +26,32 @@ pub(super) fn apply(
     var_names: &[String],
 ) -> io::Result<Loop> {
     match action {
-        Action::Accept => Ok(Loop::Accept),
+        Action::Accept => {
+            edit.complete_cycle = None;
+            Ok(Loop::Accept)
+        }
         Action::Eof => Ok(Loop::Eof),
-        Action::Interrupt => Ok(Loop::Interrupt),
+        Action::Interrupt => {
+            edit.complete_cycle = None;
+            Ok(Loop::Interrupt)
+        }
+        Action::Complete => complete_token(stdout, edit, prompt, var_names),
+        other => {
+            edit.complete_cycle = None;
+            apply_other(stdout, edit, bindings, other, prompt, nav)
+        }
+    }
+}
+
+fn apply_other(
+    stdout: &mut impl Write,
+    edit: &mut EditBuffer,
+    bindings: &mut KeyBindings,
+    action: Action,
+    prompt: &str,
+    nav: &mut HistoryRecall<'_>,
+) -> io::Result<Loop> {
+    match action {
         Action::ViCmdMode => {
             bindings.enter_command_map();
             Ok(Loop::Continue)
@@ -49,7 +72,6 @@ pub(super) fn apply(
             draw::redraw(stdout, prompt, edit)?;
             Ok(Loop::Continue)
         }
-        Action::Complete => complete_token(stdout, edit, prompt, var_names),
         other => mutate(stdout, edit, other, prompt),
     }
 }
@@ -100,7 +122,12 @@ fn complete_token(
     prompt: &str,
     var_names: &[String],
 ) -> io::Result<Loop> {
-    let matches = complete::complete_with_names(&mut edit.text, &mut edit.cursor, var_names);
+    let matches = complete::complete_or_cycle(
+        &mut edit.text,
+        &mut edit.cursor,
+        var_names,
+        &mut edit.complete_cycle,
+    );
     let lines = complete::list_display_lines(&matches);
     if !lines.is_empty() {
         writeln!(stdout)?;

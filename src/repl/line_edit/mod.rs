@@ -17,8 +17,7 @@ pub use recall::HistoryRecall;
 #[cfg(unix)]
 pub use tty::take_complete_line;
 
-/// Tab-complete the token under `cursor` in `buffer` (integration tests / tooling).
-pub use complete::complete;
+pub use complete::{complete, complete_or_cycle, CompleteCycle};
 /// Column layout helpers for ambiguous completion listings.
 pub use complete::{format_columns, list_display_lines, list_display_lines_width};
 

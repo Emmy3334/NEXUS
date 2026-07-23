@@ -8,6 +8,7 @@ mod builtins;
 mod case_block;
 mod complete_builtins;
 mod complete_context;
+mod complete_cycle;
 mod complete_list;
 mod complete_vars;
 mod cwd_lock;

@@ -22,6 +22,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Ambiguous Tab completion: after the column listing, further Tabs cycle through matches
+  (wrap) until the token is edited (`complete_or_cycle`).
 - Arithmetic assignments in `$((…))`: `=` / `+=` `-=` `*=` `/=` `%=` (right-assoc;
   writes local, or exported if already exported with no local).
 - Command substitution `$(cmd)` (lex keeps the span as one word; unquoted field-split

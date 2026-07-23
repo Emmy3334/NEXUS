@@ -56,7 +56,9 @@ While reverse-i-search is active, the prompt shows `(reverse-i-search)\`query': 
 
 Vi command map also binds `0` / `^` / `$` for BOL/EOL and `b` / `w` for word motion. Words are whitespace-separated.
 
-Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, `format_columns`, `list_display_lines`, `list_display_lines_width`, and on Unix `take_complete_line`.
+Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecall`, `KeyBindings`,
+`ReplInput`, `complete`, `complete_or_cycle`, `CompleteCycle`, `format_columns`,
+`list_display_lines`, `list_display_lines_width`, and on Unix `take_complete_line`.
 
 ### Context-aware Tab completion
 
@@ -79,8 +81,9 @@ Otherwise falls back to **all** builtins (`builtins::NAMES`, including `@docker`
 Tokens starting with `$` / `${` complete against shell locals ∪ exported names (`$HOME`, `${HOME}`).
 
 Ambiguous matches: insert the shared prefix when it grows, then list remaining choices in
-`$COLUMNS`-aware columns (soft-capped at 100, with an “… and N more” trailer). Unique
-matches replace the token with no listing. No compsys / `zstyle` menu-select yet.
+`$COLUMNS`-aware columns (soft-capped at 100, with an “… and N more” trailer). Further Tabs
+cycle through those matches (wrap), until the token is edited. Unique matches replace the
+token with no listing. Full compsys / `zstyle` menu-select is still out of scope.
 
 ### Git-aware primary prompt
 
