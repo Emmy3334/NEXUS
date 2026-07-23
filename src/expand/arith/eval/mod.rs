@@ -7,6 +7,7 @@ mod compare;
 mod logic;
 mod primary;
 mod shift;
+pub(super) mod store;
 mod ternary;
 
 use crate::env::ShellEnvironment;

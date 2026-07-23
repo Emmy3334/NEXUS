@@ -89,6 +89,60 @@ fn systemctl_subcommand_completes_unique_prefix() {
     assert_eq!(buf, "systemctl restart");
 }
 
+#[test]
+fn git_commit_flag_completes_amend() {
+    let (buf, matches) = complete_at("git commit --am");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "git commit --amend");
+}
+
+#[test]
+fn git_log_lists_long_flags() {
+    let (_, matches) = complete_at("git log --");
+    assert!(matches.iter().any(|m| m == "--oneline"));
+    assert!(matches.iter().any(|m| m == "--stat"));
+}
+
+#[test]
+fn git_merge_completes_branches() {
+    let _cwd = crate::cwd_lock::lock();
+    let root = temp_dir("git_merge");
+    let heads = root.join(".git/refs/heads");
+    fs::create_dir_all(&heads).unwrap();
+    fs::write(heads.join("main"), "abc\n").unwrap();
+    fs::write(heads.join("master"), "def\n").unwrap();
+    let prev = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&root).unwrap();
+
+    let (buf, matches) = complete_at("git merge ma");
+    let _ = std::env::set_current_dir(prev);
+    let _ = fs::remove_dir_all(root);
+
+    assert_eq!(matches, vec!["main".to_string(), "master".to_string()]);
+    assert_eq!(buf, "git merge ma");
+}
+
+#[test]
+fn git_checkout_dash_dash_lists_flags_not_branches() {
+    let (_, matches) = complete_at("git checkout --");
+    assert!(matches.iter().any(|m| m == "--orphan" || m == "--detach"));
+    assert!(!matches.iter().any(|m| m == "main"));
+}
+
+#[test]
+fn kubectl_get_completes_resource_kind() {
+    let (buf, matches) = complete_at("kubectl get dep");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "kubectl get deployments");
+}
+
+#[test]
+fn kubectl_get_with_namespace_flag_still_completes_kind() {
+    let (buf, matches) = complete_at("kubectl -n default get po");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "kubectl -n default get pods");
+}
+
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("nexus_complete_{name}_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

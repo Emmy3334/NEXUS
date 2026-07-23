@@ -22,6 +22,10 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Arithmetic prefix/postfix `++` / `--` on bare names in `$((…))` (same writeback as
+  assignments: local, else exported, else new local).
+- Richer Tab complete: curated `git <verb>` flags (token starting with `-`) and wider
+  branch verbs (`merge` / `rebase` / …); host `kubectl get`/`describe` resource kinds.
 - Tab completion registry for first-verb subcommands of many common CLIs (VCS, language
   toolchains, containers, Kubernetes, cloud/IaC, package managers, systemctl/tmux, build
   tools, databases/backup). Static lists under `complete/subcmds/`; unregistered commands

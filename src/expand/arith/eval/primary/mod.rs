@@ -1,6 +1,7 @@
 //! Unary / primary / number / bare name / nested `$((…))`.
 
-pub(super) mod dollar;
+mod dollar;
+mod inc;
 
 pub(super) use dollar::{is_name_start, lookup_int, take_name};
 
@@ -23,6 +24,11 @@ pub(super) fn parse_unary(
     last_status: u8,
 ) -> Result<i64, LexError> {
     skip_ws(chars);
+    let checkpoint = chars.clone();
+    if let Some(value) = inc::try_prefix(chars, env, last_status) {
+        return Ok(value);
+    }
+    *chars = checkpoint;
     match chars.peek().copied() {
         Some('+') => {
             chars.next();
@@ -65,11 +71,13 @@ fn parse_primary(
             dollar::value(chars, env, last_status)
         }
         Some(c) if c.is_ascii_digit() => parse_number(chars),
-        Some(c) if dollar::is_name_start(c) => Ok(dollar::lookup_int(
-            &dollar::take_name(chars),
-            env,
-            last_status,
-        )),
+        Some(c) if dollar::is_name_start(c) => {
+            let name = dollar::take_name(chars);
+            if let Some(value) = inc::try_postfix(chars, &name, env, last_status) {
+                return Ok(value);
+            }
+            Ok(dollar::lookup_int(&name, env, last_status))
+        }
         _ => Err(LexError::Arithmetic),
     }
 }
