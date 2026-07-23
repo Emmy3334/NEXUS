@@ -43,6 +43,7 @@ fn docker_runs_alpine_command_when_daemon_up() {
     }
     let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
     let mut env = test_env();
+    env.set_local("heal_catch_all", "1");
     env.healers = ResolverChain::from_resolvers(vec![Arc::new(resolver)]);
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -98,6 +99,7 @@ fn docker_bind_mounts_cwd_for_host_files() {
 
     let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let result = resolver.try_heal(
@@ -124,6 +126,7 @@ fn docker_forwards_exported_env() {
     }
     let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     env.set("NEXUS_HEAL_FOO", "bar");
     env.set_local("NEXUS_HEAL_LOCAL", "nope");
     let mut stdout = Vec::new();
@@ -164,6 +167,7 @@ fn docker_heal_ignores_host_path() {
     }
     let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     env.set("PATH", "/nonexistent");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -188,6 +192,7 @@ fn docker_feeds_stdin_bytes() {
     }
     let resolver = DockerResolver::probe(DEFAULT_IMAGE).expect("docker probe");
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let code = resolver

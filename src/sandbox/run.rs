@@ -2,7 +2,7 @@
 
 use super::{engine, exit_code};
 use wasmtime::{Linker, Module, Store};
-use wasmtime_wasi::pipe::MemoryOutputPipe;
+use wasmtime_wasi::p2::pipe::MemoryOutputPipe;
 use wasmtime_wasi::preview1::{self, WasiP1Ctx};
 use wasmtime_wasi::WasiCtxBuilder;
 

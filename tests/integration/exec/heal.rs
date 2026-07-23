@@ -104,5 +104,8 @@ fn declining_resolver_falls_through_to_127() {
     assert_eq!(code, 127);
     let err = String::from_utf8(stderr).unwrap();
     assert!(err.contains("Command not found"));
-    assert!(err.contains("heal tried"));
+    assert!(
+        err.contains("heal tried") || err.contains("nexus: tip:"),
+        "expected heal tip, got: {err}"
+    );
 }

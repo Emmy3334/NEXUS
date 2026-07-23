@@ -33,6 +33,7 @@ fn kube_runs_alpine_command_when_cluster_up() {
     }
     let resolver = KubeResolver::probe(KUBE_DEFAULT_IMAGE).expect("kube probe");
     let mut env = test_env();
+    env.set_local("heal_catch_all", "1");
     env.healers = ResolverChain::from_resolvers(vec![Arc::new(resolver)]);
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -88,6 +89,7 @@ fn kube_bind_mounts_cwd_when_node_sees_host() {
 
     let resolver = KubeResolver::probe(KUBE_DEFAULT_IMAGE).expect("kube probe");
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let result = resolver.try_heal(
@@ -119,6 +121,7 @@ fn kube_forwards_exported_env() {
         return;
     };
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     env.set("NEXUS_HEAL_FOO", "bar");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -148,6 +151,7 @@ fn kube_declines_when_stdin_present() {
         return;
     };
     let mut env = ShellEnvironment::from_map(Default::default());
+    env.set_local("heal_catch_all", "1");
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let code = resolver

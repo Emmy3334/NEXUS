@@ -8,6 +8,14 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped Wasmtime / `wasmtime-wasi` from 24.x to **36.0.7+** (RUSTSEC-2026-0086…0096:
+  sandbox-escape and related issues on 24.x). Sandbox runner imports
+  `wasmtime_wasi::p2::pipe::MemoryOutputPipe`.
+- Heal integration tests that exercise alpine catch-all (`apk` / `cat` / `printenv`) set
+  `heal_catch_all=1` so they match the default mapped-only Docker/Kube policy.
+
 ### Added
 
 - Expanded `@kube`: `-n` / `-A` scoping, `get pods|nodes`, `describe pod`, richer Tab complete
