@@ -1,10 +1,17 @@
-//! Integer arithmetic: `+ - * / %`, unary `+/-`, `(…)`, `$name` / `$?` / `$n`.
+//! Integer arithmetic evaluator (`$((…))` body).
 
+mod add;
+mod bit;
+mod compare;
+mod logic;
 mod primary;
+mod shift;
+mod ternary;
 
 use crate::env::ShellEnvironment;
 use crate::lex::LexError;
-use primary::{parse_unary, skip_ws};
+use primary::skip_ws;
+use ternary::parse_ternary;
 
 use std::iter::Peekable;
 use std::str::Chars;
@@ -15,7 +22,7 @@ pub(super) fn evaluate(
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut chars = body.chars().peekable();
-    let value = parse_expr(&mut chars, env, last_status)?;
+    let value = parse_ternary(&mut chars, env, last_status)?;
     skip_ws(&mut chars);
     if chars.peek().is_some() {
         return Err(LexError::Arithmetic);
@@ -23,58 +30,11 @@ pub(super) fn evaluate(
     Ok(value)
 }
 
+/// Shared entry used by parenthesized / nested forms.
 pub(super) fn parse_expr(
     chars: &mut Peekable<Chars<'_>>,
     env: &ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
-    let mut left = parse_term(chars, env, last_status)?;
-    loop {
-        skip_ws(chars);
-        match chars.peek().copied() {
-            Some('+') => {
-                chars.next();
-                left = left.wrapping_add(parse_term(chars, env, last_status)?);
-            }
-            Some('-') => {
-                chars.next();
-                left = left.wrapping_sub(parse_term(chars, env, last_status)?);
-            }
-            _ => return Ok(left),
-        }
-    }
-}
-
-fn parse_term(
-    chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
-    last_status: u8,
-) -> Result<i64, LexError> {
-    let mut left = parse_unary(chars, env, last_status)?;
-    loop {
-        skip_ws(chars);
-        match chars.peek().copied() {
-            Some('*') => {
-                chars.next();
-                left = left.wrapping_mul(parse_unary(chars, env, last_status)?);
-            }
-            Some('/') => {
-                chars.next();
-                let right = parse_unary(chars, env, last_status)?;
-                if right == 0 {
-                    return Err(LexError::Arithmetic);
-                }
-                left /= right;
-            }
-            Some('%') => {
-                chars.next();
-                let right = parse_unary(chars, env, last_status)?;
-                if right == 0 {
-                    return Err(LexError::Arithmetic);
-                }
-                left %= right;
-            }
-            _ => return Ok(left),
-        }
-    }
+    parse_ternary(chars, env, last_status)
 }

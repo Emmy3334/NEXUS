@@ -52,6 +52,47 @@ fn dollar_vars_inside() {
 }
 
 #[test]
+fn bare_names() {
+    let mut env = test_env();
+    env.set_local("x", "10");
+    env.set_local("y", "3");
+    let word = expand_word_for_exec("$((x+y*2))", &env, 0)
+        .unwrap()
+        .into_string();
+    assert_eq!(word, "16");
+    assert_eq!(expand("$((missing+7))").unwrap(), "7");
+}
+
+#[test]
+fn nested_arith() {
+    assert_eq!(expand("$((1+$((2*3))))").unwrap(), "7");
+    let mut tokens = Vec::new();
+    tokenize_into("$((1+$((2))))", &mut tokens).unwrap();
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0].lexeme("$((1+$((2))))"), "$((1+$((2))))");
+}
+
+#[test]
+fn power_compare_logic_bit() {
+    assert_eq!(expand("$((2**8))").unwrap(), "256");
+    assert_eq!(expand("$((2**3**2))").unwrap(), "512"); // right-assoc: 2**(3**2)
+    assert_eq!(expand("$((3>2))").unwrap(), "1");
+    assert_eq!(expand("$((3==3 && 1))").unwrap(), "1");
+    assert_eq!(expand("$((0||5))").unwrap(), "1");
+    assert_eq!(expand("$((!0))").unwrap(), "1");
+    assert_eq!(expand("$((5&3))").unwrap(), "1");
+    assert_eq!(expand("$((1<<4))").unwrap(), "16");
+    assert_eq!(expand("$((~0))").unwrap(), "-1");
+}
+
+#[test]
+fn ternary() {
+    assert_eq!(expand("$((1?4:5))").unwrap(), "4");
+    assert_eq!(expand("$((0?4:5))").unwrap(), "5");
+    assert_eq!(expand("$((2>1?10:20))").unwrap(), "10");
+}
+
+#[test]
 fn quoted_and_status() {
     assert_eq!(expand_status("\"$(( $? + 1 ))\"", 7).unwrap(), "8");
     assert_eq!(expand("$(($status+1))").unwrap(), "1");
@@ -62,6 +103,7 @@ fn errors() {
     assert_eq!(expand("$((1/0))"), Err(LexError::Arithmetic));
     assert_eq!(expand("$((1+)"), Err(LexError::UnclosedArithmetic));
     assert_eq!(expand("$((1+))"), Err(LexError::Arithmetic));
+    assert_eq!(expand("$((2**-1))"), Err(LexError::Arithmetic));
 }
 
 #[test]
