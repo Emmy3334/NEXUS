@@ -3,6 +3,7 @@
 mod kube_complete;
 mod kube_errors;
 mod kube_list;
+mod kube_logs_exec;
 mod kube_run;
 
 use kube_run::run_kube;

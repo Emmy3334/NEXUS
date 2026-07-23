@@ -2,6 +2,7 @@
 
 mod args;
 mod describe;
+mod exec;
 mod get;
 mod logs;
 mod pods;
@@ -23,7 +24,9 @@ pub(super) fn kube_cmd(
         None | Some("help" | "-h" | "--help") => {
             writeln!(
                 stderr,
-                "usage: @kube nodes | @kube pods [-n NS|-A] | @kube logs [-n NS] <pod> | \
+                "usage: @kube nodes | @kube pods [-n NS|-A] | \
+                 @kube logs [-n NS] [-f|--follow] <pod> | \
+                 @kube exec [-n NS] <pod> -- <cmd> [args…] | \
                  @kube get pods|nodes | @kube describe pod <name> [-n NS]"
             )?;
             Ok(BuiltinResult::Status(1))
@@ -31,6 +34,7 @@ pub(super) fn kube_cmd(
         Some("nodes" | "node") => print::nodes(stdout, stderr),
         Some("pods") => pods::run(args, stdout, stderr),
         Some("logs") => logs::run(args, stdout, stderr),
+        Some("exec") => exec::run(args, stdout, stderr),
         Some("get") => get::run(args, stdout, stderr),
         Some("describe") => describe::run(args, stdout, stderr),
         Some(other) => {

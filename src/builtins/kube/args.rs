@@ -45,16 +45,46 @@ pub(super) fn namespace_opt(args: &[String]) -> Result<Option<String>, String> {
     }
 }
 
+/// Whether `-f` / `--follow` appears among args.
+#[must_use]
+pub(super) fn wants_follow(args: &[String]) -> bool {
+    args.iter().any(|a| matches!(a.as_str(), "-f" | "--follow"))
+}
+
 /// First non-flag positional after `skip` leading args (subcommand words).
 pub(super) fn first_positional(args: &[String], skip: usize) -> Option<&str> {
     let mut i = skip;
     while i < args.len() {
         match args[i].as_str() {
-            "-A" | "--all-namespaces" => i += 1,
+            "-A" | "--all-namespaces" | "-f" | "--follow" => i += 1,
             "-n" | "--namespace" => i += 2,
             flag if flag.starts_with('-') => i += 1,
             other => return Some(other),
         }
     }
     None
+}
+
+/// Split `@kube exec …` into `(pod, command)` after the `exec` token (`args[0]`).
+///
+/// Prefer `@kube exec [-n NS] <pod> -- <cmd>…`; also allow `<pod> <cmd>…`.
+pub(super) fn exec_pod_and_cmd(args: &[String]) -> Result<(&str, Vec<String>), String> {
+    let usage = "usage: @kube exec [-n NS] <pod> -- <cmd> [args…]";
+    let Some(pod) = first_positional(args, 1) else {
+        return Err(usage.into());
+    };
+    let pod_idx = args
+        .iter()
+        .position(|a| a == pod)
+        .ok_or_else(|| usage.to_owned())?;
+    let rest = &args[pod_idx + 1..];
+    let cmd = if rest.first().map(String::as_str) == Some("--") {
+        rest[1..].to_vec()
+    } else {
+        rest.to_vec()
+    };
+    if cmd.is_empty() {
+        return Err(usage.into());
+    }
+    Ok((pod, cmd))
 }

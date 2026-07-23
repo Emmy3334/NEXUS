@@ -65,9 +65,9 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `ruby` | Cwd files ending in `.rb` |
 | `@docker ` (no subcommand yet) | `ps` / `logs` / `help` |
 | `@docker … logs …` | Running container names via bollard |
-| `@kube …` after `@kube ` | Subcommands (`nodes`, `pods`, `logs`, `get`, `describe`, …) |
+| `@kube …` after `@kube ` | Subcommands (`nodes`, `pods`, `logs`, `exec`, `get`, `describe`, …) |
 | `@kube … -n ` | Namespace names via kube-rs |
-| `@kube … logs …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
+| `@kube … logs …` / `exec …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
 
 Otherwise falls back to builtins + `PATH` + filesystem matches.
 

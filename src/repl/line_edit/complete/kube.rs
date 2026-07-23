@@ -11,7 +11,7 @@ pub(super) enum Complete {
     Pod { namespace: Option<String> },
 }
 
-const SUBCOMMANDS: &[&str] = &["nodes", "pods", "logs", "get", "describe", "help"];
+const SUBCOMMANDS: &[&str] = &["nodes", "pods", "logs", "exec", "get", "describe", "help"];
 const GET_RESOURCES: &[&str] = &["pods", "nodes"];
 const DESCRIBE_RESOURCES: &[&str] = &["pod"];
 
@@ -27,7 +27,7 @@ pub(super) fn classify(words: &[&str]) -> Option<Complete> {
         None => Some(Complete::Subcommand),
         Some("get") if words.len() == 2 => Some(Complete::GetResource),
         Some("describe") if words.len() == 2 => Some(Complete::DescribeResource),
-        Some("logs") => Some(Complete::Pod {
+        Some("logs" | "exec") => Some(Complete::Pod {
             namespace: ns_from(words),
         }),
         Some("describe") if words.get(2) == Some(&"pod") || words.get(2) == Some(&"pods") => {

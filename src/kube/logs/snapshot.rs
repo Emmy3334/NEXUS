@@ -1,6 +1,6 @@
-//! Fetch recent logs from a pod.
+//! One-shot pod log snapshot (`Api::logs`).
 
-use super::client::try_client;
+use super::super::client::try_client;
 use crate::tokio_rt::{block_on, io_other};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, LogParams};

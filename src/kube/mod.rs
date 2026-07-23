@@ -4,6 +4,8 @@ mod age;
 mod client;
 mod describe;
 mod error;
+mod exec;
+mod interrupt;
 mod logs;
 mod namespaces;
 mod nodes;
@@ -13,7 +15,8 @@ mod table;
 
 pub use client::cluster_reachable;
 pub use describe::describe_pod;
-pub use logs::pod_logs;
+pub use exec::pod_exec;
+pub use logs::{pod_logs, pod_logs_follow};
 pub use namespaces::list_namespace_names;
 pub use nodes::list_nodes_table;
 pub use pods::{list_pod_names, list_pods_table};
