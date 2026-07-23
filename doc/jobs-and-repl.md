@@ -34,13 +34,16 @@ Missing histfile on load is quiet. Manual `history -S` / `-L` / `-M` still work.
 
 | Platform | Behavior |
 |----------|----------|
-| Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation, **word ops / kill-ring / yank**, history recall, **Ctrl-R reverse-i-search**, completion, paste queue, bindkey actions |
+| Unix TTY | Raw terminal editor under `src/repl/line_edit/tty/` — navigation (**BOL/EOL**, char / word motion), **kill-ring / yank**, history recall, **Ctrl-R reverse-i-search**, completion, paste queue, bindkey actions |
 | Else | Plain line read (`plain.rs`) |
 
 Emacs defaults (also available via `bindkey`):
 
 | Keys | Action |
 |------|--------|
+| `C-a` / `C-e` | Beginning / end of line |
+| `C-b` / `C-f` | Backward / forward char (same as ← / →) |
+| `Home` / `End` | Beginning / end of line (`\e[H` / `\e[F`, also `\eOH` / `\eOF`) |
 | `M-b` / `M-f` | Backward / forward word |
 | `C-w` / `M-d` / `M-BS` | Kill word backward / forward |
 | `C-k` / `C-u` | Kill to end of line / kill whole line |
@@ -50,7 +53,7 @@ Emacs defaults (also available via `bindkey`):
 
 While reverse-i-search is active, the prompt shows `(reverse-i-search)\`query': ` (or `(failed r-search)…`). Type to refine the query; `C-r` again selects an older match; Backspace edits the query; Enter accepts; Esc / `C-c` aborts and restores the draft line. Other bound actions leave isearch with the current match.
 
-Vi command map also binds `b` / `w` for word motion. Words are whitespace-separated.
+Vi command map also binds `0` / `^` / `$` for BOL/EOL and `b` / `w` for word motion. Words are whitespace-separated.
 
 Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecall`, `KeyBindings`, `ReplInput`, `complete`, `format_columns`, `list_display_lines`, `list_display_lines_width`, and on Unix `take_complete_line`.
 

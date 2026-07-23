@@ -1,5 +1,6 @@
 //! Core UTF-8 edit buffer storage.
 
+mod home;
 mod kill;
 mod nav;
 mod transpose;
@@ -7,6 +8,7 @@ mod word;
 
 use std::collections::VecDeque;
 
+pub(super) use home::{move_end, move_home};
 pub(super) use kill::{kill_line, kill_to_eol, kill_word_backward, kill_word_forward, yank};
 pub(super) use nav::{backspace, delete, move_left, move_right};
 pub(super) use transpose::transpose_words;

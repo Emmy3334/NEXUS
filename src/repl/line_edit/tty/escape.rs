@@ -58,6 +58,13 @@ fn is_meta_chord(seq: &[u8]) -> bool {
 fn is_complete_escape(seq: &[u8]) -> bool {
     matches!(
         seq,
-        b"\x1b[D" | b"\x1b[C" | b"\x1b[A" | b"\x1b[B" | b"\x1b[3~" | [0x1b, b'O', _]
+        b"\x1b[D"
+            | b"\x1b[C"
+            | b"\x1b[A"
+            | b"\x1b[B"
+            | b"\x1b[H"
+            | b"\x1b[F"
+            | b"\x1b[3~"
+            | [0x1b, b'O', _]
     )
 }

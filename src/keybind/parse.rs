@@ -48,6 +48,8 @@ pub fn parse_action(name: &str) -> Option<Action> {
         "delete-char" => Action::Delete,
         "backward-char" => Action::MoveLeft,
         "forward-char" => Action::MoveRight,
+        "beginning-of-line" => Action::MoveHome,
+        "end-of-line" => Action::MoveEnd,
         "backward-word" => Action::MoveWordLeft,
         "forward-word" => Action::MoveWordRight,
         "kill-word" => Action::KillWordForward,

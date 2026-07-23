@@ -20,6 +20,8 @@ pub enum Action {
     Delete,
     MoveLeft,
     MoveRight,
+    MoveHome,
+    MoveEnd,
     MoveWordLeft,
     MoveWordRight,
     KillWordForward,
