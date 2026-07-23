@@ -107,6 +107,10 @@ Missing file = quiet no-op. `exit` in the RC ends the shell before the REPL. Oth
 
 Helpers: `repl::load_startup_rc`, `repl::source_rc`, `repl::RcLoad`.
 
+## Observability
+
+Interactive sessions stay quiet unless `NEXUS_LOG` or `RUST_LOG` is set; then stderr gets a `tracing-subscriber` env-filter log. Useful filters: `nexus=info`, `nexus::heal=debug`.
+
 ## Scripting
 
 - `nexus script.sh args…` → `run_script` with argv `[script, …args]`

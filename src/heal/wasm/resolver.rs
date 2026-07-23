@@ -26,7 +26,14 @@ impl CommandResolver for WasmResolver {
             return Ok(None);
         };
         let args = &argv[1..];
+        tracing::debug!(argv0 = name, backend = "wasm", "heal try_heal");
         let code = sandbox::run_module(&path, args, stdout, stderr)?;
+        tracing::info!(
+            argv0 = name,
+            backend = "wasm",
+            status = code,
+            "heal success"
+        );
         banner::success(stderr, config::quiet_from(shell_env), "wasm", Some(name))?;
         Ok(Some(code))
     }

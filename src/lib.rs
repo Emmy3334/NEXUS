@@ -17,6 +17,7 @@ pub mod jobs;
 pub mod keybind;
 pub mod kube;
 pub mod lex;
+pub mod observability;
 pub mod parse;
 pub mod pathfind;
 pub mod repl;

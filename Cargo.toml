@@ -33,6 +33,8 @@ kube = { version = "4", default-features = false, features = [
 ] }
 nix = { version = "0.29", default-features = false, features = ["fs", "process", "signal", "term"] }
 tokio = { version = "1", features = ["rt-multi-thread", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wasmtime = { version = "24", default-features = false, features = [
     "cranelift",
     "runtime",

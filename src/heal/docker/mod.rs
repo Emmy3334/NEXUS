@@ -56,6 +56,8 @@ impl CommandResolver for DockerResolver {
         if argv.is_empty() {
             return Ok(None);
         }
+        let argv0 = argv.first().map(String::as_str).unwrap_or("");
+        tracing::debug!(argv0, backend = "docker", "heal try_heal");
         match block_on(run::execute(
             &self.docker,
             &self.image,
@@ -65,11 +67,13 @@ impl CommandResolver for DockerResolver {
         )) {
             Ok(Ok((127, _))) => Ok(None),
             Ok(Ok((code, id))) => {
+                tracing::info!(argv0, backend = "docker", status = code, %id, "heal success");
                 banner::success(stderr, config::quiet_from(shell_env), "docker", Some(&id))?;
                 Ok(Some(code))
             }
             Ok(Err(err)) | Err(err) if is_missing_in_image(&err) => Ok(None),
             Ok(Err(err)) | Err(err) => {
+                tracing::warn!(argv0, backend = "docker", error = %err, "heal failed");
                 writeln!(stderr, "nexus: docker heal failed: {err}")?;
                 Ok(Some(1))
             }

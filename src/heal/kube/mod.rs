@@ -48,15 +48,19 @@ impl CommandResolver for KubeResolver {
         if argv.is_empty() {
             return Ok(None);
         }
+        let argv0 = argv.first().map(String::as_str).unwrap_or("");
+        tracing::debug!(argv0, backend = "kube", "heal try_heal");
         match block_on(run::execute(&self.image, argv, stdout, stderr)) {
             Ok(Ok((127, _))) => Ok(None),
             Ok(Ok((code, name))) => {
+                tracing::info!(argv0, backend = "kube", status = code, pod = %name, "heal success");
                 let detail = format!("pod {name}");
                 banner::success(stderr, config::quiet_from(shell_env), "kube", Some(&detail))?;
                 Ok(Some(code))
             }
             Ok(Err(err)) | Err(err) if is_missing_in_image(&err) => Ok(None),
             Ok(Err(err)) | Err(err) => {
+                tracing::warn!(argv0, backend = "kube", error = %err, "heal failed");
                 writeln!(stderr, "nexus: kube heal failed: {err}")?;
                 Ok(Some(1))
             }

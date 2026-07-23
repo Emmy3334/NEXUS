@@ -24,6 +24,10 @@ Product stages (from project PDFs / standing rules):
 | Tests | Single integration crate (`autotests = false`) |
 | Main dependency | `nix` 0.29 (`fs`, `process`, `signal`, `term`) |
 
+## Observability
+
+Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tracing via `tracing` / `tracing-subscriber`. Unset = no subscriber (quiet interactive use). Heal and `@kube` paths emit `debug`/`info` events with backend, argv0, and status.
+
 ## Feature map (implemented)
 
 | Area | Status |

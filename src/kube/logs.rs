@@ -11,6 +11,7 @@ use std::io;
 ///
 /// `namespace` `None` uses the kubeconfig default namespace.
 pub fn pod_logs(pod: &str, namespace: Option<&str>, tail: i64) -> io::Result<String> {
+    tracing::debug!(pod, ?namespace, tail, "kube pod_logs");
     let client = try_client()?;
     block_on(fetch(client, pod, namespace, tail))?
 }
