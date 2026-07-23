@@ -11,13 +11,9 @@ mod paths;
 
 use self::context::Kind;
 use self::paths::{collect_file_matches, collect_path_commands};
+use crate::builtins::NAMES;
 
 pub use list::{format_columns, list_display_lines, list_display_lines_width};
-
-const BUILTINS: &[&str] = &[
-    "alias", "bg", "cd", "disown", "doctor", "env", "exit", "fg", "heal", "history", "jobs",
-    "local", "set", "setenv", "source", "unalias", "unset", "unsetenv",
-];
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.
 pub fn complete(buffer: &mut String, cursor: &mut usize) -> Vec<String> {
@@ -76,7 +72,7 @@ fn default_matches(prefix: &str, out: &mut Vec<String>) {
         collect_file_matches(prefix, out);
         return;
     }
-    for name in BUILTINS {
+    for name in NAMES {
         if name.starts_with(prefix) {
             out.push((*name).to_owned());
         }
