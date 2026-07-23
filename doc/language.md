@@ -50,6 +50,10 @@ Handled mainly in `src/expand/`:
 | Form | Behavior |
 |------|----------|
 | `$name` / `${name}` | Local first, then exported |
+| `${name:-word}` | If unset or empty → expand `word`; else value |
+| `${name:+word}` | If unset or empty → empty; else expand `word` |
+| `${#name}` / `${#}` | Character length of value / argc |
+| `${name#pat}` / `##` / `%` / `%%` | Strip shortest/longest matching prefix (`#`/`##`) or suffix (`%`/`%%`); `pat` uses `*` / `?` |
 | `$?` / `$status` | Last command status |
 | `$n` / `$#` / `$*` | Positional / count / all (scripting argv) |
 | `` `cmd` `` | Capture stdout of nested command |

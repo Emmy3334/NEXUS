@@ -1,5 +1,6 @@
-//! `$` / `$?` / `$status` / `$n` / `$#` / `$*` / `${name}` into an [`ExpandedWord`].
+//! `$` / `$?` / `$status` / `$n` / `$#` / `$*` / `${…}` into an [`ExpandedWord`].
 
+use super::braced;
 use super::name::{is_name_continue, is_name_start, push_named_parameter};
 use super::ExpandedWord;
 use crate::env::ShellEnvironment;
@@ -24,7 +25,7 @@ pub(super) fn push_parameter(
             chars.next();
             out.push_str_literal(&env.star());
         }
-        Some('{') => push_braced(chars, env, last_status, out, globable),
+        Some('{') => braced::push_braced(chars, env, last_status, out, globable),
         Some(c) if c.is_ascii_digit() => push_digits(chars, env, out, globable),
         Some(c) if is_name_start(c) => push_plain_name(chars, env, last_status, out, globable),
         _ => out.push_literal('$'),
@@ -58,38 +59,6 @@ fn push_digits(
         chars.next();
     }
     push_named_parameter(&name, env, 0, out, globable);
-}
-
-fn push_braced(
-    chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
-    last_status: u8,
-    out: &mut ExpandedWord,
-    globable: bool,
-) {
-    chars.next();
-    let (name, closed) = read_braced_name(chars);
-    if !closed {
-        out.push_literal('$');
-        out.push_literal('{');
-        out.push_str_literal(&name);
-        return;
-    }
-    if name.is_empty() {
-        return;
-    }
-    push_named_parameter(&name, env, last_status, out, globable);
-}
-
-fn read_braced_name(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> (String, bool) {
-    let mut name = String::new();
-    for ch in chars.by_ref() {
-        if ch == '}' {
-            return (name, true);
-        }
-        name.push(ch);
-    }
-    (name, false)
 }
 
 fn push_plain_name(
