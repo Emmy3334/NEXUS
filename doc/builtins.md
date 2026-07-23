@@ -89,7 +89,7 @@ Uses bollard against the local Docker socket (same stack as Docker heal / Tab).
 
 | Form | Behavior |
 |------|----------|
-| `@docker ps` | Running containers (`NAME ID IMAGE STATUS`) |
+| `@docker ps` | Running containers (Docker CLI–style columns) |
 | `@docker logs <name\|id>` | Container logs to stdout |
 | daemon down / API error | Status `1` + stderr |
 

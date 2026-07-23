@@ -29,7 +29,7 @@ fn docker_ps_soft_or_header() {
     if heal::daemon_reachable() {
         let (result, out, err) = run_docker(&["ps"]);
         assert_eq!(result, BuiltinResult::Status(0), "stderr={err}");
-        assert!(out.starts_with("NAME\tID\tIMAGE\tSTATUS"));
+        assert!(out.contains("CONTAINER ID") && out.contains("NAMES"));
         return;
     }
     let (result, _, err) = run_docker(&["ps"]);
