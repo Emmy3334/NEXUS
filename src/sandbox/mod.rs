@@ -4,11 +4,13 @@ mod cache;
 mod engine;
 mod exit_code;
 mod host;
+mod manage;
 mod run;
 mod wat_install;
 
-pub use cache::{cache_dir, resolve_named};
+pub use cache::{cache_dir, cached_wasm_path, resolve_named};
 pub use host::run_host;
+pub use manage::{install_from_path, list_names, remove_named};
 pub use run::run_module;
 pub use wat_install::{install_from_wat, install_from_wat_into};
 

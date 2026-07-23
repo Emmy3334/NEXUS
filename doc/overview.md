@@ -43,7 +43,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Context Tab complete (git / interpreters / `@docker`/`@kube`; column ambiguous listing) | Yes |
 | Git-aware prompt (`$> [branch*] `) | Yes |
 | Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
-| Wasm sandbox (`sandbox`) + module cache heal | Yes |
+| Wasm sandbox (`sandbox` run/install/list/rm) + module cache heal | Yes |
 | Kubernetes API (`@kube` nodes/pods/logs/get/describe via kube-rs) | Yes |
 | Docker Engine API (`@docker` ps/logs via bollard) | Yes |
 | `foreach` / `while` / `if` | Yes |

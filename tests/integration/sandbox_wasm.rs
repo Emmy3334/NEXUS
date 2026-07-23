@@ -86,7 +86,120 @@ fn sandbox_too_few_args() {
         .unwrap()
         .unwrap();
     assert_eq!(result, BuiltinResult::Status(1));
-    assert!(String::from_utf8(stderr).unwrap().contains("Too few"));
+    assert!(String::from_utf8(stderr).unwrap().contains("usage:"));
+}
+
+#[test]
+fn sandbox_install_list_rm_round_trip() {
+    let _lock = WASM_CACHE_LOCK.lock().unwrap();
+    let dir = temp_cache("manage");
+    let _guard = with_cache(&dir);
+    let src = install_from_wat_into(&dir, "src_mod", EXIT42).unwrap();
+    let src_path = src.to_string_lossy().into_owned();
+
+    let mut env = ShellEnvironment::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let argv = vec!["sandbox".into(), "install".into(), src_path, "demo".into()];
+    let result = builtins::try_run(&argv, &mut env, 0, &mut stdout, &mut stderr)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        result,
+        BuiltinResult::Status(0),
+        "stderr={}",
+        String::from_utf8_lossy(&stderr)
+    );
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let result = builtins::try_run(
+        &["sandbox".into(), "list".into()],
+        &mut env,
+        0,
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(result, BuiltinResult::Status(0));
+    let listed = String::from_utf8(stdout).unwrap();
+    assert!(listed.lines().any(|l| l == "demo"), "listed={listed}");
+    assert!(listed.lines().any(|l| l == "src_mod"), "listed={listed}");
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let result = builtins::try_run(
+        &["sandbox".into(), "rm".into(), "demo".into()],
+        &mut env,
+        0,
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(result, BuiltinResult::Status(0));
+    assert!(sandbox::resolve_named("demo").is_none());
+    assert!(sandbox::resolve_named("src_mod").is_some());
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let result = builtins::try_run(
+        &["sandbox".into(), "rm".into(), "missing".into()],
+        &mut env,
+        0,
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(result, BuiltinResult::Status(1));
+    assert!(String::from_utf8(stderr)
+        .unwrap()
+        .contains("Wasm module not found"));
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn sandbox_install_from_wat_path() {
+    let _lock = WASM_CACHE_LOCK.lock().unwrap();
+    let dir = temp_cache("wat_install");
+    let _guard = with_cache(&dir);
+    let wat_path = dir.join("tool.wat");
+    fs::write(&wat_path, EXIT42).unwrap();
+
+    let mut env = ShellEnvironment::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let argv = vec![
+        "sandbox".into(),
+        "install".into(),
+        wat_path.to_string_lossy().into_owned(),
+    ];
+    let result = builtins::try_run(&argv, &mut env, 0, &mut stdout, &mut stderr)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        result,
+        BuiltinResult::Status(0),
+        "stderr={}",
+        String::from_utf8_lossy(&stderr)
+    );
+    assert!(sandbox::resolve_named("tool").is_some());
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let result = builtins::try_run(
+        &["sandbox".into(), "tool".into()],
+        &mut env,
+        0,
+        &mut stdout,
+        &mut stderr,
+    )
+    .unwrap()
+    .unwrap();
+    let _ = fs::remove_dir_all(dir);
+    assert_eq!(result, BuiltinResult::Status(42));
 }
 
 #[test]

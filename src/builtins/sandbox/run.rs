@@ -1,4 +1,4 @@
-//! `sandbox` — run a Wasm module from path/cache, or a softly isolated host command.
+//! `sandbox` run / soft-host branch (unchanged behavior).
 
 use crate::builtins::BuiltinResult;
 use crate::env::ShellEnvironment;
@@ -6,16 +6,13 @@ use crate::sandbox;
 
 use std::io::{self, Write};
 
-pub(super) fn sandbox_cmd(
+pub(super) fn run(
     argv: &[String],
     shell_env: &mut ShellEnvironment,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<BuiltinResult> {
-    let Some(target) = argv.get(1).map(String::as_str) else {
-        writeln!(stderr, "sandbox: Too few arguments.")?;
-        return Ok(BuiltinResult::Status(1));
-    };
+    let target = argv[1].as_str();
     let args = &argv[2..];
     if sandbox::resolve_named(target).is_some() || sandbox::is_wasm_path(target) {
         let code = sandbox::run_named_or_path(target, args, stdout, stderr)?;

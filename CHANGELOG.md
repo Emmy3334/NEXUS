@@ -31,6 +31,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
   running container names.
 - Heal fidelity: Docker/Kube forward exported shell env; Docker accepts finite stdin
   bytes (heredoc/pipe); Kube declines when stdin is present so Docker can feed it.
+- `sandbox install` / `list` / `rm` for the local Wasm module cache (`.wasm` / `.wat`).
 
 ### Fixed
 

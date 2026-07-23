@@ -23,7 +23,7 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 | **repl** | `src/repl/` | Main loop, script runner, control collect/run, line edition |
 | **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / (related resolution) |
 | **heal** | `src/heal/` | Self-heal seam + Wasm cache + Docker + K8s Pod (`heal/wasm/`, `heal/docker/`, `heal/kube/`) on not-found |
-| **sandbox** | `src/sandbox/` | Wasmtime WASI runner + on-disk module cache |
+| **sandbox** | `src/sandbox/` | Wasmtime WASI runner + on-disk module cache (`install`/`list`/`rm`) |
 | **kube** | `src/kube/` | Native Kubernetes client (nodes, pods, logs) via kube-rs |
 
 ### Exec internals (important subtrees)
