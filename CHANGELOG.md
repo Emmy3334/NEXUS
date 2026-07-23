@@ -53,6 +53,9 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Fixed
 
+- Drop global Linux `link-arg=-pie` rustflags (broke proc-macro dylib link in CI
+  with `undefined reference to main`); rely on rustc’s default PIE for Linux bins.
+
 - Background job tests wait longer for nested-`nexus` pipelines (Wasmtime-sized
   debug binary cold-start) and prefer `CARGO_BIN_EXE_nexus` when spawning the
   isolated shell child.
