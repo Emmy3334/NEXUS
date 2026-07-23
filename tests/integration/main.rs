@@ -3,6 +3,7 @@
 //! Every test file under `tests/integration/` is reached from this module tree.
 
 mod advanced;
+mod brace_glob;
 mod builtins;
 mod complete_context;
 mod cwd_lock;

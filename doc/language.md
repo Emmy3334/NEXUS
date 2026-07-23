@@ -54,6 +54,7 @@ Handled mainly in `src/expand/`:
 | `${name:+word}` | If unset or empty → empty; else expand `word` |
 | `${#name}` / `${#}` | Character length of value / argc |
 | `${name#pat}` / `##` / `%` / `%%` | Strip shortest/longest matching prefix (`#`/`##`) or suffix (`%`/`%%`); `pat` uses `*` / `?` |
+| `{a,b}` / `pre{a,b}post` | Brace expand (before `$`); needs a comma; quoted braces stay literal |
 | `$?` / `$status` | Last command status |
 | `$n` / `$#` / `$*` | Positional / count / all (scripting argv) |
 | `` `cmd` `` | Capture stdout of nested command |
@@ -63,7 +64,7 @@ Unmatched globs stay literal (`src/glob/`).
 
 ## Glob
 
-Patterns `*`, `?`, and `[…]` expand to matching pathnames. No match → original word.
+Patterns `*`, `?`, `[…]`, and recursive `**` expand to matching pathnames. A lone `**` component walks descendants (hidden names skipped). `**/` in the middle matches zero or more directories. No match → original word.
 
 ## Aliases
 
