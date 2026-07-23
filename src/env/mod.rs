@@ -13,6 +13,7 @@ mod argv;
 mod dirstack;
 mod func_frame;
 mod functions;
+mod local_scope;
 mod mutate;
 mod specials;
 
@@ -42,6 +43,8 @@ pub struct ShellEnvironment {
     pub(super) func_depth: u32,
     /// Set by `return` to stop the current function body.
     pub(super) pending_return: Option<u8>,
+    /// Stack of `local` restore frames (one per active function call).
+    pub(super) local_frames: Vec<local_scope::LocalFrame>,
     /// Session command history for `!` events and `history`.
     pub history: History,
     /// Interactive editor bindings for `bindkey` / line edition.
@@ -66,6 +69,7 @@ impl Clone for ShellEnvironment {
             argv: self.argv.clone(),
             func_depth: 0,
             pending_return: None,
+            local_frames: Vec::new(),
             history: self.history.clone(),
             key_bindings: self.key_bindings.clone(),
             dir_stack: self.dir_stack.clone(),
@@ -106,6 +110,7 @@ impl ShellEnvironment {
             argv: Vec::new(),
             func_depth: 0,
             pending_return: None,
+            local_frames: Vec::new(),
             history: History::default(),
             key_bindings: KeyBindings::new(),
             dir_stack: DirStack::default(),
@@ -130,6 +135,7 @@ impl ShellEnvironment {
             argv: Vec::new(),
             func_depth: 0,
             pending_return: None,
+            local_frames: Vec::new(),
             history: History::default(),
             key_bindings: KeyBindings::new(),
             dir_stack: DirStack::default(),

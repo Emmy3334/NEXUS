@@ -1,7 +1,7 @@
 //! Bonus builtin handlers (`which`, `repeat`, dir stack, `sandbox`, `@kube`, …).
 
 use super::super::{
-    dirstack, docker, heal, kube, repeat, return_cmd, sandbox, which, BuiltinResult,
+    dirstack, docker, heal, kube, local_cmd, repeat, return_cmd, sandbox, which, BuiltinResult,
 };
 use crate::env::ShellEnvironment;
 
@@ -45,6 +45,7 @@ pub(super) fn run(
             stderr,
         )?),
         "return" => return_cmd::run(argv, shell_env, last_status, stdout, stderr)?,
+        "local" => local_cmd::run(argv, shell_env, stdout, stderr)?,
         _ => return Ok(None),
     }))
 }

@@ -124,3 +124,105 @@ fn argc_inside_function() {
     assert_eq!(fs::read_to_string(&path).unwrap(), "3\n");
     let _ = fs::remove_file(&path);
 }
+
+#[test]
+fn local_outside_function_errors() {
+    let (code, err) = run("local x=1\n");
+    assert_eq!(code, 1);
+    assert!(err.contains("not in a function"), "{err}");
+}
+
+#[test]
+fn local_restores_outer_after_function() {
+    let path = scratch("local_restore");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+set x=outer
+f() {{
+local x=inner
+printf '%s\\n' $x
+}}
+f > {}
+printf '%s\\n' $x >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "inner\nouter\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn local_bare_name_is_empty() {
+    let path = scratch("local_bare");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+set x=outer
+f() {{
+local x
+printf '%s\\n' \"empty:$x\"
+}}
+f > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "empty:\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn local_nested_frames_restore() {
+    let path = scratch("local_nested");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+set x=global
+inner() {{
+local x=inner
+printf '%s\\n' $x
+}}
+outer() {{
+local x=outer
+inner
+printf '%s\\n' $x
+}}
+outer > {}
+printf '%s\\n' $x >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "inner\nouter\nglobal\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn local_restores_after_return() {
+    let path = scratch("local_return");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+set x=outer
+f() {{
+local x=inner
+return 0
+printf '%s\\n' never
+}}
+f
+printf '%s\\n' $x > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "outer\n");
+    let _ = fs::remove_file(&path);
+}

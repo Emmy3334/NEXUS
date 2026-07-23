@@ -10,10 +10,12 @@ impl ShellEnvironment {
     }
 
     pub(crate) fn enter_function(&mut self) {
+        self.push_local_frame();
         self.func_depth = self.func_depth.saturating_add(1);
     }
 
     pub(crate) fn leave_function(&mut self) {
+        self.pop_local_frame();
         self.func_depth = self.func_depth.saturating_sub(1);
     }
 

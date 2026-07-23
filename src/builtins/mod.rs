@@ -15,6 +15,7 @@ mod heal;
 mod history;
 mod jobs;
 mod kube;
+mod local_cmd;
 mod repeat;
 mod return_cmd;
 mod sandbox;
@@ -77,6 +78,7 @@ pub fn is_builtin(name: &str) -> bool {
             | "popd"
             | "dirs"
             | "return"
+            | "local"
             | "disown"
     )
 }
