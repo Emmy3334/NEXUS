@@ -9,6 +9,8 @@ WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY tests ./tests
+# Do not set RUSTFLAGS=-C link-arg=-pie here: it applies to proc-macro dylibs too.
+# rustc already emits PIE for Linux GNU binaries by default.
 RUN cargo build --release --locked --bin nexus \
     && strip -s target/release/nexus
 

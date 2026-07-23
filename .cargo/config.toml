@@ -1,3 +1,7 @@
-[target.'cfg(all(target_os = "linux", target_env = "gnu"))']
-# Prefer PIE for release/container Linux builds (ASLR-friendly).
-rustflags = ["-C", "link-arg=-pie"]
+# Intentionally empty of rustflags.
+#
+# Do NOT add global `link-arg=-pie` here (or via RUSTFLAGS): Cargo applies those
+# flags to every crate unit, including proc-macro dylibs (e.g. serde_derive),
+# which then fail to link on Linux with `undefined reference to main`.
+#
+# rustc already emits PIE for Linux GNU binaries by default.

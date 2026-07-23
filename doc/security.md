@@ -16,8 +16,11 @@ you do not need it.
 ## Release binary
 
 `[profile.release]` in `Cargo.toml` enables LTO, single codegen unit, `panic =
-"abort"`, and symbol stripping. Linux GNU targets also get PIE via
-`.cargo/config.toml`.
+"abort"`, and symbol stripping. Do **not** set global `link-arg=-pie` via
+`.cargo/config.toml` or `RUSTFLAGS` — Cargo/rustc apply those flags to
+proc-macro dylibs as well, which breaks Linux CI (`undefined reference to
+main` when linking e.g. `serde_derive`). rustc already emits PIE for Linux GNU
+binaries by default.
 
 ## Container image
 
