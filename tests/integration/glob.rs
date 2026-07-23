@@ -57,7 +57,7 @@ fn star_expands_sorted_non_hidden() {
     fs::write(dir.join(".hidden"), "").unwrap();
     std::env::set_current_dir(&dir).unwrap();
 
-    let word = expand_word_for_exec("*", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("*", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(
         expand_globs(&word),
         vec!["a.txt".to_owned(), "b.txt".to_owned()]
@@ -78,7 +78,7 @@ fn question_matches_one_char() {
     fs::write(dir.join("a"), "").unwrap();
     std::env::set_current_dir(&dir).unwrap();
 
-    let word = expand_word_for_exec("?", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("?", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(expand_globs(&word), vec!["a".to_owned()]);
 
     std::env::set_current_dir(&start).unwrap();
@@ -97,10 +97,10 @@ fn bracket_class_and_range() {
     fs::write(dir.join("c"), "").unwrap();
     std::env::set_current_dir(&dir).unwrap();
 
-    let word = expand_word_for_exec("[ab]", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("[ab]", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(expand_globs(&word), vec!["a".to_owned(), "b".to_owned()]);
 
-    let word = expand_word_for_exec("[a-c]", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("[a-c]", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(
         expand_globs(&word),
         vec!["a".to_owned(), "b".to_owned(), "c".to_owned()]
@@ -112,19 +112,23 @@ fn bracket_class_and_range() {
 
 #[test]
 fn quoted_glob_stays_literal() {
-    let word = expand_word_for_exec("'*'", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("'*'", &mut ShellEnvironment::default(), 0).unwrap();
     assert!(!word.has_active_glob());
     assert_eq!(expand_globs(&word), vec!["*".to_owned()]);
 
-    let word = expand_word_for_exec("\"*\"", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("\"*\"", &mut ShellEnvironment::default(), 0).unwrap();
     assert!(!word.has_active_glob());
     assert_eq!(expand_globs(&word), vec!["*".to_owned()]);
 }
 
 #[test]
 fn no_match_keeps_literal() {
-    let word =
-        expand_word_for_exec("nexus_no_such_glob_zzz*", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec(
+        "nexus_no_such_glob_zzz*",
+        &mut ShellEnvironment::default(),
+        0,
+    )
+    .unwrap();
     assert_eq!(
         expand_globs(&word),
         vec!["nexus_no_such_glob_zzz*".to_owned()]
@@ -184,7 +188,7 @@ fn redirect_single_glob_ok() {
     fs::write(dir.join("only.out"), "").unwrap();
     std::env::set_current_dir(&dir).unwrap();
 
-    let word = expand_word_for_exec("*.out", &ShellEnvironment::default(), 0).unwrap();
+    let word = expand_word_for_exec("*.out", &mut ShellEnvironment::default(), 0).unwrap();
     assert_eq!(expand_globs_one(&word).unwrap(), "only.out");
 
     let mut env = test_env();

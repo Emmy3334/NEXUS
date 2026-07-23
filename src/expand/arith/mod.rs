@@ -10,7 +10,7 @@ use crate::lex::LexError;
 /// Consume body after `((` already eaten; push decimal result.
 pub(super) fn push_arith(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
 ) -> Result<(), LexError> {

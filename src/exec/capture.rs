@@ -1,5 +1,6 @@
 //! Capture stdout from a command-substitution body.
 
+use super::cwd;
 use crate::env::ShellEnvironment;
 use crate::lex::{self, LexError};
 use crate::parse::{self, CommandList};
@@ -9,9 +10,23 @@ use std::io::{BufRead, Write};
 /// Run `source` as a mini command line and return its stdout text.
 ///
 /// Trailing newlines are stripped (tcsh). Uses a cloned environment so
-/// builtins inside `` `…` `` do not mutate the parent shell. Nested `<<`
-/// bodies are read from `stdin` (same stream as the parent REPL/script).
+/// builtins inside `` `…` `` / `$(…)` do not mutate the parent shell.
+/// Process cwd is restored afterward (like `(…)`), so `cd` does not leak.
+/// Nested `<<` bodies are read from `stdin` (same stream as the parent).
 pub(crate) fn capture_command_output(
+    source: &str,
+    shell_env: &ShellEnvironment,
+    last_status: u8,
+    stdin: &mut impl BufRead,
+    stderr: &mut impl Write,
+) -> Result<String, LexError> {
+    let saved_cwd = cwd::save();
+    let result = capture_inner(source, shell_env, last_status, stdin, stderr);
+    cwd::restore(saved_cwd, stderr);
+    result
+}
+
+fn capture_inner(
     source: &str,
     shell_env: &ShellEnvironment,
     last_status: u8,
@@ -61,7 +76,8 @@ fn collect_bodies(
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> Result<Vec<String>, LexError> {
-    match crate::exec::collect_heredoc_bodies(list, shell_env, last_status, stdin, stderr) {
+    let mut env = shell_env.clone();
+    match crate::exec::collect_heredoc_bodies(list, &mut env, last_status, stdin, stderr) {
         Ok(Ok(bodies)) => Ok(bodies),
         Ok(Err(_)) | Err(_) => Err(LexError::CommandSubstitution),
     }

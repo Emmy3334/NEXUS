@@ -9,7 +9,7 @@ use crate::lex::LexError;
 
 pub(super) fn push_parameter(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
@@ -38,7 +38,7 @@ pub(super) fn push_parameter(
 
 fn push_arith_or_literal(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
 ) -> Result<(), LexError> {
@@ -58,7 +58,7 @@ fn push_status(last_status: u8, out: &mut ExpandedWord) {
     out.push_str_literal(&buf);
 }
 
-fn push_argc(env: &ShellEnvironment, out: &mut ExpandedWord) {
+fn push_argc(env: &mut ShellEnvironment, out: &mut ExpandedWord) {
     let mut buf = String::new();
     let _ = std::fmt::Write::write_fmt(&mut buf, format_args!("{}", env.argc()));
     out.push_str_literal(&buf);
@@ -66,7 +66,7 @@ fn push_argc(env: &ShellEnvironment, out: &mut ExpandedWord) {
 
 fn push_digits(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     out: &mut ExpandedWord,
     globable: bool,
 ) {
@@ -83,7 +83,7 @@ fn push_digits(
 
 fn push_plain_name(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,

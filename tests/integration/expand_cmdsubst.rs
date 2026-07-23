@@ -145,7 +145,7 @@ fn unclosed_errors() {
         Err(LexError::UnclosedCommandSubst)
     );
     assert_eq!(
-        expand_word_for_exec("$(hi", &ShellEnvironment::default(), 0).unwrap_err(),
+        expand_word_for_exec("$(hi", &mut ShellEnvironment::default(), 0).unwrap_err(),
         LexError::UnclosedCommandSubst
     );
 }
@@ -161,4 +161,51 @@ fn in_redirect_path() {
     assert_eq!(result, CommandResult::Status(0), "{err}");
     assert_eq!(fs::read_to_string(&path).unwrap(), "ok\n");
     let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn cmdsubst_cd_does_not_leak_process_cwd() {
+    let _cwd = crate::cwd_lock::lock();
+    let start = std::env::current_dir().unwrap();
+    let tmp = temp_out("cwd_dir");
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).unwrap();
+    let tmp_s = tmp.to_str().expect("utf8");
+    let mut env = env_with(&[]);
+    let cmd = format!("printf '%s' $(cd '{tmp_s}'; pwd)");
+    let (result, err) = run(&cmd, &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0), "{err}");
+    assert_eq!(std::env::current_dir().unwrap(), start);
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn backtick_cd_does_not_leak_process_cwd() {
+    let _cwd = crate::cwd_lock::lock();
+    let start = std::env::current_dir().unwrap();
+    let tmp = temp_out("cwd_bt");
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).unwrap();
+    let tmp_s = tmp.to_str().expect("utf8");
+    let mut env = env_with(&[]);
+    let cmd = format!("printf '%s' `cd '{tmp_s}'; pwd`");
+    let (result, err) = run(&cmd, &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0), "{err}");
+    assert_eq!(std::env::current_dir().unwrap(), start);
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn cmdsubst_cd_restores_cwd_on_failure() {
+    let _cwd = crate::cwd_lock::lock();
+    let start = std::env::current_dir().unwrap();
+    let tmp = temp_out("cwd_fail");
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).unwrap();
+    let tmp_s = tmp.to_str().expect("utf8");
+    let mut env = env_with(&[]);
+    let cmd = format!("printf '%s' $(cd '{tmp_s}'; false; pwd)");
+    let _ = run(&cmd, &mut env, 0);
+    assert_eq!(std::env::current_dir().unwrap(), start);
+    let _ = fs::remove_dir_all(&tmp);
 }

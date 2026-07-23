@@ -125,7 +125,7 @@ fn subshell_heredoc_on_inner_command() {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     let mut input = Cursor::new("hello\nEOF\n");
-    let bodies = collect_heredoc_bodies(&list, &env, 0, &mut input, &mut stderr)
+    let bodies = collect_heredoc_bodies(&list, &mut env, 0, &mut input, &mut stderr)
         .unwrap()
         .unwrap();
     let result = execute_list(

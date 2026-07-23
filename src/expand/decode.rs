@@ -11,7 +11,7 @@ use crate::lex::LexError;
 /// Expand one brace-expanded piece into field(s).
 pub(super) fn expand_word_fields_into(
     raw: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     fields_out: &mut Vec<ExpandedWord>,
     capture: &mut dyn FnMut(&str) -> Result<String, LexError>,
@@ -40,7 +40,7 @@ pub(super) fn expand_word_fields_into(
 /// Expand without brace (parameter operator words / patterns).
 pub(super) fn expand_word_for_exec(
     raw: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<ExpandedWord, LexError> {
     let mut fields = Vec::new();
@@ -60,7 +60,7 @@ fn step(
     ch: char,
     state: QuoteState,
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     fields: &mut FieldBuilder,
     capture: &mut dyn FnMut(&str) -> Result<String, LexError>,
@@ -82,7 +82,7 @@ fn step(
 fn step_normal(
     ch: char,
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     fields: &mut FieldBuilder,
     capture: &mut dyn FnMut(&str) -> Result<String, LexError>,
@@ -122,7 +122,7 @@ fn step_normal(
 fn step_double(
     ch: char,
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     fields: &mut FieldBuilder,
     capture: &mut dyn FnMut(&str) -> Result<String, LexError>,

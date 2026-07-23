@@ -1,6 +1,8 @@
 //! Unary / primary / number / bare name / nested `$((…))`.
 
-mod dollar;
+pub(super) mod dollar;
+
+pub(super) use dollar::{is_name_start, lookup_int, take_name};
 
 use super::parse_expr;
 use crate::env::ShellEnvironment;
@@ -17,7 +19,7 @@ pub(super) fn skip_ws(chars: &mut Peekable<Chars<'_>>) {
 
 pub(super) fn parse_unary(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     skip_ws(chars);
@@ -44,7 +46,7 @@ pub(super) fn parse_unary(
 
 fn parse_primary(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     skip_ws(chars);

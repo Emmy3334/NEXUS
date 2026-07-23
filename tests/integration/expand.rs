@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 
-fn expand(raw: &str, env: &ShellEnvironment, status: u8) -> String {
+fn expand(raw: &str, env: &mut ShellEnvironment, status: u8) -> String {
     expand_word_for_exec(raw, env, status)
         .unwrap()
         .into_string()
@@ -59,65 +59,65 @@ fn temp_out(name: &str) -> PathBuf {
 
 #[test]
 fn expand_home_plain_and_braced() {
-    let env = env_with(&[("HOME", "/tmp/home")]);
-    assert_eq!(expand("$HOME", &env, 0), "/tmp/home");
-    assert_eq!(expand("${HOME}", &env, 0), "/tmp/home");
+    let mut env = env_with(&[("HOME", "/tmp/home")]);
+    assert_eq!(expand("$HOME", &mut env, 0), "/tmp/home");
+    assert_eq!(expand("${HOME}", &mut env, 0), "/tmp/home");
 }
 
 #[test]
 fn expand_status_question() {
-    let env = ShellEnvironment::default();
-    assert_eq!(expand("$?", &env, 42), "42");
-    assert_eq!(expand("x$?y", &env, 7), "x7y");
+    let mut env = ShellEnvironment::default();
+    assert_eq!(expand("$?", &mut env, 42), "42");
+    assert_eq!(expand("x$?y", &mut env, 7), "x7y");
 }
 
 #[test]
 fn expand_status_name_like_question() {
-    let env = ShellEnvironment::default();
-    assert_eq!(expand("$status", &env, 3), "3");
-    assert_eq!(expand("${status}", &env, 11), "11");
+    let mut env = ShellEnvironment::default();
+    assert_eq!(expand("$status", &mut env, 3), "3");
+    assert_eq!(expand("${status}", &mut env, 11), "11");
 }
 
 #[test]
 fn expand_cwd_local() {
     let mut env = ShellEnvironment::default();
     env.set_local("cwd", "/tmp/nexus_cwd");
-    assert_eq!(expand("$cwd", &env, 0), "/tmp/nexus_cwd");
+    assert_eq!(expand("$cwd", &mut env, 0), "/tmp/nexus_cwd");
 }
 
 #[test]
 fn no_expand_inside_single_quotes() {
-    let env = env_with(&[("HOME", "/tmp/home")]);
-    assert_eq!(expand("'$HOME'", &env, 0), "$HOME");
-    assert_eq!(expand("'$?'", &env, 3), "$?");
+    let mut env = env_with(&[("HOME", "/tmp/home")]);
+    assert_eq!(expand("'$HOME'", &mut env, 0), "$HOME");
+    assert_eq!(expand("'$?'", &mut env, 3), "$?");
 }
 
 #[test]
 fn expand_inside_double_quotes() {
-    let env = env_with(&[("HOME", "/tmp/home")]);
-    assert_eq!(expand("\"$HOME\"", &env, 0), "/tmp/home");
-    assert_eq!(expand("\"status=$?\"", &env, 9), "status=9");
+    let mut env = env_with(&[("HOME", "/tmp/home")]);
+    assert_eq!(expand("\"$HOME\"", &mut env, 0), "/tmp/home");
+    assert_eq!(expand("\"status=$?\"", &mut env, 9), "status=9");
 }
 
 #[test]
 fn unknown_var_expands_to_empty() {
-    let env = ShellEnvironment::default();
-    assert_eq!(expand("$NEXUS_NO_SUCH", &env, 0), "");
-    assert_eq!(expand("${NEXUS_NO_SUCH}", &env, 0), "");
+    let mut env = ShellEnvironment::default();
+    assert_eq!(expand("$NEXUS_NO_SUCH", &mut env, 0), "");
+    assert_eq!(expand("${NEXUS_NO_SUCH}", &mut env, 0), "");
 }
 
 #[test]
 fn escaped_dollar_stays_literal() {
-    let env = env_with(&[("HOME", "/tmp")]);
-    assert_eq!(expand(r"\$HOME", &env, 0), "$HOME");
-    assert_eq!(expand(r#""\$HOME""#, &env, 0), "$HOME");
+    let mut env = env_with(&[("HOME", "/tmp")]);
+    assert_eq!(expand(r"\$HOME", &mut env, 0), "$HOME");
+    assert_eq!(expand(r#""\$HOME""#, &mut env, 0), "$HOME");
 }
 
 #[test]
 fn unclosed_quote_still_errors() {
-    let env = ShellEnvironment::default();
+    let mut env = ShellEnvironment::default();
     assert_eq!(
-        expand_word_for_exec("\"$HOME", &env, 0).unwrap_err(),
+        expand_word_for_exec("\"$HOME", &mut env, 0).unwrap_err(),
         LexError::UnclosedQuote
     );
 }
@@ -196,7 +196,7 @@ fn pipe_argv_expands_var() {
 fn local_shadows_exported_in_expansion() {
     let mut env = env_with(&[("FOO", "exported")]);
     env.set_local("FOO", "local");
-    assert_eq!(expand("$FOO", &env, 0), "local");
+    assert_eq!(expand("$FOO", &mut env, 0), "local");
 }
 
 #[test]
@@ -272,14 +272,14 @@ fn backtick_unclosed_errors() {
         Err(LexError::UnclosedQuote)
     );
     assert_eq!(
-        expand_word_for_exec("`hi", &ShellEnvironment::default(), 0).unwrap_err(),
+        expand_word_for_exec("`hi", &mut ShellEnvironment::default(), 0).unwrap_err(),
         LexError::UnclosedQuote
     );
 }
 
 #[test]
 fn backtick_heredoc_reads_body_from_stdin() {
-    let env = env_with(&[]);
+    let mut env = env_with(&[]);
     let mut argv = Vec::new();
     let mut stderr = Vec::new();
     let mut stdin = std::io::Cursor::new("hello from heredoc\nEND\n");
@@ -287,7 +287,7 @@ fn backtick_heredoc_reads_body_from_stdin() {
     nexus::parse::fill_argv(
         &["\"`cat <<END`\""],
         &mut argv,
-        &env,
+        &mut env,
         0,
         &mut stdin,
         &mut stderr,

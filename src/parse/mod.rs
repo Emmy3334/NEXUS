@@ -151,7 +151,7 @@ pub fn parse_line<'a>(
 pub fn fill_argv(
     words: &[&str],
     argv: &mut Vec<String>,
-    env: &crate::env::ShellEnvironment,
+    env: &mut crate::env::ShellEnvironment,
     last_status: u8,
     stdin: &mut impl std::io::BufRead,
     stderr: &mut impl std::io::Write,
@@ -159,8 +159,10 @@ pub fn fill_argv(
     let mut expanded = Vec::new();
     let mut fields = Vec::new();
     for raw in words {
-        let mut capture =
-            |body: &str| crate::exec::capture_command_output(body, env, last_status, stdin, stderr);
+        let snap = env.clone();
+        let mut capture = |body: &str| {
+            crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr)
+        };
         crate::expand::expand_word_fields_into(raw, env, last_status, &mut fields, &mut capture)?;
         for field in fields.drain(..) {
             expanded.extend(crate::glob::expand_globs(&field));

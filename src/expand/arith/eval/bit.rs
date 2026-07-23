@@ -10,7 +10,7 @@ use std::str::Chars;
 
 pub(super) fn parse_bitor(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_bitxor(chars, env, last_status)?;
@@ -27,7 +27,7 @@ pub(super) fn parse_bitor(
 
 fn parse_bitxor(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_bitand(chars, env, last_status)?;
@@ -44,7 +44,7 @@ fn parse_bitxor(
 
 fn parse_bitand(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     let mut left = parse_compare(chars, env, last_status)?;

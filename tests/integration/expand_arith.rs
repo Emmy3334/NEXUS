@@ -14,13 +14,13 @@ fn test_env() -> ShellEnvironment {
 }
 
 fn expand(raw: &str) -> Result<String, LexError> {
-    let env = test_env();
-    expand_word_for_exec(raw, &env, 0).map(|w| w.into_string())
+    let mut env = test_env();
+    expand_word_for_exec(raw, &mut env, 0).map(|w| w.into_string())
 }
 
 fn expand_status(raw: &str, status: u8) -> Result<String, LexError> {
-    let env = test_env();
-    expand_word_for_exec(raw, &env, status).map(|w| w.into_string())
+    let mut env = test_env();
+    expand_word_for_exec(raw, &mut env, status).map(|w| w.into_string())
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn basic_ops_and_parens() {
 fn dollar_vars_inside() {
     let mut env = test_env();
     env.set_local("n", "4");
-    let word = expand_word_for_exec("$(( $n * 2 + $? ))", &env, 3)
+    let word = expand_word_for_exec("$(( $n * 2 + $? ))", &mut env, 3)
         .unwrap()
         .into_string();
     assert_eq!(word, "11");
@@ -56,7 +56,7 @@ fn bare_names() {
     let mut env = test_env();
     env.set_local("x", "10");
     env.set_local("y", "3");
-    let word = expand_word_for_exec("$((x+y*2))", &env, 0)
+    let word = expand_word_for_exec("$((x+y*2))", &mut env, 0)
         .unwrap()
         .into_string();
     assert_eq!(word, "16");
@@ -109,4 +109,84 @@ fn errors() {
 #[test]
 fn unset_var_is_zero() {
     assert_eq!(expand("$(( $missing + 5 ))").unwrap(), "5");
+}
+
+#[test]
+fn assignment_sets_local_and_returns_value() {
+    let mut env = test_env();
+    let word = expand_word_for_exec("$((x=5))", &mut env, 0)
+        .unwrap()
+        .into_string();
+    assert_eq!(word, "5");
+    assert_eq!(env.lookup("x"), Some("5"));
+}
+
+#[test]
+fn compound_assignment_and_chain() {
+    let mut env = test_env();
+    env.set_local("x", "3");
+    assert_eq!(
+        expand_word_for_exec("$((x+=2))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "5"
+    );
+    assert_eq!(env.lookup("x"), Some("5"));
+    assert_eq!(
+        expand_word_for_exec("$((a=b=4))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "4"
+    );
+    assert_eq!(env.lookup("a"), Some("4"));
+    assert_eq!(env.lookup("b"), Some("4"));
+}
+
+#[test]
+fn assignment_updates_exported_when_no_local() {
+    let mut env = test_env();
+    env.set("N", "1");
+    assert_eq!(
+        expand_word_for_exec("$((N+=1))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "2"
+    );
+    assert_eq!(env.get("N"), Some("2"));
+    assert!(env.get_local("N").is_none());
+}
+
+#[test]
+fn equality_is_not_assignment() {
+    assert_eq!(expand("$((1==1))").unwrap(), "1");
+    assert_eq!(expand("$((1=2))"), Err(LexError::Arithmetic));
+}
+
+#[test]
+fn assignment_div_by_zero_errors() {
+    assert_eq!(expand("$((x/=0))"), Err(LexError::Arithmetic));
+}
+
+#[test]
+fn assignment_inside_cmdsubst_does_not_leak() {
+    use nexus::exec::{execute_list, CommandResult};
+    let mut env = test_env();
+    let source = "printf '%s' $(echo $((leak=9)))";
+    let mut tokens = Vec::new();
+    tokenize_into(source, &mut tokens).unwrap();
+    let list = nexus::parse::parse_line(source, &tokens).unwrap().unwrap();
+    let mut argv = Vec::new();
+    let result = execute_list(
+        &list,
+        &mut argv,
+        &mut env,
+        0,
+        Vec::new(),
+        &mut std::io::empty(),
+        &mut Vec::new(),
+        &mut Vec::new(),
+    )
+    .unwrap();
+    assert_eq!(result, CommandResult::Status(0));
+    assert!(env.lookup("leak").is_none());
 }

@@ -10,7 +10,7 @@ use std::str::Chars;
 
 pub(super) fn value(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     match chars.peek().copied() {
@@ -27,7 +27,7 @@ pub(super) fn value(
 
 fn nested_arith(
     chars: &mut Peekable<Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
 ) -> Result<i64, LexError> {
     chars.next(); // '('
@@ -51,7 +51,7 @@ fn take_digits(chars: &mut Peekable<Chars<'_>>) -> String {
     name
 }
 
-pub(super) fn take_name(chars: &mut Peekable<Chars<'_>>) -> String {
+pub(in crate::expand::arith::eval) fn take_name(chars: &mut Peekable<Chars<'_>>) -> String {
     let mut name = String::new();
     if let Some(c) = chars.next() {
         name.push(c);
@@ -66,7 +66,11 @@ pub(super) fn take_name(chars: &mut Peekable<Chars<'_>>) -> String {
     name
 }
 
-pub(super) fn lookup_int(name: &str, env: &ShellEnvironment, last_status: u8) -> i64 {
+pub(in crate::expand::arith::eval) fn lookup_int(
+    name: &str,
+    env: &ShellEnvironment,
+    last_status: u8,
+) -> i64 {
     if name == "status" {
         return i64::from(last_status);
     }
@@ -81,7 +85,7 @@ pub(super) fn lookup_int(name: &str, env: &ShellEnvironment, last_status: u8) ->
     text.parse().unwrap_or(0)
 }
 
-pub(super) fn is_name_start(c: char) -> bool {
+pub(in crate::expand::arith::eval) fn is_name_start(c: char) -> bool {
     c.is_ascii_alphabetic() || c == '_'
 }
 

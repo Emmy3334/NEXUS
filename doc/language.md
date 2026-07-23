@@ -58,9 +58,10 @@ Handled mainly in `src/expand/`:
 | `$?` / `$status` | Last command status |
 | `$n` / `$#` / `$*` | Positional / count / all (scripting argv) |
 | `$((expr))` | Integer arithmetic: `+ - * / % **`, unary `+ - ! ~`, `(…)`, shifts, bitwise,
-  compare / `&&` `||`, ternary `?:`, `$name`/`$?`/`$n`, bare names, nested `$((…))`
-  (unset → 0) |
-| `` `cmd` `` / `$(cmd)` | Capture stdout of nested command (trailing newlines stripped) |
+  compare / `&&` `||`, ternary `?:`, assignments `=` / `+=` `-=` `*=` `/=` `%=`,
+  `$name`/`$?`/`$n`, bare names, nested `$((…))` (unset → 0) |
+| `` `cmd` `` / `$(cmd)` | Capture stdout of nested command (trailing newlines stripped; process
+  cwd restored after, like `(…)`) |
 | escapes / quotes | Preserved through lex; decoded at expand |
 
 Unmatched globs stay literal (`src/glob/`).

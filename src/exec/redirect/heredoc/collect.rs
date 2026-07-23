@@ -9,7 +9,7 @@ use std::io::{self, BufRead, Write};
 /// Read heredoc bodies for every `<<` in `list`, left-to-right (depth-first).
 pub fn collect_heredoc_bodies(
     list: &CommandList<'_>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     input: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -32,7 +32,7 @@ pub fn collect_heredoc_bodies(
 
 fn collect_from_list(
     list: &CommandList<'_>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     input: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -53,7 +53,7 @@ fn collect_from_list(
 
 fn collect_from_command(
     command: &PipelineCommand<'_>,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     input: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -89,7 +89,7 @@ fn collect_from_command(
 
 fn collect_redirects(
     redirects: &[crate::parse::Redirect<'_>],
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     input: &mut impl BufRead,
     stderr: &mut impl Write,
@@ -112,15 +112,15 @@ fn collect_redirects(
 
 fn expand_heredoc_delimiter(
     raw: &str,
-    shell_env: &ShellEnvironment,
+    shell_env: &mut ShellEnvironment,
     last_status: u8,
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> io::Result<Result<String, u8>> {
     let mut fields = Vec::new();
-    let mut capture = |body: &str| {
-        crate::exec::capture_command_output(body, shell_env, last_status, stdin, stderr)
-    };
+    let snap = shell_env.clone();
+    let mut capture =
+        |body: &str| crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr);
     match expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut capture) {
         Ok(()) => Ok(Ok(fields
             .into_iter()

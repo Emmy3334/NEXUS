@@ -14,7 +14,7 @@ use self::parse::Form;
 
 pub(super) fn push_braced(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,
@@ -35,7 +35,7 @@ pub(super) fn push_braced(
 
 fn dispatch(
     body: &str,
-    env: &ShellEnvironment,
+    env: &mut ShellEnvironment,
     last_status: u8,
     out: &mut ExpandedWord,
     globable: bool,

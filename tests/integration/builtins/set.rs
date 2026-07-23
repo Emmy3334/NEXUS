@@ -37,7 +37,7 @@ fn set_assigns_local_not_exported() {
     assert_eq!(shell_env.get_local("FOO"), Some("bar"));
     assert_eq!(shell_env.get("FOO"), None);
     assert_eq!(
-        expand_word_for_exec("$FOO", &shell_env, 0)
+        expand_word_for_exec("$FOO", &mut shell_env, 0)
             .unwrap()
             .as_str(),
         "bar"
@@ -125,7 +125,7 @@ fn unset_removes_local() {
     );
     assert_eq!(shell_env.get_local("FOO"), None);
     assert_eq!(
-        expand_word_for_exec("$FOO", &shell_env, 0)
+        expand_word_for_exec("$FOO", &mut shell_env, 0)
             .unwrap()
             .as_str(),
         ""

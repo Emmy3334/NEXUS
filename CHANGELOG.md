@@ -16,8 +16,14 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 - Heal integration tests that exercise alpine catch-all (`apk` / `cat` / `printenv`) set
   `heal_catch_all=1` so they match the default mapped-only Docker/Kube policy.
 
+### Fixed
+
+- `` `…` `` / `$(…)` restore process cwd after `cd` (same as `(…)` subshells).
+
 ### Added
 
+- Arithmetic assignments in `$((…))`: `=` / `+=` `-=` `*=` `/=` `%=` (right-assoc;
+  writes local, or exported if already exported with no local).
 - Command substitution `$(cmd)` (lex keeps the span as one word; unquoted field-split
   like backticks; double-quoted keeps blanks; reuses capture / trailing-newline strip).
 - Line-edit `C-l` clear-screen (`clear-screen`) and Tab completion for `$name` /
