@@ -21,6 +21,7 @@ pub fn action_name(action: Action) -> &'static str {
         Action::TransposeWords => "transpose-words",
         Action::HistoryUp => "up-history",
         Action::HistoryDown => "down-history",
+        Action::HistoryISearch => "history-incremental-search-backward",
         Action::Complete => "complete-word",
         Action::Interrupt => "tty-sigintr",
         Action::Eof => "end-of-file",

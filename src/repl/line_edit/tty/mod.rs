@@ -6,6 +6,7 @@ mod draw;
 mod escape;
 mod event;
 mod handle;
+mod isearch_mode;
 mod keys;
 mod queue;
 mod term;
@@ -14,6 +15,7 @@ pub use queue::take_complete_line;
 
 use self::actions::Loop;
 use self::buffer::EditBuffer;
+use super::isearch::HistoryISearch;
 use super::probe::quotes_closed;
 use super::recall::HistoryRecall;
 use super::ReadOutcome;
@@ -36,6 +38,7 @@ pub(super) fn edit_line(
     let mut nav = HistoryRecall::new(history);
     let mut prompt = PromptLine::primary();
     let mut pasting = false;
+    let mut isearch: Option<HistoryISearch<'_>> = None;
     bindings.enter_insert_map();
     draw::redraw(stdout, prompt.as_str(), &edit)?;
     loop {
@@ -47,20 +50,26 @@ pub(super) fn edit_line(
             &mut nav,
             queue,
             &mut pasting,
+            history,
+            &mut isearch,
         )? {
             Loop::Continue => {}
             Loop::Accept => {
+                isearch = None;
                 if finish_accept(stdout, &mut edit, &mut prompt, out)? {
                     return Ok(ReadOutcome::Line);
                 }
                 nav = HistoryRecall::new(history);
             }
-            Loop::Eof if edit.is_empty() => {
+            Loop::Eof if edit.is_empty() && isearch.is_none() => {
                 out.clear();
                 return Ok(ReadOutcome::Eof);
             }
             Loop::Eof => {}
-            Loop::Interrupt => on_interrupt(stdout, &mut edit, &mut nav, history, &mut prompt)?,
+            Loop::Interrupt => {
+                isearch = None;
+                on_interrupt(stdout, &mut edit, &mut nav, history, &mut prompt)?;
+            }
         }
     }
 }
