@@ -58,7 +58,7 @@ fn collect_matches(before: &str, prefix: &str) -> Vec<String> {
         Kind::GitBranch => git::collect_branches(prefix, &mut out),
         Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),
         Kind::DockerContainer => docker::collect(prefix, &mut out),
-        Kind::KubePod => kube::collect(prefix, &mut out),
+        Kind::Kube(kind) => kube::collect(&kind, prefix, &mut out),
         Kind::Default => default_matches(prefix, &mut out),
     }
     out.sort();

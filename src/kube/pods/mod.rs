@@ -4,6 +4,7 @@ mod ready;
 
 use super::age;
 use super::client::try_client;
+use super::scope::PodScope;
 use super::table;
 use crate::tokio_rt::{block_on, io_other};
 use k8s_openapi::api::core::v1::Pod;
@@ -12,28 +13,40 @@ use kube::ResourceExt;
 
 use std::io;
 
+pub(crate) use ready::{ready_count, restarts};
+
 /// Kubectl-like pod table lines (includes header).
-pub fn list_pods_table(all_namespaces: bool) -> io::Result<Vec<String>> {
+pub fn list_pods_table(scope: &PodScope) -> io::Result<Vec<String>> {
     let client = try_client()?;
-    block_on(build_table(client, all_namespaces))?
+    block_on(build_table(client, scope))?
 }
 
-/// Pod names in the default namespace (for Tab completion).
-pub fn list_pod_names(prefix: &str) -> Vec<String> {
+/// Pod names for Tab completion (`namespace` `None` ⇒ default ns).
+pub fn list_pod_names(prefix: &str, namespace: Option<&str>) -> Vec<String> {
     let Ok(client) = try_client() else {
         return Vec::new();
     };
-    match block_on(names_for(client, prefix)) {
+    match block_on(names_for(client, prefix, namespace)) {
         Ok(Ok(names)) => names,
         _ => Vec::new(),
     }
 }
 
-async fn names_for(client: kube::Client, prefix: &str) -> io::Result<Vec<String>> {
-    let list = Api::<Pod>::default_namespaced(client)
-        .list(&Default::default())
-        .await
-        .map_err(io_other)?;
+async fn names_for(
+    client: kube::Client,
+    prefix: &str,
+    namespace: Option<&str>,
+) -> io::Result<Vec<String>> {
+    let list = match namespace {
+        Some(ns) => Api::<Pod>::namespaced(client, ns)
+            .list(&Default::default())
+            .await
+            .map_err(io_other)?,
+        None => Api::<Pod>::default_namespaced(client)
+            .list(&Default::default())
+            .await
+            .map_err(io_other)?,
+    };
     Ok(list
         .iter()
         .map(ResourceExt::name_any)
@@ -41,23 +54,27 @@ async fn names_for(client: kube::Client, prefix: &str) -> io::Result<Vec<String>
         .collect())
 }
 
-async fn build_table(client: kube::Client, all: bool) -> io::Result<Vec<String>> {
-    let list = if all {
-        Api::<Pod>::all(client)
+async fn build_table(client: kube::Client, scope: &PodScope) -> io::Result<Vec<String>> {
+    let with_ns = scope.with_ns_column();
+    let list = match scope {
+        PodScope::All => Api::<Pod>::all(client)
             .list(&Default::default())
             .await
-            .map_err(io_other)?
-    } else {
-        Api::<Pod>::default_namespaced(client)
+            .map_err(io_other)?,
+        PodScope::Default => Api::<Pod>::default_namespaced(client)
             .list(&Default::default())
             .await
-            .map_err(io_other)?
+            .map_err(io_other)?,
+        PodScope::Namespace(ns) => Api::<Pod>::namespaced(client, ns)
+            .list(&Default::default())
+            .await
+            .map_err(io_other)?,
     };
     if list.items.is_empty() {
         return Ok(Vec::new());
     }
-    let rows: Vec<Vec<String>> = list.iter().map(|pod| pod_row(pod, all)).collect();
-    let headers: &[&str] = if all {
+    let rows: Vec<Vec<String>> = list.iter().map(|pod| pod_row(pod, with_ns)).collect();
+    let headers: &[&str] = if with_ns {
         &["NAMESPACE", "NAME", "READY", "STATUS", "RESTARTS", "AGE"]
     } else {
         &["NAME", "READY", "STATUS", "RESTARTS", "AGE"]
@@ -71,9 +88,9 @@ fn pod_row(pod: &Pod, with_ns: bool) -> Vec<String> {
         row.push(pod.namespace().unwrap_or_else(|| "-".into()));
     }
     row.push(pod.name_any());
-    row.push(ready::ready_count(pod));
+    row.push(ready_count(pod));
     row.push(phase(pod));
-    row.push(ready::restarts(pod).to_string());
+    row.push(restarts(pod).to_string());
     row.push(age::from_time(pod.metadata.creation_timestamp.as_ref()));
     row
 }

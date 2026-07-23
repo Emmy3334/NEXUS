@@ -1,4 +1,4 @@
-//! Fetch recent logs from a pod in the default namespace.
+//! Fetch recent logs from a pod.
 
 use super::client::try_client;
 use crate::tokio_rt::{block_on, io_other};
@@ -7,14 +7,24 @@ use kube::api::{Api, LogParams};
 
 use std::io;
 
-/// Return the last `tail` lines of logs for `pod` (default namespace).
-pub fn pod_logs(pod: &str, tail: i64) -> io::Result<String> {
+/// Return the last `tail` lines of logs for `pod`.
+///
+/// `namespace` `None` uses the kubeconfig default namespace.
+pub fn pod_logs(pod: &str, namespace: Option<&str>, tail: i64) -> io::Result<String> {
     let client = try_client()?;
-    block_on(fetch(client, pod, tail))?
+    block_on(fetch(client, pod, namespace, tail))?
 }
 
-async fn fetch(client: kube::Client, pod: &str, tail: i64) -> io::Result<String> {
-    let pods: Api<Pod> = Api::default_namespaced(client);
+async fn fetch(
+    client: kube::Client,
+    pod: &str,
+    namespace: Option<&str>,
+    tail: i64,
+) -> io::Result<String> {
+    let pods = match namespace {
+        Some(ns) => Api::<Pod>::namespaced(client, ns),
+        None => Api::<Pod>::default_namespaced(client),
+    };
     let params = LogParams {
         tail_lines: Some(tail),
         ..Default::default()
