@@ -21,6 +21,10 @@ Notes:
 - Trailing `;` or `&` is allowed
 - Heredoc **bodies** are not on the same physical line; the REPL collects them after parse
 
+## Comments
+
+A `#` that begins a word (typically after whitespace or at column 0) starts a **line comment**; the rest of that line is ignored by the lexer. `#` inside quotes is literal.
+
 ## Operators
 
 | Token | Meaning |

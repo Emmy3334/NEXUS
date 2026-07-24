@@ -59,10 +59,16 @@ fn two_char_op(bytes: &[u8], start: usize) -> (TokenKind, usize) {
 }
 
 fn next_non_whitespace(source: &str, from: usize) -> Option<usize> {
-    source[from..]
+    let offset = source[from..]
         .char_indices()
         .find(|(_, ch)| !ch.is_whitespace())
-        .map(|(offset, _)| from + offset)
+        .map(|(offset, _)| offset)?;
+    let i = from + offset;
+    // tcsh: `#` starts a comment when it begins a word (rest of the line).
+    if source.as_bytes().get(i) == Some(&b'#') {
+        return None;
+    }
+    Some(i)
 }
 
 /// Scan one word starting at `from` (must not be whitespace/operator).

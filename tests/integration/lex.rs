@@ -295,3 +295,10 @@ fn backticks_keep_inner_spaces_as_one_word() {
         vec![TokenKind::Word, TokenKind::Word]
     );
 }
+
+#[test]
+fn hash_starts_comment_to_end_of_line() {
+    assert!(tokenize("# only comment").is_empty());
+    assert_eq!(lexemes("echo hi # trailing"), vec!["echo", "hi"]);
+    assert_eq!(lexemes("echo '#not'"), vec!["echo", "'#not'"]);
+}
