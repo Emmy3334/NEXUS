@@ -40,7 +40,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | History store + `!` designators | Yes |
 | Jobs `&` / `jobs` / `fg` / `bg` (Unix) | Yes |
 | Line edition + `bindkey` (Unix TTY) | Yes |
-| Context Tab complete (CLI registry; verb flags incl. helm/systemctl; kinds; arrow menu; `@docker`/`@kube` flags; heal; Tab cycle) | Yes |
+| Context Tab complete (CLI registry; verb flags incl. helm/systemctl/aws/gcloud; kinds; arrow menu; `@docker`/`@kube` flags; heal; Tab cycle) | Yes |
 | Git-aware prompt (`$> [branch*] `) | Yes |
 | Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
 | Wasm sandbox (`sandbox` run/install/list/rm) + module cache heal | Yes |
@@ -54,7 +54,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Docker heal backend (`bollard`, alpine image when daemon up) | Yes (opt-in env pass + finite stdin) |
 | Cloud / Wasm / K8s heal backends | Wasm cache yes; `@kube` API yes; K8s Pod heal yes (opt-in env pass; stdin declines to Docker) |
 | Heal-aware “did you mean?” after not-found | Yes (`heal_quiet` suppresses) |
-| `heal` / `doctor` status builtin | Yes (order/image/catch_all/quiet + live probes) |
+| `heal` / `doctor` status builtin | Yes (`status`/`help` + tips) |
 | Release / container hardening | Yes (see [security.md](security.md)) |
 | Host PATH jail + opt-in trusted-bin + child rlimit | Yes (see [security.md](security.md)) |
 

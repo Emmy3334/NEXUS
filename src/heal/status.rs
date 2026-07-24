@@ -9,10 +9,16 @@ use crate::sandbox;
 #[must_use]
 pub fn status_lines(shell_env: &ShellEnvironment) -> Vec<String> {
     let settings = resolve(shell_env);
-    let mut lines = Vec::with_capacity(6 + settings.order.len());
+    let mut lines = Vec::with_capacity(10 + settings.order.len());
     push_settings(&settings, shell_env.healers.len(), &mut lines);
     for backend in &settings.order {
         lines.push(backend_line(*backend));
+    }
+    if !settings.quiet {
+        lines.push("tip: set heal_quiet=1 to silence heal banners".to_owned());
+    }
+    if !settings.catch_all {
+        lines.push("tip: set heal_catch_all=1 to heal unmapped commands".to_owned());
     }
     lines
 }

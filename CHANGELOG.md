@@ -24,6 +24,11 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- `typeset` builtin: function-local like `local`; `-x` / `--export` also exports
+  (restored with the local frame inside functions; works like `setenv` outside).
+- Host `aws` / `gcloud` curated service/group **flag** Tab complete (e.g. `aws s3 --rec` →
+  `--recursive`; `gcloud compute --proj` → `--project`).
+- Heal UX: `heal status` alias; Tab `status`/`help`; tips for quiet and catch_all.
 - `@docker ps -q` / `--quiet` prints short container IDs only (no table header).
 - Host `helm` / `systemctl` curated verb **flag** Tab complete (e.g. `helm install --names` →
   `--namespace`; `systemctl status --us` → `--user`).

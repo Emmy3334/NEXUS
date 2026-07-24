@@ -14,9 +14,9 @@ pub(super) fn heal_cmd(
 ) -> io::Result<BuiltinResult> {
     let name = argv.first().map(String::as_str).unwrap_or("heal");
     match argv.get(1).map(String::as_str) {
-        None => print_status(shell_env, stdout),
+        None | Some("status") => print_status(shell_env, stdout),
         Some("help" | "-h" | "--help") => {
-            writeln!(stderr, "usage: {name}")?;
+            writeln!(stderr, "usage: {name} [status|help]")?;
             Ok(BuiltinResult::Status(1))
         }
         Some(other) => {

@@ -325,3 +325,79 @@ pick a > {}
     assert_eq!(fs::read_to_string(&path).unwrap(), "A\n");
     let _ = fs::remove_file(&path);
 }
+
+#[test]
+fn typeset_outside_function_errors() {
+    let (code, err) = run("typeset x=1\n");
+    assert_eq!(code, 1);
+    assert!(err.contains("not in a function"), "{err}");
+}
+
+#[test]
+fn typeset_like_local_restores() {
+    let path = scratch("typeset_restore");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+set x=outer
+f() {{
+typeset x=inner
+printf '%s\\n' $x
+}}
+f > {}
+printf '%s\\n' $x >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "inner\nouter\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn typeset_export_outside_sets_env() {
+    let path = scratch("typeset_x_out");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -x NEXUS_TYPESET_X=exported
+env | grep '^NEXUS_TYPESET_X=' > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(
+        fs::read_to_string(&path).unwrap().trim(),
+        "NEXUS_TYPESET_X=exported"
+    );
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn typeset_export_in_function_restores() {
+    let path = scratch("typeset_x_fn");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+setenv NEXUS_TYPESET_Y outer
+f() {{
+typeset -x NEXUS_TYPESET_Y=inner
+env | grep '^NEXUS_TYPESET_Y='
+}}
+f > {}
+env | grep '^NEXUS_TYPESET_Y=' >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "NEXUS_TYPESET_Y=inner\nNEXUS_TYPESET_Y=outer\n"
+    );
+    let _ = fs::remove_file(&path);
+}

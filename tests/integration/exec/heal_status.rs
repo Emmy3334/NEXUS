@@ -36,14 +36,18 @@ fn heal_status_default_shape() {
     assert!(out.contains("quiet: off"));
     assert!(out.contains("session:"));
     assert!(out.contains("wasm: ready"));
+    assert!(out.contains("tip: set heal_quiet=1"));
+    assert!(out.contains("tip: set heal_catch_all=1"));
 }
 
 #[test]
-fn heal_status_arg_is_unknown() {
+fn heal_status_subcommand() {
     let mut env = test_env();
-    let (result, _, err) = run_heal(&["heal", "status"], &mut env);
-    assert_eq!(result, BuiltinResult::Status(1));
-    assert!(err.contains("unknown"));
+    attach_default_backends(&mut env);
+    let (result, out, err) = run_heal(&["heal", "status"], &mut env);
+    assert_eq!(result, BuiltinResult::Status(0));
+    assert!(err.is_empty());
+    assert!(out.contains("order:"));
 }
 
 #[test]
@@ -66,6 +70,7 @@ fn heal_quiet_on() {
     env.set_local("heal_quiet", "1");
     let (_, out, _) = run_heal(&["heal"], &mut env);
     assert!(out.contains("quiet: on"));
+    assert!(!out.contains("tip: set heal_quiet=1"));
 }
 
 #[test]

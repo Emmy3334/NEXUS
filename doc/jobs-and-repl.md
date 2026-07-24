@@ -66,7 +66,7 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 
 | Context | Suggestions |
 |---------|-------------|
-| `helm <verb>` / `systemctl <verb>` when token starts with `-` | Curated host verb flags |
+| `helm <verb>` / `systemctl <verb>` / `aws <svc>` / `gcloud <group>` when token starts with `-` | Curated host verb flags |
 | `git <verb>` (curated) | Common flags when token starts with `-`; branch names for merge/rebase/checkout/… |
 | `kubectl get` / `describe` | Common resource kinds (`pods`, `deployments`, …) |
 | `git … checkout\|switch\|branch …` (flags allowed) | Local branches under `.git/refs/heads/` |
@@ -79,14 +79,14 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `@kube <verb>` when token starts with `-` | Builtin flags (`-n` / `--follow` / `-A`, …) |
 | `@kube … -n ` | Namespace names via kube-rs |
 | `@kube … logs …` / `exec …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
-| `heal ` / `doctor ` | `help` |
+| `heal ` / `doctor ` | `help` / `status` |
 
 Otherwise falls back to **all** builtins (`builtins::NAMES`, including `@docker` / `@kube` / `sandbox` / dirstack / …) + `PATH` + filesystem matches.
 
 After a curated host verb, tokens starting with `-` complete common flags (same idea as `git`):
 `kubectl get|describe|logs|apply|delete|exec`, `docker ps|logs|run|exec|rm|images|pull|build`,
 `helm install|upgrade|…`, `systemctl start|status|…` (leading `--user` / `--system` skipped when
-finding the verb). `kubectl get` / `describe` still complete resource kinds when the kind token
+finding the verb), `aws s3|ec2|…`, `gcloud compute|run|…`. `kubectl get` / `describe` still complete resource kinds when the kind token
 is not a flag.
 
 Tokens starting with `$` / `${` complete against shell locals ∪ exported names (`$HOME`, `${HOME}`).

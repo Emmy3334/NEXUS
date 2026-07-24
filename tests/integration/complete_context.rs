@@ -118,6 +118,34 @@ fn systemctl_with_user_flag_still_completes_verb_flags() {
 }
 
 #[test]
+fn aws_s3_flag_completes_recursive() {
+    let (buf, matches) = complete_at("aws s3 --rec");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "aws s3 --recursive");
+}
+
+#[test]
+fn aws_ec2_lists_long_flags() {
+    let (_, matches) = complete_at("aws ec2 --");
+    assert!(matches.iter().any(|m| m == "--region"));
+    assert!(matches.iter().any(|m| m == "--instance-ids"));
+}
+
+#[test]
+fn gcloud_compute_flag_completes_project() {
+    let (buf, matches) = complete_at("gcloud compute --proj");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "gcloud compute --project");
+}
+
+#[test]
+fn gcloud_run_lists_long_flags() {
+    let (_, matches) = complete_at("gcloud run --");
+    assert!(matches.iter().any(|m| m == "--region"));
+    assert!(matches.iter().any(|m| m == "--allow-unauthenticated"));
+}
+
+#[test]
 fn git_commit_flag_completes_amend() {
     let (buf, matches) = complete_at("git commit --am");
     assert!(matches.is_empty());

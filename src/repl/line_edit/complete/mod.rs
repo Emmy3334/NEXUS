@@ -1,10 +1,12 @@
 //! Tab completion for the current token.
 
+mod aws;
 mod collect;
 mod context;
 mod cycle;
 mod docker;
 mod docker_host;
+mod gcloud;
 mod git;
 mod heal;
 mod helm;
