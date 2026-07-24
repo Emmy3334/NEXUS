@@ -7,12 +7,14 @@ mod docker;
 mod docker_host;
 mod git;
 mod heal;
+mod helm;
 mod interp;
 mod kube;
 mod kubectl;
 mod list;
 mod paths;
 mod subcmds;
+mod systemctl;
 mod token;
 mod vars;
 
