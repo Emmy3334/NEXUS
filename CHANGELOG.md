@@ -24,6 +24,9 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Opt-in **trusted-bin** allowlist: `trusted_bin` / `NEXUS_TRUSTED_BIN` =
+  colon-separated absolute files/dirs; unmatched resolved externals → stderr +
+  status 126 (no heal). Default off.
 - Ambiguous Tab **arrow menu**: Up/Down highlight a match, Enter inserts it, Esc cancels;
   Tab still cycles. Soft-capped list (100).
 - Host `docker` / `kubectl` Tab flags after curated verbs (e.g. `docker logs --fol` →

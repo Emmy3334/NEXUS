@@ -1,4 +1,5 @@
 //! PATH jail / rlimit enable flags (`path_jail` / `NEXUS_PATH_JAIL`, `rlimit` / `NEXUS_RLIMIT`).
+//! `trusted_bin` / `NEXUS_TRUSTED_BIN` is handled in [`super::trusted`].
 
 use crate::env::ShellEnvironment;
 use crate::pathfind;
@@ -38,14 +39,14 @@ pub fn effective_path(env: &ShellEnvironment) -> String {
     }
 }
 
-fn is_off(value: &str) -> bool {
+pub(super) fn is_off(value: &str) -> bool {
     matches!(
         value.trim().to_ascii_lowercase().as_str(),
         "0" | "false" | "no" | "off"
     )
 }
 
-fn is_on(value: &str) -> bool {
+pub(super) fn is_on(value: &str) -> bool {
     matches!(
         value.trim().to_ascii_lowercase().as_str(),
         "1" | "true" | "yes" | "on"

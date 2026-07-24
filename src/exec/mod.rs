@@ -30,6 +30,7 @@ pub(crate) use stdout_mode::StdoutMode;
 
 pub(crate) use process::{
     abandon_children, build_external_command, exit_status_code, run_builtin_status, wait_children,
+    TRUSTED_DENY_STATUS,
 };
 
 use crate::builtins;

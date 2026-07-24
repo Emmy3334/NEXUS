@@ -28,7 +28,17 @@ pub(super) fn run_external_stage<I: BufRead, O: Write, E: Write>(
     ctx: &mut StageCtx<'_, I, O, E>,
     state: &mut PipeState,
 ) -> io::Result<Option<CommandResult>> {
-    let mut command = build_external_command(stage, ctx.shell_env);
+    let mut command = match build_external_command(stage, ctx.shell_env) {
+        Ok(command) => command,
+        Err(msg) => {
+            writeln!(ctx.stderr, "{msg}")?;
+            state.drain_pending();
+            if is_last {
+                state.terminal_status = Some(crate::exec::TRUSTED_DENY_STATUS);
+            }
+            return Ok(None);
+        }
+    };
     let stdout_redirected = files.stdout.is_some();
     let capturing = ctx.stdout_mode == crate::exec::StdoutMode::Capture;
     let stdin = resolve_stage_stdin(files.stdin, state);

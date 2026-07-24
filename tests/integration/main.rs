@@ -43,4 +43,5 @@ mod sandbox_wasm;
 mod scripting;
 mod shell_env;
 mod specials;
+mod trusted_bin;
 mod while_loop;
