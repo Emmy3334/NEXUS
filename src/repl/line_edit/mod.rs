@@ -18,11 +18,12 @@ pub use recall::HistoryRecall;
 pub use tty::{after_line_down, after_line_up, take_complete_line};
 
 pub use complete::{
-    complete, complete_matches_for_test, complete_or_cycle, CompleteCtx, CompleteCycle, Match, Tag,
+    command_names, complete, complete_matches_for_test, complete_or_cycle, CompleteCtx,
+    CompleteCycle, Match, Tag,
 };
 /// Column layout helpers for ambiguous completion listings.
 pub use complete::{
-    format_columns, list_display_lines, list_display_lines_width, list_menu_lines,
+    format_columns, list_display_lines, list_display_lines_width, list_menu_fit, list_menu_lines,
     list_menu_lines_tagged,
 };
 

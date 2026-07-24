@@ -18,18 +18,19 @@ pub fn run(
     var_names: &[String],
     registry: &CompRegistry,
     path: &str,
+    cmd_names: &[String],
     hist: Option<&History>,
 ) -> Vec<Match> {
-    let raw = collect_matches(before, prefix, var_names, registry, path);
+    let raw = collect_matches(before, prefix, var_names, registry, path, cmd_names);
     let mut matches = raw
         .iter()
         .map(|v| to_match(v, prefix_score(v, prefix), infer_tag(v)))
         .collect::<Vec<_>>();
     if matches.is_empty() && !prefix.is_empty() {
-        matches = approx_phase(before, prefix, var_names, registry, path);
+        matches = approx_phase(before, prefix, var_names, registry, path, cmd_names);
     }
     if let Some(h) = hist {
-        merge_history(&mut matches, h, prefix);
+        apply_history(&mut matches, h, prefix, before.trim().is_empty());
     }
     annotate::enrich(&mut matches, before, registry);
     sort_dedup(&mut matches);
@@ -42,21 +43,23 @@ fn approx_phase(
     var_names: &[String],
     registry: &CompRegistry,
     path: &str,
+    cmd_names: &[String],
 ) -> Vec<Match> {
-    let all = collect_matches(before, "", var_names, registry, path);
+    let all = collect_matches(before, "", var_names, registry, path, cmd_names);
     approx_matches(&all, prefix)
         .into_iter()
         .map(|(v, d)| to_match(&v, -(d as i32), infer_tag(&v)))
         .collect()
 }
 
-fn merge_history(matches: &mut Vec<Match>, hist: &History, prefix: &str) {
+fn apply_history(matches: &mut Vec<Match>, hist: &History, prefix: &str, first_token: bool) {
     let mut scored = Vec::new();
     history::collect(hist, prefix, &mut scored);
     for (word, boost) in scored {
         if let Some(m) = matches.iter_mut().find(|m| m.value == word) {
             m.score = m.score.saturating_add(boost);
-        } else {
+        } else if !first_token {
+            // First token stays command-only; history words only as arguments.
             matches.push(to_match(
                 &word,
                 history::history_score(&word, prefix, boost),

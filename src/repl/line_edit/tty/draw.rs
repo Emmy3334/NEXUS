@@ -38,6 +38,18 @@ pub(super) fn shift_rows(stdout: &mut impl Write, delta: i32) -> io::Result<()> 
     Ok(())
 }
 
+/// Clear `rows` lines below the current cursor row, then return to this row.
+pub(super) fn erase_rows_below(stdout: &mut impl Write, rows: usize) -> io::Result<()> {
+    if rows == 0 {
+        return Ok(());
+    }
+    shift_rows(stdout, 1)?;
+    for _ in 0..rows {
+        write!(stdout, "\r\x1b[2K\n")?;
+    }
+    shift_rows(stdout, -((rows + 1) as i32))
+}
+
 fn visible_line(edit: &EditBuffer) -> (&str, usize, bool) {
     let text = edit.as_str();
     let cursor = edit.cursor;

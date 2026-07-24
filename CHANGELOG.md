@@ -36,6 +36,13 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Changed
 
+- First-token Tab completion matches zsh defaults: builtins, aliases, functions, and
+  PATH only (no cwd files). Files appear for arguments or path-like prefixes (`./`, `/`).
+  History words boost existing command matches on the first token; new history-only
+  candidates appear for later words.
+- Tab completion menu paints under the current input line and restores the cursor there
+  (no forced newline / fresh prompt until Enter). Tall menus are windowed to at most
+  12 rows (or `$LINES - 2`) so the viewport does not scroll the prompt away.
 - Bumped Wasmtime / `wasmtime-wasi` from 24.x to **36.0.7+** (RUSTSEC-2026-0086…0096:
   sandbox-escape and related issues on 24.x). Sandbox runner imports
   `wasmtime_wasi::p2::pipe::MemoryOutputPipe`.

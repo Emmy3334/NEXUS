@@ -28,8 +28,8 @@ pub use history_persist::{load_session_history, save_session_history};
 pub use line_edit::{after_line_down, after_line_up, take_complete_line};
 pub use line_edit::{
     complete, complete_matches_for_test, complete_or_cycle, format_columns, list_display_lines,
-    list_display_lines_width, list_menu_lines, list_menu_lines_tagged, Action, CompleteCtx,
-    CompleteCycle, HistoryISearch, HistoryRecall, KeyBindings, Match, ReplInput, Tag,
+    list_display_lines_width, list_menu_fit, list_menu_lines, list_menu_lines_tagged, Action,
+    CompleteCtx, CompleteCycle, HistoryISearch, HistoryRecall, KeyBindings, Match, ReplInput, Tag,
 };
 pub use prompt::format_primary;
 pub use rc::{

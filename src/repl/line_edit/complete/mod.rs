@@ -18,6 +18,7 @@ mod kube;
 mod kubectl;
 mod list;
 mod list_tagged;
+mod list_window;
 mod match_item;
 mod matchers;
 mod paths;
@@ -38,6 +39,8 @@ pub struct CompleteCtx<'a> {
     pub registry: &'a CompRegistry,
     /// Shell `PATH` after path-jail sanitization ([`harden::effective_path`]).
     pub path: &'a str,
+    /// Alias and function names for first-token command completion.
+    pub cmd_names: &'a [String],
     /// Session history for word frecency (optional in tests).
     pub history: Option<&'a History>,
 }
@@ -45,7 +48,18 @@ pub struct CompleteCtx<'a> {
 pub use cycle::{complete_or_cycle, CompleteCycle};
 pub use list::{format_columns, list_display_lines, list_display_lines_width, list_menu_lines};
 pub use list_tagged::list_menu_lines_tagged;
+pub use list_window::list_menu_fit;
 pub use match_item::{Match, Tag};
+
+/// Alias + function names for Tab (first-token command completion).
+#[must_use]
+pub fn command_names(env: &ShellEnvironment) -> Vec<String> {
+    let mut names: Vec<String> = env.iter_aliases().map(|(n, _)| n.to_owned()).collect();
+    names.extend(env.iter_functions().map(|(n, _)| n.to_owned()));
+    names.sort();
+    names.dedup();
+    names
+}
 
 /// Ranked matches for a line with the cursor at the end (integration tests).
 pub fn complete_matches_for_test(line: &str, env: &ShellEnvironment) -> Vec<Match> {
@@ -55,12 +69,14 @@ pub fn complete_matches_for_test(line: &str, env: &ShellEnvironment) -> Vec<Matc
     let before = &buffer[..start];
     let names = env.var_names();
     let path = harden::effective_path(env);
+    let cmd_names = command_names(env);
     run_engine(
         before,
         &prefix,
         &names,
         &env.comp_registry,
         &path,
+        &cmd_names,
         Some(&env.history),
     )
 }
@@ -75,10 +91,12 @@ pub(crate) struct CompleteOutcome {
 pub fn complete(buffer: &mut String, cursor: &mut usize, env: &ShellEnvironment) -> Vec<String> {
     let names = env.var_names();
     let path = harden::effective_path(env);
+    let cmd_names = command_names(env);
     let ctx = CompleteCtx {
         var_names: &names,
         registry: &env.comp_registry,
         path: &path,
+        cmd_names: &cmd_names,
         history: Some(&env.history),
     };
     complete_with_ctx(buffer, cursor, &ctx).listed
@@ -98,6 +116,7 @@ pub(crate) fn complete_with_ctx(
         ctx.var_names,
         ctx.registry,
         ctx.path,
+        ctx.cmd_names,
         ctx.history,
     );
     finish(buffer, cursor, start, &prefix, matches)

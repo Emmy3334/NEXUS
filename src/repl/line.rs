@@ -56,10 +56,16 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         Vec::new()
     };
     let path = crate::harden::effective_path(shell_env);
+    let cmd_names = if tty {
+        line_edit::command_names(shell_env)
+    } else {
+        Vec::new()
+    };
     let complete_ctx = CompleteCtx {
         var_names: &var_names,
         registry: &shell_env.comp_registry,
         path: &path,
+        cmd_names: &cmd_names,
         history: Some(&shell_env.history),
     };
     match line_edit::read_logical_line(
