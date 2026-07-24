@@ -209,3 +209,22 @@ fn cmdsubst_cd_restores_cwd_on_failure() {
     assert_eq!(std::env::current_dir().unwrap(), start);
     let _ = fs::remove_dir_all(&tmp);
 }
+
+#[test]
+fn single_quoted_backtick_is_literal() {
+    let out = temp_out("sq_bt");
+    let _ = fs::remove_file(&out);
+    let out_s = out.to_str().expect("utf8 path");
+    let mut env = env_with(&[("OUT", out_s)]);
+    let (result, err) = run("printf '%s\\n' '`echo hi`' > $OUT", &mut env, 0);
+    assert_eq!(result, CommandResult::Status(0), "{err}");
+    assert_eq!(fs::read_to_string(&out).unwrap(), "`echo hi`\n");
+    let _ = fs::remove_file(&out);
+}
+
+#[test]
+fn arith_paren_alone_does_not_need_capture() {
+    // $((…)) must expand without command-subst capture.
+    let word = expand_word_for_exec("$((2+3))", &mut env_with(&[]), 0).unwrap();
+    assert_eq!(word.as_str(), "5");
+}
