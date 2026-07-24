@@ -31,16 +31,16 @@ pub(super) fn apply(
     }
     match action {
         Action::Accept => {
-            edit.complete_cycle = None;
+            complete_menu::dismiss_menu(stdout, edit)?;
             Ok(Loop::Accept)
         }
         Action::Eof => Ok(Loop::Eof),
         Action::Interrupt => {
-            edit.complete_cycle = None;
+            complete_menu::dismiss_menu(stdout, edit)?;
             Ok(Loop::Interrupt)
         }
         other => {
-            edit.complete_cycle = None;
+            complete_menu::dismiss_menu(stdout, edit)?;
             apply_other(stdout, edit, bindings, other, prompt, nav)
         }
     }

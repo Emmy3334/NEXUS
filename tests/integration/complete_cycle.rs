@@ -9,10 +9,12 @@ fn cycle_at(line: &str, cycle: &mut Option<CompleteCycle>) -> (String, Vec<Strin
     let env = ShellEnvironment::default();
     let names = env.var_names();
     let path = String::new();
+    let cmd_names = Vec::new();
     let ctx = CompleteCtx {
         var_names: &names,
         registry: env.comp_registry(),
         path: &path,
+        cmd_names: &cmd_names,
         history: None,
     };
     let mut buffer = line.to_owned();
@@ -150,10 +152,12 @@ fn stale_cycle_token_restarts_complete() {
     let env = ShellEnvironment::default();
     let names = env.var_names();
     let path = String::new();
+    let cmd_names = Vec::new();
     let ctx = CompleteCtx {
         var_names: &names,
         registry: env.comp_registry(),
         path: &path,
+        cmd_names: &cmd_names,
         history: None,
     };
     let matches = complete_or_cycle(&mut buffer, &mut cursor, &ctx, &mut cycle);

@@ -40,12 +40,47 @@ fn history_words_appear_with_history_tag() {
     let mut env = ShellEnvironment::default();
     env.history.push("deploy my-special-target");
     env.history.push("echo my-special-target");
-    let matches = complete_matches_for_test("my-spec", &env);
+    // Argument position: history words are offered; first token stays command-only.
+    let matches = complete_matches_for_test("echo my-spec", &env);
     let hit = matches
         .iter()
         .find(|m| m.value == "my-special-target")
         .expect("history word");
     assert_eq!(hit.tag, Tag::History);
+}
+
+#[test]
+fn first_token_skips_cwd_files() {
+    let _cwd = crate::cwd_lock::RestoreCwd::new();
+    let dir = scratch("cwdfiles");
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("min-local-file.pdf"), "").unwrap();
+    std::env::set_current_dir(&dir).unwrap();
+
+    let mut map = BTreeMap::new();
+    map.insert("PATH".into(), "/usr/bin".into());
+    map.insert("path_jail".into(), "0".into());
+    let mut env = ShellEnvironment::from_map(map);
+    env.alias_set("minalias", "echo hi");
+    env.function_set("minfunc", "echo fn");
+
+    let matches = complete_matches_for_test("min", &env);
+    assert!(
+        matches.iter().all(|m| m.value != "min-local-file.pdf"),
+        "cwd files must not appear on first token: {:?}",
+        matches.iter().map(|m| &m.value).collect::<Vec<_>>()
+    );
+    assert!(matches.iter().any(|m| m.value == "minalias"));
+    assert!(matches.iter().any(|m| m.value == "minfunc"));
+
+    let arg_matches = complete_matches_for_test("cat min", &env);
+    assert!(
+        arg_matches.iter().any(|m| m.value == "min-local-file.pdf"),
+        "argument position should offer cwd files"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]

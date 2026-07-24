@@ -44,3 +44,22 @@ fn menu_lines_highlight_selected_row() {
     assert!(lines[1].contains("beta"));
     assert!(lines[1].contains("\x1b[0m"));
 }
+
+#[test]
+fn menu_fit_caps_rows_and_keeps_highlight() {
+    use nexus::repl::{list_menu_fit, Match, Tag};
+    let matches: Vec<Match> = (0..40)
+        .map(|i| Match {
+            value: format!("cmd{i:02}"),
+            score: 0,
+            tag: Tag::Commands,
+            description: None,
+        })
+        .collect();
+    let lines = list_menu_fit(&matches, 20, 8);
+    assert!(lines.len() <= 8);
+    assert!(lines.last().is_some_and(|l| l.contains("more")));
+    assert!(lines
+        .iter()
+        .any(|l| l.contains("\x1b[7m") && l.contains("cmd20")));
+}

@@ -1,4 +1,9 @@
 //! Arrow menu-select while an ambiguous Tab cycle is active.
+//!
+//! The completion menu is painted **below** the input line; the cursor stays on
+//! the prompt row until Enter (no forced fresh prompt from Tab alone).
+
+mod paint;
 
 use super::actions::Loop;
 use super::buffer::EditBuffer;
@@ -33,10 +38,16 @@ pub(super) fn on_action(
         Action::Accept => Ok(Some(accept_item(stdout, edit, prompt)?)),
         Action::Interrupt | Action::ViCmdMode => Ok(Some(cancel(stdout, edit, prompt)?)),
         _ => {
-            edit.complete_cycle = None;
+            dismiss_menu(stdout, edit)?;
             Ok(None)
         }
     }
+}
+
+/// Drop any open menu and erase its TTY rows (call before other redraws).
+pub(super) fn dismiss_menu(stdout: &mut impl Write, edit: &mut EditBuffer) -> io::Result<()> {
+    let rows = edit.complete_cycle.take().map(|c| c.list_rows).unwrap_or(0);
+    draw::erase_rows_below(stdout, rows)
 }
 
 fn on_tab(
@@ -51,15 +62,12 @@ fn on_tab(
         complete_ctx,
         &mut edit.complete_cycle,
     );
-    if listed.is_empty() {
-        if edit.complete_cycle.is_some() {
-            repaint(stdout, edit, prompt)?;
-        } else {
-            draw::redraw(stdout, prompt, edit)?;
-        }
+    if listed.is_empty() && edit.complete_cycle.is_none() {
+        draw::redraw(stdout, prompt, edit)?;
         return Ok(Loop::Continue);
     }
-    paint_new(stdout, edit, prompt)
+    paint::show(stdout, edit, prompt)?;
+    Ok(Loop::Continue)
 }
 
 fn move_hl(
@@ -75,12 +83,13 @@ fn move_hl(
             cycle.move_down();
         }
     }
-    repaint(stdout, edit, prompt)?;
+    paint::show(stdout, edit, prompt)?;
     Ok(Loop::Continue)
 }
 
 fn accept_item(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::Result<Loop> {
     if let Some(cycle) = edit.complete_cycle.take() {
+        draw::erase_rows_below(stdout, cycle.list_rows)?;
         cycle.accept(&mut edit.text, &mut edit.cursor);
     }
     draw::redraw(stdout, prompt, edit)?;
@@ -88,41 +97,7 @@ fn accept_item(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> 
 }
 
 fn cancel(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::Result<Loop> {
-    edit.complete_cycle = None;
+    dismiss_menu(stdout, edit)?;
     draw::redraw(stdout, prompt, edit)?;
     Ok(Loop::Continue)
-}
-
-fn paint_new(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::Result<Loop> {
-    let Some(cycle) = edit.complete_cycle.as_ref() else {
-        return draw::redraw(stdout, prompt, edit).map(|_| Loop::Continue);
-    };
-    let lines = complete::list_menu_lines_tagged(&cycle.matches, cycle.highlight);
-    writeln!(stdout)?;
-    for line in &lines {
-        writeln!(stdout, "{line}")?;
-    }
-    if let Some(cycle) = edit.complete_cycle.as_mut() {
-        cycle.list_rows = lines.len();
-    }
-    draw::redraw(stdout, prompt, edit)?;
-    Ok(Loop::Continue)
-}
-
-fn repaint(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::Result<()> {
-    let Some(cycle) = edit.complete_cycle.as_ref() else {
-        return draw::redraw(stdout, prompt, edit);
-    };
-    let rows = cycle.list_rows;
-    let lines = complete::list_menu_lines_tagged(&cycle.matches, cycle.highlight);
-    if rows > 0 {
-        draw::shift_rows(stdout, -(rows as i32))?;
-    }
-    for line in &lines {
-        write!(stdout, "\r\x1b[2K{line}\n")?;
-    }
-    if let Some(cycle) = edit.complete_cycle.as_mut() {
-        cycle.list_rows = lines.len();
-    }
-    draw::redraw(stdout, prompt, edit)
 }
