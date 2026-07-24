@@ -37,6 +37,9 @@ fn tab_suggests_cloud_and_extra_builtins() {
         ("where", "where"),
         ("repeat", "repeat"),
         ("types", "typeset"),
+        ("echo", "echo"),
+        ("true", "true"),
+        ("false", "false"),
     ] {
         let mut buffer = prefix.to_owned();
         let mut cursor = buffer.len();

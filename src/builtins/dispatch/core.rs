@@ -1,8 +1,8 @@
 //! Core Minishell / early-42sh builtin handlers.
 
 use super::super::{
-    alias, at, bindkey, cd, env, exit, history, jobs, set, setenv, source, unalias, unset,
-    unsetenv, BuiltinResult,
+    alias, at, bindkey, cd, echo_cmd, env, exit, history, jobs, set, setenv, source, trivial,
+    unalias, unset, unsetenv, BuiltinResult,
 };
 use crate::env::ShellEnvironment;
 
@@ -18,6 +18,10 @@ pub(super) fn run(
 ) -> io::Result<Option<BuiltinResult>> {
     Ok(Some(match name {
         "cd" => BuiltinResult::Status(cd::cd(argv, shell_env, last_status, stdout, stderr)?),
+        "echo" => echo_cmd::run(argv, stdout, stderr)?,
+        "true" => trivial::run_true(argv, stdout, stderr)?,
+        "false" => trivial::run_false(argv, stdout, stderr)?,
+        ":" => trivial::run_colon(argv, stdout, stderr)?,
         "setenv" => BuiltinResult::Status(setenv::setenv(argv, shell_env, stdout, stderr)?),
         "unsetenv" => BuiltinResult::Status(unsetenv::unsetenv(argv, shell_env, stderr)?),
         "env" => BuiltinResult::Status(env::env_cmd(argv, shell_env, stdout, stderr)?),

@@ -23,6 +23,12 @@ use crate::lex::LexError;
 pub(crate) use arith::evaluate;
 pub use word::ExpandedWord;
 
+/// Whether `raw` may contain `` `…` `` or `$(…)` (conservative byte scan).
+#[must_use]
+pub(crate) fn word_may_need_cmd_subst(raw: &str) -> bool {
+    raw.as_bytes().contains(&b'`') || raw.contains("$(")
+}
+
 /// Expand a raw word into one field (no command-substitution capture).
 pub fn expand_word_for_exec(
     raw: &str,

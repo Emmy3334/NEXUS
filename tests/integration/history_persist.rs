@@ -121,3 +121,21 @@ fn load_appends_without_clearing_existing() {
     assert_eq!(lines, ["already", "fromfile"]);
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn histsize_caps_retained_events() {
+    let mut h = History::default();
+    for i in 0..5 {
+        h.push_limited(format!("line{i}"), 3);
+    }
+    let lines: Vec<_> = h.iter().map(|(_, e)| e.line.as_str()).collect();
+    assert_eq!(lines, ["line2", "line3", "line4"]);
+}
+
+#[test]
+fn histsize_zero_clears() {
+    let mut h = History::default();
+    h.push("keep");
+    h.push_limited("gone", 0);
+    assert!(h.is_empty());
+}

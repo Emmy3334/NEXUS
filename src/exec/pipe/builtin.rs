@@ -22,7 +22,7 @@ pub(super) fn run_builtin_stage<I: BufRead, O: Write, E: Write>(
     // Builtins don't consume stdin yet; drop any stdin redirect.
     drop(files.stdin);
 
-    let mut env_clone = ctx.shell_env.clone();
+    let mut env_clone = ctx.shell_env.clone_for_capture();
     if is_last {
         let status = run_builtin_to(
             stage,

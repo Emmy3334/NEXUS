@@ -93,8 +93,8 @@ fn allows_exact_file() {
 fn denies_path_resolved_via_path() {
     let mut env = test_env();
     env.set_local("trusted_bin", "/usr/sbin");
-    // `echo` resolves under /bin on macOS/Linux — outside /usr/sbin.
-    let (result, err) = run("echo hi", &mut env);
+    // `printf` resolves under /usr/bin or /bin — outside /usr/sbin.
+    let (result, err) = run("printf hi", &mut env);
     assert_eq!(result, CommandResult::Status(126), "err={err}");
     assert!(err.contains("not in trusted_bin allowlist"), "err={err}");
 }

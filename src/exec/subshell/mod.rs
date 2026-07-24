@@ -25,7 +25,7 @@ pub(super) fn run_subshell<I: BufRead, O: Write, E: Write>(
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
     let saved_cwd = cwd::save();
-    let mut sub_env = shell_env.clone();
+    let mut sub_env = shell_env.clone_for_capture();
     let result = run_isolated(
         list,
         redirects,
