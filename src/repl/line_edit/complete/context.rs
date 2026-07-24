@@ -1,12 +1,13 @@
 //! Classify the completion context from words before the current token.
 
-use super::{docker, git, heal, kube, kubectl, subcmds};
+use super::{docker, docker_host, git, heal, kube, kubectl, subcmds};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
     Default,
     GitVerb(&'static str),
-    Kubectl(kubectl::Complete),
+    KubectlVerb(&'static str),
+    DockerVerb(&'static str),
     Subcommand(&'static [&'static str]),
     Interpreter { extensions: &'static [&'static str] },
     Docker(docker::Complete),
@@ -23,8 +24,11 @@ pub(super) fn classify(before: &str) -> Kind {
     if let Some(verb) = git::verb_in(&words) {
         return Kind::GitVerb(verb);
     }
-    if let Some(kubectl) = kubectl::classify(&words) {
-        return Kind::Kubectl(kubectl);
+    if let Some(verb) = kubectl::verb_in(&words) {
+        return Kind::KubectlVerb(verb);
+    }
+    if let Some(verb) = docker_host::verb_in(&words) {
+        return Kind::DockerVerb(verb);
     }
     if let Some(names) = subcmds::first_verb(&words) {
         return Kind::Subcommand(names);

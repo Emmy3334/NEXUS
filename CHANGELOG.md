@@ -22,6 +22,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Host `docker` / `kubectl` Tab flags after curated verbs (e.g. `docker logs --fol` →
+  `--follow`; `kubectl get --names` → `--namespace`); `kubectl get`/`describe` kinds unchanged.
 - Arithmetic bitwise assignments `&=` `|=` `^=` `<<=` `>>=` and comma `,` in
   `$((…))` / `((…))` (value is the rightmost expression).
 - Host spawn hardening: absolute-only **PATH jail** (default on;

@@ -4,6 +4,7 @@ mod collect;
 mod context;
 mod cycle;
 mod docker;
+mod docker_host;
 mod git;
 mod heal;
 mod interp;
