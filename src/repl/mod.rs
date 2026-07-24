@@ -3,6 +3,7 @@
 //! Dragon Book pipeline: acquire line → history expansion → lexical analysis →
 //! list/pipeline parse → execute against an owned environment copy.
 
+pub(crate) mod body_run;
 mod case_collect;
 mod case_run;
 mod control_collect;

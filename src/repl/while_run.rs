@@ -1,7 +1,7 @@
 //! Expand while condition and execute the loop body.
 
+use super::body_run::run_body;
 use super::control_collect::{collect_body, BlockKind};
-use super::foreach_run::run_body;
 use super::line_edit::ReplInput;
 use super::ReplIo;
 use crate::env::ShellEnvironment;
@@ -37,7 +37,12 @@ pub(super) fn run_while<I: ReplInput, O: Write, E: Write>(
             None => return Ok(CommandResult::Status(1)),
         }
         match run_body(&body, io, shell_env, status, argv)? {
-            CommandResult::Status(code) => status = code,
+            CommandResult::Status(code) => {
+                status = code;
+                if shell_env.return_requested() {
+                    return Ok(CommandResult::Status(code));
+                }
+            }
             CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
             CommandResult::Source(_) => return Ok(CommandResult::Status(1)),
         }

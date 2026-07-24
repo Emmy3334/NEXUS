@@ -20,7 +20,7 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 | **exec** | `src/exec/` | `execute_list`, pipes, redirects/heredoc, process spawn, background, subshell, repeat, capture |
 | **env** | `src/env/` | `ShellEnvironment`: vars, locals, aliases, functions, argv, history, keys, dirstack, healers, jobs |
 | **builtins** | `src/builtins/` | Builtin implementations + dispatch |
-| **repl** | `src/repl/` | Main loop, script runner, control collect/run, line edition |
+| **repl** | `src/repl/` | Main loop, script runner, control collect/run, shared `body_run`, line edition |
 | **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / spawn; `sanitize_path` jail helper |
 | **harden** | `src/harden/` | PATH jail knobs + opt-in child `setrlimit` (`config`, `rlimit`) |
 | **heal** | `src/heal/` | Self-heal seam + backends + status + opt-in command→image map |

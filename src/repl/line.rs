@@ -125,6 +125,29 @@ pub(super) fn run_ready_command<I: BufRead, O: Write, E: Write>(
     shell_env: &mut ShellEnvironment,
     last_status: u8,
 ) -> io::Result<CommandResult> {
+    run_ready(command_list, io, argv, shell_env, last_status, false)
+}
+
+/// Like [`run_ready_command`], but capture external stdout into `io.stdout`
+/// (needed when that handle is a redirect file / buffer, not process stdout).
+pub(super) fn run_ready_command_captured<I: BufRead, O: Write, E: Write>(
+    command_list: &parse::CommandList<'_>,
+    io: &mut ReplIo<'_, I, O, E>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+) -> io::Result<CommandResult> {
+    run_ready(command_list, io, argv, shell_env, last_status, true)
+}
+
+fn run_ready<I: BufRead, O: Write, E: Write>(
+    command_list: &parse::CommandList<'_>,
+    io: &mut ReplIo<'_, I, O, E>,
+    argv: &mut Vec<String>,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    capture: bool,
+) -> io::Result<CommandResult> {
     let heredoc_bodies = match exec::collect_heredoc_bodies(
         command_list,
         shell_env,
@@ -135,16 +158,29 @@ pub(super) fn run_ready_command<I: BufRead, O: Write, E: Write>(
         Ok(bodies) => bodies,
         Err(code) => return Ok(CommandResult::Status(code)),
     };
-    exec::execute_list(
-        command_list,
-        argv,
-        shell_env,
-        last_status,
-        heredoc_bodies,
-        io.stdin,
-        io.stdout,
-        io.stderr,
-    )
+    if capture {
+        exec::execute_list_captured(
+            command_list,
+            argv,
+            shell_env,
+            last_status,
+            heredoc_bodies,
+            io.stdin,
+            io.stdout,
+            io.stderr,
+        )
+    } else {
+        exec::execute_list(
+            command_list,
+            argv,
+            shell_env,
+            last_status,
+            heredoc_bodies,
+            io.stdin,
+            io.stdout,
+            io.stderr,
+        )
+    }
 }
 
 fn tokens_are_well_formed(source: &str, tokens: &[lex::Token]) -> bool {

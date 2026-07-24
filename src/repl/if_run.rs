@@ -1,6 +1,6 @@
 //! Evaluate `if` conditions and run the matching branch body.
 
-use super::foreach_run::run_body;
+use super::body_run::run_body;
 use super::if_collect::{collect_if, IfPlan};
 use super::line_edit::ReplInput;
 use super::ReplIo;
