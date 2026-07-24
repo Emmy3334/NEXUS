@@ -1,7 +1,8 @@
 //! Splitting a source line into [`Token`] spans.
 
 use super::{
-    arith_span, brace_param_span, cmd_subst_span, quote, LexError, QuoteState, Token, TokenKind,
+    arith_span, brace_param_span, cmd_subst_span, cond_span, quote, LexError, QuoteState, Token,
+    TokenKind,
 };
 
 /// Tokenize `source` into `tokens`, reusing `tokens`' capacity.
@@ -33,6 +34,13 @@ fn push_token(source: &str, start: usize, tokens: &mut Vec<Token>) -> Result<usi
         b'(' => match arith_span::try_close_cmd_arith(source, start)? {
             Some(end) => (TokenKind::Word, end),
             None => (TokenKind::LParen, start + 1),
+        },
+        b'[' => match cond_span::try_close(source, start)? {
+            Some(end) => (TokenKind::Word, end),
+            None => {
+                let end = scan_word_end(source, start)?;
+                (TokenKind::Word, end)
+            }
         },
         b')' => (TokenKind::RParen, start + 1),
         b'|' | b'&' | b'>' | b'<' => two_char_op(bytes, start),

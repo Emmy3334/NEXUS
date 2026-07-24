@@ -6,18 +6,9 @@ use std::collections::BTreeMap;
 use std::env as process_env;
 use std::fs;
 use std::path::Path;
-use std::sync::Mutex;
-
-static CWD_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 fn empty_env() -> ShellEnvironment {
     ShellEnvironment::from_map(BTreeMap::new())
-}
-
-fn lock_cwd() -> std::sync::MutexGuard<'static, ()> {
-    CWD_TEST_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 fn status_of(result: Option<BuiltinResult>) -> u8 {
@@ -29,8 +20,7 @@ fn status_of(result: Option<BuiltinResult>) -> u8 {
 
 #[test]
 fn cd_changes_directory() {
-    let _cwd_guard = lock_cwd();
-    let start = process_env::current_dir().unwrap();
+    let cwd = crate::cwd_lock::RestoreCwd::new();
     let scratch = process_env::temp_dir().join(format!("nexus-cd-test-{}", std::process::id()));
     let nested = scratch.join("nested");
     fs::create_dir_all(&nested).unwrap();
@@ -73,6 +63,6 @@ fn cd_changes_directory() {
     );
     assert_eq!(code, 0, "stderr={}", String::from_utf8_lossy(&stderr));
 
-    process_env::set_current_dir(&start).unwrap();
+    let _ = cwd;
     let _ = fs::remove_dir_all(&scratch);
 }

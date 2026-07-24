@@ -95,6 +95,14 @@ Module: `src/functions/` + `env` function table / local frames; `return`, `local
 
 Patterns `*`, `?`, `[…]`, and recursive `**` expand to matching pathnames. A lone `**` component walks descendants (hidden names skipped). `**/` in the middle matches zero or more directories. No match → original word.
 
+## Conditionals (`[[ … ]]`)
+
+`[[ … ]]` is an execution-level conditional command (closing `]]` required). Unary:
+`-e` `-f` `-d` `-z` `-n` `-r` `-w` `-x`. String: `=` / `==` / `!=` /
+`<` / `>`. Integer: `-eq` `-ne` `-lt` `-le` `-gt` `-ge`. `&&` / `||`
+short-circuit inside the brackets; shell-level chaining also works. Status 0 true,
+1 false, 2 expression error.
+
 When the word has active glob metacharacters, a trailing zsh-style qualifier may filter matches: `*(.)` regular files only, `*(/)` directories only, `*(*)` executable files (Unix mode). Literal `foo(.)` without active glob is unchanged.
 
 ## Aliases

@@ -9,6 +9,7 @@ mod arith_cmd;
 mod background;
 mod capture;
 mod command;
+mod cond_cmd;
 mod cwd;
 mod io;
 mod list;

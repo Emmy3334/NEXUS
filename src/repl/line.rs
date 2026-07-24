@@ -55,9 +55,12 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     } else {
         Vec::new()
     };
+    let path = crate::harden::effective_path(shell_env);
     let complete_ctx = CompleteCtx {
         var_names: &var_names,
         registry: &shell_env.comp_registry,
+        path: &path,
+        history: Some(&shell_env.history),
     };
     match line_edit::read_logical_line(
         io.stdin,

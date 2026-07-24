@@ -10,6 +10,12 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Completion history-word frecency: unique words from session history appear under a
+  `history` menu section and boost scores for matching PATH/builtin candidates.
+- Tagged completion menus show per-section counts (`-- commands (3) --`).
+- `[[ … ]]` conditional command: unary `-e/-f/-d/-z/-n/-r/-w/-x`, string
+  `=`/`==`/`!=`/`<`/`>`, integer `-eq/-ne/-lt/-le/-gt/-ge`, and short-circuit
+  `&&` / `||` inside the brackets.
 - Associative arrays: `typeset -A name=k1:v1,k2:v2` (comma-separated `key:value` pairs,
   keys stored sorted, later duplicate keys win), with `${name[key]}` lookup,
   `${name[@]}` / `${name[*]}` values, `${(k)name}` / `${(v)name}` keys/values, and
@@ -38,6 +44,10 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Fixed
 
+- Tab completion reads the shell's `PATH` via `harden::effective_path` (honours
+  `setenv PATH` and the path jail) instead of the process environ.
+- `cd` integration test shares `cwd_lock::RestoreCwd` with other cwd-mutating
+  tests (was a private mutex, so parallel runs raced).
 - `${name:-word}` stays default substitution even when `word` is numeric; negative
   substring offsets use bash spacing `${name: -N}` (disambiguates from `:-`).
 - Word expansion no longer clones the full shell env (including history) on every
