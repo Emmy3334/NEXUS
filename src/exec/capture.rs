@@ -41,7 +41,7 @@ fn capture_inner(
         return Ok(String::new());
     };
     let heredocs = collect_bodies(&list, shell_env, last_status, stdin, stderr)?;
-    let mut sub_env = shell_env.clone();
+    let mut sub_env = shell_env.clone_for_capture();
     let mut argv = Vec::new();
     let mut stdout = Vec::new();
     let _ = crate::exec::execute_list_captured(
@@ -76,7 +76,7 @@ fn collect_bodies(
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> Result<Vec<String>, LexError> {
-    let mut env = shell_env.clone();
+    let mut env = shell_env.clone_for_capture();
     match crate::exec::collect_heredoc_bodies(list, &mut env, last_status, stdin, stderr) {
         Ok(Ok(bodies)) => Ok(bodies),
         Ok(Err(_)) | Err(_) => Err(LexError::CommandSubstitution),

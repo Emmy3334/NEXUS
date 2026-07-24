@@ -54,6 +54,7 @@ impl History {
         other.load_append(path)?;
         self.entries.extend(other.entries);
         self.entries.sort_by_key(|e| e.time);
+        self.trim_to(super::DEFAULT_HISTSIZE);
         Ok(())
     }
 }

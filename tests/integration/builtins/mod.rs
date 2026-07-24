@@ -3,6 +3,7 @@
 mod alias;
 mod bindkey;
 mod cd;
+mod core_status;
 mod dirstack;
 mod env;
 mod exit;

@@ -145,4 +145,28 @@ impl ShellEnvironment {
             suppress_history: false,
         }
     }
+
+    /// Clone for `` `…` `` / `$(…)` / subshell isolation without copying history.
+    ///
+    /// Keeps vars/locals/aliases/functions/argv/dir_stack/healers; drops jobs and
+    /// key bindings; uses an empty history with `suppress_history` set.
+    #[must_use]
+    pub(crate) fn clone_for_capture(&self) -> Self {
+        Self {
+            vars: self.vars.clone(),
+            locals: self.locals.clone(),
+            aliases: self.aliases.clone(),
+            functions: self.functions.clone(),
+            argv: self.argv.clone(),
+            func_depth: 0,
+            pending_return: None,
+            local_frames: Vec::new(),
+            history: History::default(),
+            key_bindings: KeyBindings::new(),
+            dir_stack: self.dir_stack.clone(),
+            healers: self.healers.clone(),
+            jobs: JobTable::default(),
+            suppress_history: true,
+        }
+    }
 }

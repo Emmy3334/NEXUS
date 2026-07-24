@@ -47,7 +47,13 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     tokens: &mut Vec<lex::Token>,
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<ParseOutcome<'a>> {
-    let var_names = shell_env.var_names();
+    // Tab complete only needs names on a live TTY; skip the BTreeSet snapshot otherwise.
+    let tty = interactive && io.stdin.is_terminal();
+    let var_names = if tty {
+        shell_env.var_names()
+    } else {
+        Vec::new()
+    };
     match line_edit::read_logical_line(
         io.stdin,
         io.stdout,
@@ -64,11 +70,22 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     if line_buffer.trim().is_empty() {
         return Ok(ParseOutcome::Blank);
     }
-    let outcome = match history::expand_line(line_buffer, &mut shell_env.history, expanded) {
-        Ok(o) => o,
-        Err(err) => {
-            writeln!(io.stderr, "{}", err.message())?;
-            return Ok(ParseOutcome::Failed(1));
+    // Fast path: no history designators → skip quote-aware `!` scan.
+    let needs_hist = line_buffer.as_bytes().contains(&b'!') || line_buffer.starts_with('^');
+    let outcome = if needs_hist {
+        match history::expand_line(line_buffer, &mut shell_env.history, expanded) {
+            Ok(o) => o,
+            Err(err) => {
+                writeln!(io.stderr, "{}", err.message())?;
+                return Ok(ParseOutcome::Failed(1));
+            }
+        }
+    } else {
+        expanded.clear();
+        expanded.push_str(line_buffer);
+        history::ExpandOutcome {
+            changed: false,
+            print_only: false,
         }
     };
     finish_expand(io, expanded, tokens, shell_env, outcome)
@@ -89,7 +106,11 @@ fn finish_expand<'a, I: BufRead, O: Write, E: Write>(
     }
     // Scripts / `source` / `~/.nexusrc` can suppress recording.
     if !shell_env.suppress_history {
-        shell_env.history.push(expanded.as_str());
+        let limit = shell_env
+            .lookup("histsize")
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(history::DEFAULT_HISTSIZE);
+        shell_env.history.push_limited(expanded.as_str(), limit);
     }
     tokenize_and_parse(expanded, tokens, io.stderr)
 }

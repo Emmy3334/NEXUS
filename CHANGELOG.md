@@ -18,12 +18,17 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Fixed
 
+- Word expansion no longer clones the full shell env (including history) on every
+  argv word; `` `…` `` / `$(…)` isolation uses `clone_for_capture` (empty history).
+- Lines without `!` / leading `^` skip history expansion (hot-path fast path).
 - `` `…` `` / `$(…)` restore process cwd after `cd` (same as `(…)` subshells).
 - Function bodies replay through the same control path as loop/`if`/`case` bodies, so
   nested `foreach` / `while` / `if` / `case` (and `return` from inside them) work.
 
 ### Added
 
+- Core builtins `echo` (`-n`), `true`, `false`, and `:` (in-process; no `/bin` spawn).
+- `histsize` local caps retained history (default **10000**; `0` clears).
 - `typeset` builtin: function-local like `local`; `-x` / `--export` also exports
   (restored with the local frame inside functions; works like `setenv` outside).
 - Host `aws` / `gcloud` curated service/group **flag** Tab complete (e.g. `aws s3 --rec` →

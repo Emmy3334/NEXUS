@@ -28,6 +28,9 @@ Interactive TTY sessions:
 3. Run the REPL (typed lines are recorded)
 4. Soft-save the histfile on exit / EOF
 
+History length is capped by the `histsize` local (default **10000**); oldest events
+are dropped first. `histsize=0` keeps nothing.
+
 Missing histfile on load is quiet. Manual `history -S` / `-L` / `-M` still work.
 
 ## Line edition

@@ -5,6 +5,9 @@ mod file;
 
 use std::time::SystemTime;
 
+/// Default max events retained when `histsize` is unset.
+pub const DEFAULT_HISTSIZE: usize = 10_000;
+
 /// One history event with wall-clock stamp (for `-T` / `-M`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryEntry {
@@ -37,21 +40,30 @@ impl History {
 
     /// Append a command line (after history expansion), stamped now.
     pub fn push(&mut self, line: impl Into<String>) {
+        self.push_limited(line, DEFAULT_HISTSIZE);
+    }
+
+    /// Like [`push`], respecting an explicit `histsize` cap.
+    pub fn push_limited(&mut self, line: impl Into<String>, limit: usize) {
         let line = line.into();
-        if !line.is_empty() {
-            self.entries.push(HistoryEntry {
-                line,
-                time: SystemTime::now(),
-            });
+        if line.is_empty() {
+            return;
         }
+        self.entries.push(HistoryEntry {
+            line,
+            time: SystemTime::now(),
+        });
+        self.trim_to(limit);
     }
 
     /// Append with an explicit timestamp (histfile load / tests).
     pub fn push_at(&mut self, line: impl Into<String>, time: SystemTime) {
         let line = line.into();
-        if !line.is_empty() {
-            self.entries.push(HistoryEntry { line, time });
+        if line.is_empty() {
+            return;
         }
+        self.entries.push(HistoryEntry { line, time });
+        self.trim_to(DEFAULT_HISTSIZE);
     }
 
     /// Remove all events.
@@ -59,5 +71,16 @@ impl History {
         self.entries.clear();
         self.last_subst = None;
         self.last_search_word = None;
+    }
+
+    fn trim_to(&mut self, limit: usize) {
+        if limit == 0 {
+            self.entries.clear();
+            return;
+        }
+        if self.entries.len() > limit {
+            let drop_n = self.entries.len() - limit;
+            self.entries.drain(..drop_n);
+        }
     }
 }

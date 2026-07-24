@@ -38,6 +38,9 @@ pub enum BuiltinResult {
 | `return` | `return_cmd.rs` | Leave current function with optional status |
 | `local` | `local_cmd.rs` | Function-scoped shell local (`name` / `name=value`); restores on leave |
 | `typeset` | `typeset_cmd.rs` | Like `local`; `-x` / `--export` also exports (restored on leave in functions) |
+| `echo` | `echo_cmd.rs` | Print args joined by spaces; `-n` suppresses the trailing newline |
+| `true` / `:` | `trivial.rs` | Status 0 |
+| `false` | `trivial.rs` | Status 1 |
 | `source` / `.` | `source.rs` | `BuiltinResult::Source(path)` — run file in current shell |
 | `@` | `at.rs` | tcsh-style `@ i++` / `@ i = n` on locals |
 | `bindkey` | `bindkey/` | List / set / clear editor bindings (`-e` `-v` `-c` `-s` `-a`, …) |
@@ -128,7 +131,7 @@ Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running c
 
 `NAMES` / `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`, `typeset`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`, `typeset`, `echo`, `true`, `false`, `:`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

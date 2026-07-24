@@ -87,12 +87,17 @@ fn expand_stage_word<I: BufRead, O: Write, E: Write>(
     fields: &mut Vec<crate::expand::ExpandedWord>,
     argv: &mut Vec<String>,
 ) -> io::Result<Result<(), CommandResult>> {
-    let snap = shell_env.clone();
-    let mut capture = |body: &str| {
-        crate::exec::capture_command_output(body, &snap, last_status, io.stdin, io.stderr)
+    let result = if crate::expand::word_may_need_cmd_subst(word) {
+        let snap = shell_env.clone_for_capture();
+        let mut capture = |body: &str| {
+            crate::exec::capture_command_output(body, &snap, last_status, io.stdin, io.stderr)
+        };
+        crate::expand::expand_word_fields_into(word, shell_env, last_status, fields, &mut capture)
+    } else {
+        let mut deny = |_: &str| Err(crate::lex::LexError::CommandSubstitution);
+        crate::expand::expand_word_fields_into(word, shell_env, last_status, fields, &mut deny)
     };
-    match crate::expand::expand_word_fields_into(word, shell_env, last_status, fields, &mut capture)
-    {
+    match result {
         Ok(()) => {
             for field in fields.drain(..) {
                 argv.extend(crate::glob::expand_globs(&field));

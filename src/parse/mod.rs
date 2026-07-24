@@ -159,11 +159,7 @@ pub fn fill_argv(
     let mut expanded = Vec::new();
     let mut fields = Vec::new();
     for raw in words {
-        let snap = env.clone();
-        let mut capture = |body: &str| {
-            crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr)
-        };
-        crate::expand::expand_word_fields_into(raw, env, last_status, &mut fields, &mut capture)?;
+        expand_word_into(raw, env, last_status, stdin, stderr, &mut fields)?;
         for field in fields.drain(..) {
             expanded.extend(crate::glob::expand_globs(&field));
         }
@@ -177,4 +173,24 @@ pub fn fill_argv(
         *slot = value;
     }
     Ok(())
+}
+
+fn expand_word_into(
+    raw: &str,
+    env: &mut crate::env::ShellEnvironment,
+    last_status: u8,
+    stdin: &mut impl std::io::BufRead,
+    stderr: &mut impl std::io::Write,
+    fields: &mut Vec<crate::expand::ExpandedWord>,
+) -> Result<(), crate::lex::LexError> {
+    if crate::expand::word_may_need_cmd_subst(raw) {
+        let snap = env.clone_for_capture();
+        let mut capture = |body: &str| {
+            crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr)
+        };
+        crate::expand::expand_word_fields_into(raw, env, last_status, fields, &mut capture)
+    } else {
+        let mut deny = |_: &str| Err(crate::lex::LexError::CommandSubstitution);
+        crate::expand::expand_word_fields_into(raw, env, last_status, fields, &mut deny)
+    }
 }

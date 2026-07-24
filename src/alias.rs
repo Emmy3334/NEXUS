@@ -54,15 +54,31 @@ fn expand_alias_body(
             continue;
         }
         let raw = token.lexeme(body);
-        let snap = shell_env.clone();
-        let mut capture =
-            |src: &str| crate::exec::capture_command_output(src, &snap, last_status, stdin, stderr);
-        expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut capture)?;
+        expand_alias_word(raw, shell_env, last_status, stdin, stderr, &mut fields)?;
         for field in fields.drain(..) {
             words.extend(glob::expand_globs(&field));
         }
     }
     Ok(words)
+}
+
+fn expand_alias_word(
+    raw: &str,
+    shell_env: &mut ShellEnvironment,
+    last_status: u8,
+    stdin: &mut impl BufRead,
+    stderr: &mut impl Write,
+    fields: &mut Vec<expand::ExpandedWord>,
+) -> Result<(), LexError> {
+    if expand::word_may_need_cmd_subst(raw) {
+        let snap = shell_env.clone_for_capture();
+        let mut capture =
+            |src: &str| crate::exec::capture_command_output(src, &snap, last_status, stdin, stderr);
+        expand::expand_word_fields_into(raw, shell_env, last_status, fields, &mut capture)
+    } else {
+        let mut deny = |_: &str| Err(LexError::CommandSubstitution);
+        expand::expand_word_fields_into(raw, shell_env, last_status, fields, &mut deny)
+    }
 }
 
 fn replace_command_word(argv: &mut Vec<String>, words: Vec<String>) {

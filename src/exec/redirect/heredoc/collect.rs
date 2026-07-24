@@ -118,10 +118,17 @@ fn expand_heredoc_delimiter(
     stderr: &mut impl Write,
 ) -> io::Result<Result<String, u8>> {
     let mut fields = Vec::new();
-    let snap = shell_env.clone();
-    let mut capture =
-        |body: &str| crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr);
-    match expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut capture) {
+    let result = if expand::word_may_need_cmd_subst(raw) {
+        let snap = shell_env.clone_for_capture();
+        let mut capture = |body: &str| {
+            crate::exec::capture_command_output(body, &snap, last_status, stdin, stderr)
+        };
+        expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut capture)
+    } else {
+        let mut deny = |_: &str| Err(crate::lex::LexError::CommandSubstitution);
+        expand::expand_word_fields_into(raw, shell_env, last_status, &mut fields, &mut deny)
+    };
+    match result {
         Ok(()) => Ok(Ok(fields
             .into_iter()
             .next()
