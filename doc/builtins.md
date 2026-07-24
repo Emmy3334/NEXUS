@@ -116,7 +116,7 @@ Uses bollard against the local Docker socket (same stack as Docker heal / Tab).
 
 | Form | Behavior |
 |------|----------|
-| `@docker ps [-a\|--all]` | Running containers (Docker CLI–style columns); `-a` includes exited |
+| `@docker ps [-a\|--all] [-q\|--quiet]` | Running containers (Docker CLI–style columns); `-a` includes exited; `-q` prints short IDs only |
 | `@docker logs [-f\|--follow] <name\|id>` | Container logs; `-f` follows until the container stops |
 | daemon down / API error | Status `1` + stderr |
 

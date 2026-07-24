@@ -24,6 +24,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- `@docker ps -q` / `--quiet` prints short container IDs only (no table header).
 - Host `helm` / `systemctl` curated verb **flag** Tab complete (e.g. `helm install --names` →
   `--namespace`; `systemctl status --us` → `--user`).
 - `@docker ps -a` / `--all` lists exited containers; `@docker logs -f` / `--follow`

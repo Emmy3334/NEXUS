@@ -1,4 +1,4 @@
-//! Container table for `@docker ps` (running, or all with `-a`).
+//! Container table for `@docker ps` (running, or all with `-a`; IDs with `-q`).
 
 mod age;
 mod fields;
@@ -15,20 +15,25 @@ use std::io;
 /// Lines for `@docker ps` (Docker CLI–style columns); daemon errors propagate.
 ///
 /// `all` matches Docker’s `-a` / `--all` (include exited containers).
-pub fn list_ps_lines(all: bool) -> io::Result<Vec<String>> {
+/// `quiet` matches `-q` / `--quiet` (short IDs only, no header).
+pub fn list_ps_lines(all: bool, quiet: bool) -> io::Result<Vec<String>> {
     let docker = client::connect()?;
-    match block_on(fetch(&docker, all)) {
+    match block_on(fetch(&docker, all, quiet)) {
         Ok(inner) => inner,
         Err(err) => Err(err),
     }
 }
 
-async fn fetch(docker: &Docker, all: bool) -> io::Result<Vec<String>> {
+async fn fetch(docker: &Docker, all: bool, quiet: bool) -> io::Result<Vec<String>> {
     let options = Some(ListContainersOptions::<String> {
         all,
         filters: HashMap::new(),
         ..Default::default()
     });
     let containers = docker.list_containers(options).await.map_err(map_err)?;
-    Ok(format::render(&containers))
+    Ok(if quiet {
+        format::ids(&containers)
+    } else {
+        format::render(&containers)
+    })
 }

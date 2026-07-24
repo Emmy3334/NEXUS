@@ -12,6 +12,12 @@ pub(super) fn wants_all(args: &[String]) -> bool {
     args.iter().any(|a| matches!(a.as_str(), "-a" | "--all"))
 }
 
+/// Whether `-q` / `--quiet` appears among args.
+#[must_use]
+pub(super) fn wants_quiet(args: &[String]) -> bool {
+    args.iter().any(|a| matches!(a.as_str(), "-q" | "--quiet"))
+}
+
 /// First non-flag positional after `skip` leading args (subcommand word).
 #[must_use]
 pub(super) fn first_positional(args: &[String], skip: usize) -> Option<&str> {
