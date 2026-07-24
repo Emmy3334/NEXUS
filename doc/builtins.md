@@ -51,6 +51,7 @@ pub enum BuiltinResult {
 |---------|--------|----------|
 | `which` | `which.rs` | First match: builtin or PATH (`pathfind`) |
 | `where` | `which.rs` | All matches |
+| `hash` | `hash_cmd.rs` | List cached PATH resolutions (`name=path`); `-r` clears cache |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox/` | Run Wasm (path/cache), soft-host; `install` / `list` / `rm` cache UX |
 | `heal` / `doctor` | `heal/` | Heal status: order/image/quiet, probes, tips |
@@ -131,7 +132,7 @@ Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running c
 
 `NAMES` / `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`, `typeset`, `echo`, `true`, `false`, `:`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `hash`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`, `typeset`, `echo`, `true`, `false`, `:`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

@@ -40,9 +40,11 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | History store + `!` designators | Yes |
 | Jobs `&` / `jobs` / `fg` / `bg` (Unix) | Yes |
 | Line edition + `bindkey` (Unix TTY) | Yes |
-| Context Tab complete (CLI registry; verb flags incl. helm/systemctl/aws/gcloud; kinds; arrow menu; `@docker`/`@kube` flags; heal; Tab cycle) | Yes |
+| Context Tab complete (engine: matchers/approx/tags; `compdef`/`compinit`/`compdump`; cloud depth) | Yes |
 | Git-aware prompt (`$> [branch*] `) | Yes |
-| Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
+| Layered startup (`.nexusenv` / `.nexusrc` / `.nexuslogin` / `NEXUSRC` / `NEXUS_DOTDIR`) | Yes |
+| Arrays (`typeset -a`) + `${name:offset}` slices + glob qualifiers `*(.)`/`*(/)`/`*(*)` | Yes |
+| PATH command hash (`hash` / `hash -r`) | Yes |
 | Wasm sandbox (`sandbox` run/install/list/rm) + module cache heal | Yes |
 | Kubernetes API (`@kube` nodes/pods/logs/exec/get/describe via kube-rs) | Yes |
 | Docker Engine API (`@docker` ps/logs via bollard; `-a` / `-q` / `-f`) | Yes |

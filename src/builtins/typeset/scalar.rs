@@ -1,27 +1,16 @@
-//! `typeset` — function-local like `local`, optional `-x` / `--export`.
+//! Scalar `typeset` assignments.
 
-use crate::builtins::BuiltinResult;
+use super::super::BuiltinResult;
 use crate::env::ShellEnvironment;
 
 use std::io::{self, Write};
 
 pub(super) fn run(
-    argv: &[String],
+    args: &[String],
+    export: bool,
     shell_env: &mut ShellEnvironment,
-    _stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<BuiltinResult> {
-    let (export, args) = match parse_flags(argv) {
-        Ok(v) => v,
-        Err(msg) => {
-            writeln!(stderr, "typeset: {msg}")?;
-            return Ok(BuiltinResult::Status(1));
-        }
-    };
-    if !export && shell_env.func_depth() == 0 {
-        writeln!(stderr, "typeset: not in a function")?;
-        return Ok(BuiltinResult::Status(1));
-    }
     match args {
         [] => {
             writeln!(stderr, "typeset: Too few arguments.")?;
@@ -33,15 +22,6 @@ pub(super) fn run(
             writeln!(stderr, "typeset: Too many arguments.")?;
             Ok(BuiltinResult::Status(1))
         }
-    }
-}
-
-fn parse_flags(argv: &[String]) -> Result<(bool, &[String]), &'static str> {
-    let rest = argv.get(1..).unwrap_or(&[]);
-    match rest.first().map(String::as_str) {
-        Some("-x" | "--export") => Ok((true, &rest[1..])),
-        Some(flag) if flag.starts_with('-') => Err("unknown option"),
-        _ => Ok((false, rest)),
     }
 }
 

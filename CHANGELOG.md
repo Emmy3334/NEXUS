@@ -8,6 +8,17 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ## [Unreleased]
 
+### Added
+
+- Beat-zsh PR6: shell arrays (`typeset -a`, `${name[i]}`, `${name[@]}`, `${#name}` element count),
+  bash-style `${name:offset}` / `${name:offset:length}` slices (negative offset: `${name: -N}`),
+  and zsh-style glob qualifiers `*(.)` / `*(/)` / `*(*)` on active patterns.
+- Layered startup files under `$NEXUS_DOTDIR` or `$HOME`: `.nexusenv` (all invocations),
+  `.nexusrc` (interactive TTY; `NEXUSRC` override unchanged), `.nexuslogin` / `.nexuslogout`
+  (login shells). `NEXUS_NORCS=1` skips all; `nexus -l` and argv0 `-name` mark login shells.
+  Sample templates in `StartupFiles/`.
+- `CwdGuard` RAII restore for command substitution cwd (unwind-safe).
+
 ### Changed
 
 - Bumped Wasmtime / `wasmtime-wasi` from 24.x to **36.0.7+** (RUSTSEC-2026-0086…0096:
@@ -18,6 +29,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Fixed
 
+- `${name:-word}` stays default substitution even when `word` is numeric; negative
+  substring offsets use bash spacing `${name: -N}` (disambiguates from `:-`).
 - Word expansion no longer clones the full shell env (including history) on every
   argv word; `` `…` `` / `$(…)` isolation uses `clone_for_capture` (empty history).
   Capture clones are skipped when quotes / `$((…))` make subst impossible.
@@ -28,6 +41,17 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Beat-zsh PR5 command hash: `pathfind` caches resolved PATH lookups (invalidates on
+  PATH change); `hash` / `hash -r` builtins; directory listing cache for Tab PATH
+  complete; `scripts/bench_hotpath.sh` for spawn vs builtin timing.
+- Beat-zsh PR3 cloud completion depth: nested `aws s3` / `gcloud compute` action Tab complete,
+  static match descriptions in the arrow menu (`value  — description`), live container/pod
+  `Tag::Resources` ranking, and case-insensitive `@docker` / `@kube` / `heal` collectors.
+- Beat-zsh PR2 completion registry: `compdef` / `compinit` / `compdump` builtins,
+  `CompRegistry` on `ShellEnvironment`, dump load at TTY boot, and first-verb Tab
+  complete for user-registered commands (curated providers keep priority).
+- Beat-zsh PR1 completion engine: ranked `Match` model with `Tag` grouping, case-insensitive
+  prefix/substring matchers, Levenshtein-≤1 approximate fallback, and tagged arrow-menu headers.
 - Core builtins `echo` (`-n`), `true`, `false`, and `:` (in-process; no `/bin` spawn).
 - `histsize` local caps retained history (default **10000**; `0` clears).
 - `typeset` builtin: function-local like `local`; `-x` / `--export` also exports

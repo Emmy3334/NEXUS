@@ -19,6 +19,7 @@ pub use queue::take_complete_line;
 use super::ReadOutcome;
 use crate::history::History;
 use crate::keybind::KeyBindings;
+use crate::repl::line_edit::complete::CompleteCtx;
 
 use std::collections::VecDeque;
 use std::io::{self, Write};
@@ -29,7 +30,7 @@ pub(super) fn edit_line(
     history: &History,
     bindings: &mut KeyBindings,
     queue: &mut VecDeque<u8>,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<ReadOutcome> {
     // Multi-line paste leftovers: already shown under one prompt; run silently.
     if let Some(line) = take_complete_line(queue) {
@@ -37,5 +38,5 @@ pub(super) fn edit_line(
         return Ok(ReadOutcome::Line);
     }
     let _guard = term::RawMode::enter()?;
-    session::run(stdout, out, history, bindings, queue, var_names)
+    session::run(stdout, out, history, bindings, queue, complete_ctx)
 }

@@ -1,13 +1,20 @@
 //! Repeated Tab cycles through ambiguous completion matches.
 
-use nexus::repl::{complete_or_cycle, CompleteCycle};
+use nexus::env::ShellEnvironment;
+use nexus::repl::{complete_or_cycle, CompleteCtx, CompleteCycle};
 use std::fs;
 use std::path::PathBuf;
 
 fn cycle_at(line: &str, cycle: &mut Option<CompleteCycle>) -> (String, Vec<String>) {
+    let env = ShellEnvironment::default();
+    let names = env.var_names();
+    let ctx = CompleteCtx {
+        var_names: &names,
+        registry: env.comp_registry(),
+    };
     let mut buffer = line.to_owned();
     let mut cursor = buffer.len();
-    let matches = complete_or_cycle(&mut buffer, &mut cursor, &[], cycle);
+    let matches = complete_or_cycle(&mut buffer, &mut cursor, &ctx, cycle);
     (buffer, matches)
 }
 
@@ -137,7 +144,13 @@ fn stale_cycle_token_restarts_complete() {
 
     let mut buffer = "git checkout max".to_owned();
     let mut cursor = buffer.len();
-    let matches = complete_or_cycle(&mut buffer, &mut cursor, &[], &mut cycle);
+    let env = ShellEnvironment::default();
+    let names = env.var_names();
+    let ctx = CompleteCtx {
+        var_names: &names,
+        registry: env.comp_registry(),
+    };
+    let matches = complete_or_cycle(&mut buffer, &mut cursor, &ctx, &mut cycle);
     assert!(matches.is_empty());
     assert_eq!(buffer, "git checkout max");
 

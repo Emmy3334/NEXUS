@@ -1,5 +1,7 @@
 //! Tab completion for `heal` / `doctor`.
 
+use super::matchers::matches_prefix;
+
 const SUBCOMMANDS: &[&str] = &["help", "status"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,7 +21,7 @@ pub(super) fn collect(kind: &Complete, prefix: &str, out: &mut Vec<String>) {
     match kind {
         Complete::Subcommand => {
             for name in SUBCOMMANDS {
-                if name.starts_with(prefix) {
+                if matches_prefix(name, prefix) {
                     out.push((*name).to_owned());
                 }
             }

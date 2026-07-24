@@ -35,8 +35,9 @@ pub(super) fn first_verb(words: &[&str]) -> Option<&'static [&'static str]> {
 }
 
 pub(super) fn collect(names: &[&str], prefix: &str, out: &mut Vec<String>) {
+    use super::matchers::matches_prefix;
     for name in names {
-        if name.starts_with(prefix) {
+        if matches_prefix(name, prefix) {
             out.push((*name).to_owned());
         }
     }

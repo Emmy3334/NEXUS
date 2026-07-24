@@ -8,6 +8,7 @@ use super::handle;
 use super::queue;
 use crate::history::History;
 use crate::keybind::KeyBindings;
+use crate::repl::line_edit::complete::CompleteCtx;
 use crate::repl::line_edit::isearch::HistoryISearch;
 use crate::repl::line_edit::probe::quotes_closed;
 use crate::repl::line_edit::recall::HistoryRecall;
@@ -22,7 +23,7 @@ pub(super) fn run(
     history: &History,
     bindings: &mut KeyBindings,
     queue: &mut VecDeque<u8>,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<ReadOutcome> {
     let mut edit = EditBuffer::new();
     let mut nav = HistoryRecall::new(history);
@@ -42,7 +43,7 @@ pub(super) fn run(
             history,
             &mut isearch,
             out,
-            var_names,
+            complete_ctx,
         )? {
             return Ok(done);
         }
@@ -61,10 +62,19 @@ fn poll<'a>(
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
     out: &mut String,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Option<ReadOutcome>> {
     let step = handle::handle_event(
-        stdout, edit, bindings, prompt, nav, queue, pasting, history, isearch, var_names,
+        stdout,
+        edit,
+        bindings,
+        prompt,
+        nav,
+        queue,
+        pasting,
+        history,
+        isearch,
+        complete_ctx,
     )?;
     apply_step(
         step, stdout, edit, prompt, out, queue, nav, history, isearch,

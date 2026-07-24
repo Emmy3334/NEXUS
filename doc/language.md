@@ -52,7 +52,9 @@ Handled mainly in `src/expand/`:
 | `$name` / `${name}` | Local first, then exported |
 | `${name:-word}` | If unset or empty → expand `word`; else value |
 | `${name:+word}` | If unset or empty → empty; else expand `word` |
-| `${#name}` / `${#}` | Character length of value / argc |
+| `${#name}` / `${#}` | Character length of scalar value / array element count / argc |
+| `${name[n]}` / `${name[@]}` / `${name[*]}` | Array element (1-based), or join with spaces (`typeset -a`) |
+| `${name:offset}` / `${name:offset:length}` | Substring by char index (0-based). Negative offset needs a space after `:` (bash-style `${name: -2}`) so `:-` stays default substitution |
 | `${name#pat}` / `##` / `%` / `%%` | Strip shortest/longest matching prefix (`#`/`##`) or suffix (`%`/`%%`); `pat` uses `*` / `?` |
 | `{a,b}` / `pre{a,b}post` | Brace expand (before `$`); needs a comma; quoted braces stay literal |
 | `$?` / `$status` | Last command status |
@@ -77,13 +79,15 @@ function name { … }
 function name() { … }
 ```
 
-Bodies may be one line or continue until a matching `}`. Calling `name args…` runs the body with `$0`=`name`, `$1…` from the call, and `$#`/`$*` updated for the duration. Nested calls are capped (depth 64). `return [n]` leaves the current function (error if not in one). `local name[=value]` and `typeset name[=value]` declare a function-scoped shell local (same map as `set`); the prior value is restored when the function returns (including via `return`). Error if `local` / bare `typeset` is used outside a function. `typeset -x` / `--export` also writes the exported map (works outside functions like `setenv`); inside a function both local and export are restored on leave. Function bodies replay through the same path as `foreach`/`while`/`if`/`case` bodies (`repl::body_run`), so nested control structures and `return` from inside them work.
+Bodies may be one line or continue until a matching `}`. Calling `name args…` runs the body with `$0`=`name`, `$1…` from the call, and `$#`/`$*` updated for the duration. Nested calls are capped (depth 64). `return [n]` leaves the current function (error if not in one). `local name[=value]` and `typeset name[=value]` declare a function-scoped shell local (same map as `set`); the prior value is restored when the function returns (including via `return`). Error if `local` / bare `typeset` is used outside a function. `typeset -x` / `--export` also writes the exported map (works outside functions like `setenv`); inside a function both local and export are restored on leave. `typeset -a name[=a:b:c]` declares a shell array (colon-separated elements; allowed at any scope); `${name[i]}` / `${name[@]}` expand array elements; scalars of the same name are cleared. Function-local arrays restore on leave. `typeset -a` with `-x` is unsupported in this slice. Function bodies replay through the same path as `foreach`/`while`/`if`/`case` bodies (`repl::body_run`), so nested control structures and `return` from inside them work.
 
 Module: `src/functions/` + `env` function table / local frames; `return`, `local`, and `typeset` builtins.
 
 ## Glob
 
 Patterns `*`, `?`, `[…]`, and recursive `**` expand to matching pathnames. A lone `**` component walks descendants (hidden names skipped). `**/` in the middle matches zero or more directories. No match → original word.
+
+When the word has active glob metacharacters, a trailing zsh-style qualifier may filter matches: `*(.)` regular files only, `*(/)` directories only, `*(*)` executable files (Unix mode). Literal `foo(.)` without active glob is unchanged.
 
 ## Aliases
 

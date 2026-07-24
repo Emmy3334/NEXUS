@@ -10,6 +10,7 @@ use super::isearch_mode;
 use super::keys::read_event;
 use crate::history::History;
 use crate::keybind::KeyBindings;
+use crate::repl::line_edit::complete::CompleteCtx;
 use crate::repl::line_edit::isearch::HistoryISearch;
 use crate::repl::line_edit::recall::HistoryRecall;
 use crate::repl::prompt::PromptLine;
@@ -28,7 +29,7 @@ pub(super) fn handle_event<'a>(
     pasting: &mut bool,
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
     match read_event(queue)? {
         Event::PasteStart => {
@@ -40,7 +41,15 @@ pub(super) fn handle_event<'a>(
             Ok(Loop::Continue)
         }
         Event::Action(action) if !*pasting => dispatch::action(
-            stdout, edit, bindings, prompt, nav, history, isearch, action, var_names,
+            stdout,
+            edit,
+            bindings,
+            prompt,
+            nav,
+            history,
+            isearch,
+            action,
+            complete_ctx,
         ),
         Event::Action(_) => Ok(Loop::Continue),
         Event::InsertRun(text) if *pasting => insert_text(stdout, edit, prompt.as_str(), &text),
@@ -56,12 +65,20 @@ pub(super) fn handle_event<'a>(
                 prompt.as_str(),
                 nav,
                 &text,
-                var_names,
+                complete_ctx,
             ),
         },
         Event::Raw(bytes) if *pasting => insert_raw_paste(stdout, edit, prompt.as_str(), &bytes),
         Event::Raw(bytes) if isearch.is_some() => dispatch::isearch_raw(
-            stdout, edit, bindings, prompt, nav, history, isearch, &bytes, var_names,
+            stdout,
+            edit,
+            bindings,
+            prompt,
+            nav,
+            history,
+            isearch,
+            &bytes,
+            complete_ctx,
         ),
         Event::Raw(bytes) => dispatch::raw(
             stdout,
@@ -70,7 +87,7 @@ pub(super) fn handle_event<'a>(
             prompt.as_str(),
             nav,
             &bytes,
-            var_names,
+            complete_ctx,
         ),
     }
 }

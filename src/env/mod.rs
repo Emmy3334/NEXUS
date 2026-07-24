@@ -10,6 +10,8 @@
 mod access;
 mod aliases;
 mod argv;
+mod arrays;
+mod comp_registry;
 mod dirstack;
 mod func_frame;
 mod functions;
@@ -18,6 +20,8 @@ mod mutate;
 mod names;
 mod specials;
 
+pub use comp_registry::CompRegistry;
+pub use comp_registry::{boot_load, dump_path_is_safe, load_dump, resolve_dump_path, save_dump};
 pub use dirstack::DirStack;
 
 use crate::heal::ResolverChain;
@@ -34,6 +38,8 @@ pub struct ShellEnvironment {
     pub(super) vars: BTreeMap<String, String>,
     /// Shell-local variables (not passed to children).
     pub(super) locals: BTreeMap<String, String>,
+    /// Shell arrays (`typeset -a`; not passed to children).
+    pub(super) arrays: BTreeMap<String, Vec<String>>,
     /// Command aliases (not passed to children).
     pub(super) aliases: BTreeMap<String, String>,
     /// Shell functions (not passed to children).
@@ -56,8 +62,12 @@ pub struct ShellEnvironment {
     pub healers: ResolverChain,
     /// Background jobs for `&` / `jobs` / `fg` / `bg`.
     pub jobs: JobTable,
+    /// User-defined first-verb completion words (`compdef`).
+    pub(crate) comp_registry: CompRegistry,
     /// When set, expanded lines are not pushed (startup RC / `source`).
     pub(crate) suppress_history: bool,
+    /// Login shell (argv0 `-name`, `-l`, or `NEXUS_LOGIN=1`).
+    pub login: bool,
 }
 
 impl Clone for ShellEnvironment {
@@ -65,6 +75,7 @@ impl Clone for ShellEnvironment {
         Self {
             vars: self.vars.clone(),
             locals: self.locals.clone(),
+            arrays: self.arrays.clone(),
             aliases: self.aliases.clone(),
             functions: self.functions.clone(),
             argv: self.argv.clone(),
@@ -78,6 +89,8 @@ impl Clone for ShellEnvironment {
             // Subshells must not inherit live child processes.
             jobs: JobTable::default(),
             suppress_history: self.suppress_history,
+            comp_registry: self.comp_registry.clone(),
+            login: self.login,
         }
     }
 }
@@ -86,6 +99,7 @@ impl PartialEq for ShellEnvironment {
     fn eq(&self, other: &Self) -> bool {
         self.vars == other.vars
             && self.locals == other.locals
+            && self.arrays == other.arrays
             && self.aliases == other.aliases
             && self.functions == other.functions
             && self.argv == other.argv
@@ -99,6 +113,12 @@ impl PartialEq for ShellEnvironment {
 impl Eq for ShellEnvironment {}
 
 impl ShellEnvironment {
+    /// Borrow the user completion registry (`compdef` / `compinit`).
+    #[must_use]
+    pub fn comp_registry(&self) -> &CompRegistry {
+        &self.comp_registry
+    }
+
     /// Snapshot the current process environment and seed special locals.
     ///
     /// Non-UTF-8 keys/values from the OS are skipped (`std::env::vars`).
@@ -106,6 +126,7 @@ impl ShellEnvironment {
         let mut env = Self {
             vars: std::env::vars().collect(),
             locals: BTreeMap::new(),
+            arrays: BTreeMap::new(),
             aliases: BTreeMap::new(),
             functions: BTreeMap::new(),
             argv: Vec::new(),
@@ -118,6 +139,8 @@ impl ShellEnvironment {
             healers: ResolverChain::empty(),
             jobs: JobTable::default(),
             suppress_history: false,
+            comp_registry: CompRegistry::default(),
+            login: std::env::var("NEXUS_LOGIN").as_deref() == Ok("1"),
         };
         env.seed_specials();
         crate::heal::attach_default_backends(&mut env);
@@ -131,6 +154,7 @@ impl ShellEnvironment {
         Self {
             vars,
             locals: BTreeMap::new(),
+            arrays: BTreeMap::new(),
             aliases: BTreeMap::new(),
             functions: BTreeMap::new(),
             argv: Vec::new(),
@@ -143,6 +167,8 @@ impl ShellEnvironment {
             healers: ResolverChain::empty(),
             jobs: JobTable::default(),
             suppress_history: false,
+            comp_registry: CompRegistry::default(),
+            login: false,
         }
     }
 
@@ -155,6 +181,7 @@ impl ShellEnvironment {
         Self {
             vars: self.vars.clone(),
             locals: self.locals.clone(),
+            arrays: self.arrays.clone(),
             aliases: self.aliases.clone(),
             functions: self.functions.clone(),
             argv: self.argv.clone(),
@@ -167,6 +194,8 @@ impl ShellEnvironment {
             healers: self.healers.clone(),
             jobs: JobTable::default(),
             suppress_history: true,
+            comp_registry: CompRegistry::default(),
+            login: self.login,
         }
     }
 }

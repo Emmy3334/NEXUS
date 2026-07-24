@@ -4,6 +4,7 @@ use super::buffer::{self, EditBuffer};
 use super::complete_menu;
 use super::draw;
 use crate::keybind::{Action, KeyBindings};
+use crate::repl::line_edit::complete::CompleteCtx;
 use crate::repl::line_edit::recall::HistoryRecall;
 use crate::repl::prompt;
 
@@ -23,9 +24,9 @@ pub(super) fn apply(
     action: Action,
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
-    if let Some(result) = complete_menu::on_action(stdout, edit, action, prompt, var_names)? {
+    if let Some(result) = complete_menu::on_action(stdout, edit, action, prompt, complete_ctx)? {
         return Ok(result);
     }
     match action {

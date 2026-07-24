@@ -12,6 +12,11 @@ pub(super) fn length(
     last_status: u8,
     out: &mut ExpandedWord,
 ) {
+    if env.is_array(name) {
+        let n = env.array_len(name);
+        out.push_str_literal(&n.to_string());
+        return;
+    }
     let value = value::resolve(name, env, last_status);
     let n = value.chars().count();
     out.push_str_literal(&n.to_string());

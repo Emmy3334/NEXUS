@@ -1,0 +1,4 @@
+# Copy to ~/.nexuslogout (or $NEXUS_DOTDIR/.nexuslogout) and edit.
+# Sourced quietly when a login interactive shell exits.
+:
+# printf 'Goodbye.\n' >&2

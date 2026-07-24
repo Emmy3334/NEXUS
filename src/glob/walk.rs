@@ -3,6 +3,7 @@
 use super::component::expand_component;
 use super::components::split_pattern_components;
 use super::globstar;
+use super::qualifier::{filter_matches, strip_qualifier};
 use crate::expand::ExpandedWord;
 
 use std::path::{Path, PathBuf};
@@ -20,14 +21,22 @@ pub fn expand_globs(word: &ExpandedWord) -> Vec<String> {
     if !word.has_active_glob() {
         return vec![word.as_str().to_owned()];
     }
-    let pattern: Vec<(char, bool)> = word
-        .as_str()
-        .chars()
-        .zip(word.glob_meta().iter().copied())
-        .collect();
+    let (pattern, qual) = strip_qualifier(
+        &word
+            .as_str()
+            .chars()
+            .zip(word.glob_meta().iter().copied())
+            .collect::<Vec<_>>(),
+    );
     let mut matches = match_pattern(&pattern);
     if matches.is_empty() {
         return vec![word.as_str().to_owned()];
+    }
+    if let Some(qual) = qual {
+        matches = filter_matches(matches, qual);
+        if matches.is_empty() {
+            return vec![word.as_str().to_owned()];
+        }
     }
     matches.sort();
     matches

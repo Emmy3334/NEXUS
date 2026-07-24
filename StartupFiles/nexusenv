@@ -1,0 +1,4 @@
+# Copy to ~/.nexusenv (or $NEXUS_DOTDIR/.nexusenv) and edit.
+# Loaded on every nexus invocation (interactive and scripts). Keep stdout quiet.
+:
+# setenv PATH "$HOME/bin:$PATH"

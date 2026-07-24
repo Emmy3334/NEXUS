@@ -1,7 +1,7 @@
 //! Column layout for ambiguous Tab completion listings.
 
 /// Soft cap so a huge match set does not flood the TTY (zsh `LISTMAX`-ish).
-const LIST_MAX: usize = 100;
+pub(super) const LIST_MAX: usize = 100;
 
 /// Format matches into terminal-width columns (column-major, like `ls`).
 pub fn format_columns(items: &[String], width: usize) -> Vec<String> {
@@ -27,7 +27,12 @@ pub fn format_columns(items: &[String], width: usize) -> Vec<String> {
 
 /// Cap + column-format for TTY display; uses `$COLUMNS` (default 80).
 pub fn list_display_lines(matches: &[String]) -> Vec<String> {
-    list_display_lines_width(matches, terminal_columns())
+    let width = std::env::var("COLUMNS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(80)
+        .max(1);
+    list_display_lines_width(matches, width)
 }
 
 /// Same as [`list_display_lines`] with an explicit terminal width (tests).
@@ -45,16 +50,20 @@ pub fn list_menu_lines(matches: &[String], highlight: usize) -> Vec<String> {
     let (shown, omitted) = truncate(matches);
     let mut lines = Vec::with_capacity(shown.len() + usize::from(omitted > 0));
     for (i, item) in shown.iter().enumerate() {
-        if i == highlight {
-            lines.push(format!("\x1b[7m{item}\x1b[0m"));
-        } else {
-            lines.push(item.clone());
-        }
+        lines.push(highlight_line(item, i == highlight));
     }
     if omitted > 0 {
         lines.push(format!("... and {omitted} more"));
     }
     lines
+}
+
+fn highlight_line(text: &str, on: bool) -> String {
+    if on {
+        format!("\x1b[7m{text}\x1b[0m")
+    } else {
+        text.to_owned()
+    }
 }
 
 fn truncate(matches: &[String]) -> (&[String], usize) {
@@ -80,12 +89,4 @@ fn format_row(items: &[String], row: usize, n_rows: usize, n_cols: usize, cell: 
         }
     }
     line
-}
-
-fn terminal_columns() -> usize {
-    std::env::var("COLUMNS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(80)
-        .max(1)
 }

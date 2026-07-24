@@ -17,9 +17,14 @@ pub use recall::HistoryRecall;
 #[cfg(unix)]
 pub use tty::{after_line_down, after_line_up, take_complete_line};
 
-pub use complete::{complete, complete_or_cycle, CompleteCycle};
+pub use complete::{
+    complete, complete_matches_for_test, complete_or_cycle, CompleteCtx, CompleteCycle, Match, Tag,
+};
 /// Column layout helpers for ambiguous completion listings.
-pub use complete::{format_columns, list_display_lines, list_display_lines_width, list_menu_lines};
+pub use complete::{
+    format_columns, list_display_lines, list_display_lines_width, list_menu_lines,
+    list_menu_lines_tagged,
+};
 
 use super::prompt;
 use crate::history::History;
@@ -37,11 +42,12 @@ pub(super) fn read_logical_line(
     bindings: &mut Bindings,
     buffer: &mut String,
     queue: &mut VecDeque<u8>,
-    var_names: &[String],
+    complete_ctx: Option<&CompleteCtx<'_>>,
 ) -> io::Result<ReadOutcome> {
     buffer.clear();
     if interactive && stdin.is_terminal() {
-        return read_tty(stdout, buffer, history, bindings, queue, var_names);
+        let ctx = complete_ctx.expect("TTY line edit requires CompleteCtx");
+        return read_tty(stdout, buffer, history, bindings, queue, ctx);
     }
     prompt::write_primary(stdout, interactive)?;
     if !plain::read_into(stdin, buffer, queue)? {
@@ -65,15 +71,15 @@ fn read_tty(
     history: &History,
     bindings: &mut Bindings,
     queue: &mut VecDeque<u8>,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<ReadOutcome> {
     #[cfg(unix)]
     {
-        tty::edit_line(stdout, buffer, history, bindings, queue, var_names)
+        tty::edit_line(stdout, buffer, history, bindings, queue, complete_ctx)
     }
     #[cfg(not(unix))]
     {
-        let _ = (stdout, buffer, history, bindings, queue, var_names);
+        let _ = (stdout, buffer, history, bindings, queue, complete_ctx);
         Ok(ReadOutcome::Eof)
     }
 }
