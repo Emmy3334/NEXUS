@@ -56,7 +56,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Heal-aware “did you mean?” after not-found | Yes (`heal_quiet` suppresses) |
 | `heal` / `doctor` status builtin | Yes (order/image/catch_all/quiet + live probes) |
 | Release / container hardening | Yes (see [security.md](security.md)) |
-| Host PATH jail + opt-in child rlimit | Yes (see [security.md](security.md)) |
+| Host PATH jail + opt-in trusted-bin + child rlimit | Yes (see [security.md](security.md)) |
 
 ## Cloud shell status
 

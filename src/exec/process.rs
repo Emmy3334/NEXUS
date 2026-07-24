@@ -11,6 +11,9 @@ use std::process::{Child, Command, ExitStatus};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 
+/// Deny status when `trusted_bin` blocks a resolved program (like permission denied).
+pub(crate) const TRUSTED_DENY_STATUS: u8 = 126;
+
 pub(crate) fn exit_status_code(status: ExitStatus) -> u8 {
     if let Some(code) = status.code() {
         return code as u8;
@@ -24,15 +27,19 @@ pub(crate) fn exit_status_code(status: ExitStatus) -> u8 {
     1
 }
 
-pub(crate) fn build_external_command(argv: &[String], shell_env: &ShellEnvironment) -> Command {
+pub(crate) fn build_external_command(
+    argv: &[String],
+    shell_env: &ShellEnvironment,
+) -> Result<Command, String> {
     let program = resolve_program(&argv[0], shell_env);
+    harden::check_trusted(&argv[0], &program, shell_env)?;
     let mut command = Command::new(program);
     if argv.len() > 1 {
         command.args(&argv[1..]);
     }
     apply_child_env(&mut command, shell_env);
     crate::jobs::prepare_child_command(&mut command, shell_env);
-    command
+    Ok(command)
 }
 
 fn resolve_program(name: &str, env: &ShellEnvironment) -> String {

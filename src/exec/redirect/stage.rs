@@ -84,7 +84,13 @@ fn execute_external_with_files(
     if argv.is_empty() {
         return Ok(0);
     }
-    let mut command = crate::exec::build_external_command(argv, shell_env);
+    let mut command = match crate::exec::build_external_command(argv, shell_env) {
+        Ok(command) => command,
+        Err(msg) => {
+            writeln!(stderr, "{msg}")?;
+            return Ok(crate::exec::TRUSTED_DENY_STATUS);
+        }
+    };
     let (stdin_bytes, copy_out) = configure_stdio(&mut command, files, stdout_mode);
     run_configured(
         &mut command,

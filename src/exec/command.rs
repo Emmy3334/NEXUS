@@ -88,7 +88,13 @@ pub(crate) fn execute_external_mode<S: AsRef<OsStr>>(
         .iter()
         .map(|a| a.as_ref().to_string_lossy().into_owned())
         .collect();
-    let mut command = super::process::build_external_command(&owned, shell_env);
+    let mut command = match super::process::build_external_command(&owned, shell_env) {
+        Ok(command) => command,
+        Err(msg) => {
+            writeln!(stderr, "{msg}")?;
+            return Ok(super::process::TRUSTED_DENY_STATUS);
+        }
+    };
     match stdout_mode {
         StdoutMode::Inherit => {
             jobs::prepare_process_group(&mut command, None, shell_env);

@@ -29,7 +29,13 @@ pub(super) fn spawn_simple<I: BufRead, O: Write, E: Write>(
         Ok(files) => files,
         Err(code) => return Ok(CommandResult::Status(code)),
     };
-    let mut command = build_external_command(argv, shell_env);
+    let mut command = match build_external_command(argv, shell_env) {
+        Ok(command) => command,
+        Err(msg) => {
+            writeln!(io.stderr, "{msg}")?;
+            return Ok(CommandResult::Status(crate::exec::TRUSTED_DENY_STATUS));
+        }
+    };
     apply_bg_stdio(&mut command, files);
     crate::jobs::prepare_background_group(&mut command, shell_env);
     match command.spawn() {

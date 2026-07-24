@@ -12,6 +12,11 @@ you do not need it.
   search and before passing `PATH` to children (blocks cwd hijack via `PATH=.:…`).
   Disable with `path_jail=0` or `NEXUS_PATH_JAIL=0`. Explicit `./cmd` and absolute
   paths are unchanged.
+- **Trusted bin** (default off): set `trusted_bin` / `NEXUS_TRUSTED_BIN` to a
+  colon-separated list of absolute files and/or directories. Resolved externals must
+  match a listed file or live under a listed directory; otherwise stderr
+  `{cmd}: not in trusted_bin allowlist.` and status **126** (heal is not tried).
+  Relative entries in the list are ignored. `trusted_bin=0` / empty disables.
 - **Child rlimits** (default off): set `rlimit=1` / `NEXUS_RLIMIT=1` for modest
   `setrlimit` on externals (`RLIMIT_CPU` 30s, `RLIMIT_NOFILE` 256; on Linux also
   `RLIMIT_AS` 512MiB and `RLIMIT_NPROC` 64 — macOS rejects finite address-space

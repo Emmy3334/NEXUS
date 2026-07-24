@@ -68,6 +68,6 @@ Container build notes and hardened `docker run` flags: [security.md](security.md
 | REPL / line edit | `repl`, `line_edit`, `line_edit_paste` |
 | Control | `foreach`, `while_loop`, `if_block` |
 | Scripting / env / specials | `scripting`, `shell_env`, `specials` |
-| Host hardening | `path_jail`, `rlimit` |
+| Host hardening | `path_jail`, `trusted_bin`, `rlimit` |
 
 Platform-sensitive tests should stay **Unix-first** and document assumptions when they skip or gate on `cfg(unix)`.
