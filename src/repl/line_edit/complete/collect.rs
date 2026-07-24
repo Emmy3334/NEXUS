@@ -2,7 +2,7 @@
 
 use super::context::{self, Kind};
 use super::paths::{collect_file_matches, collect_path_commands};
-use super::{docker, git, heal, interp, kube, kubectl, subcmds, vars};
+use super::{docker, docker_host, git, heal, interp, kube, kubectl, subcmds, vars};
 use crate::builtins::NAMES;
 
 pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) -> Vec<String> {
@@ -13,6 +13,7 @@ pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) 
         out.dedup();
         return out;
     }
+    let words: Vec<&str> = before.split_whitespace().collect();
     match context::classify(before) {
         Kind::GitVerb(verb) => {
             git::collect_for_verb(verb, prefix, &mut out);
@@ -20,7 +21,18 @@ pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) 
                 default_matches(prefix, &mut out);
             }
         }
-        Kind::Kubectl(kind) => kubectl::collect(&kind, prefix, &mut out),
+        Kind::KubectlVerb(verb) => {
+            kubectl::collect_for_verb(verb, &words, prefix, &mut out);
+            if out.is_empty() && !prefix.starts_with('-') {
+                default_matches(prefix, &mut out);
+            }
+        }
+        Kind::DockerVerb(verb) => {
+            docker_host::collect_for_verb(verb, prefix, &mut out);
+            if out.is_empty() && !prefix.starts_with('-') {
+                default_matches(prefix, &mut out);
+            }
+        }
         Kind::Subcommand(names) => subcmds::collect(names, prefix, &mut out),
         Kind::Interpreter { extensions } => interp::collect(prefix, extensions, &mut out),
         Kind::Docker(kind) => docker::collect(&kind, prefix, &mut out),

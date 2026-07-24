@@ -143,6 +143,34 @@ fn kubectl_get_with_namespace_flag_still_completes_kind() {
     assert_eq!(buf, "kubectl -n default get pods");
 }
 
+#[test]
+fn kubectl_get_flag_completes_namespace() {
+    let (buf, matches) = complete_at("kubectl get --names");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "kubectl get --namespace");
+}
+
+#[test]
+fn kubectl_logs_lists_follow_flag() {
+    let (_, matches) = complete_at("kubectl logs --");
+    assert!(matches.iter().any(|m| m == "--follow"));
+    assert!(matches.iter().any(|m| m == "--tail"));
+}
+
+#[test]
+fn docker_logs_flag_completes_follow() {
+    let (buf, matches) = complete_at("docker logs --fol");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "docker logs --follow");
+}
+
+#[test]
+fn docker_ps_lists_long_flags() {
+    let (_, matches) = complete_at("docker ps --");
+    assert!(matches.iter().any(|m| m == "--all"));
+    assert!(matches.iter().any(|m| m == "--filter"));
+}
+
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("nexus_complete_{name}_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

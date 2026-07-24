@@ -1,4 +1,4 @@
-//! Host `kubectl` second-level completion (resource kinds).
+//! Resource kinds for `kubectl get` / `describe`.
 
 const GET_RESOURCES: &[&str] = &[
     "pods",
@@ -36,16 +36,13 @@ const DESCRIBE_RESOURCES: &[&str] = &[
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum Complete {
+pub(super) enum KindComplete {
     GetResource,
     DescribeResource,
 }
 
-/// Classify host `kubectl` (not `@kube`) when completing a resource kind.
-pub(super) fn classify(words: &[&str]) -> Option<Complete> {
-    if words.first().copied() != Some("kubectl") {
-        return None;
-    }
+/// True when completing a resource kind (no non-flag arg after get/describe yet).
+pub(super) fn awaiting(words: &[&str]) -> Option<KindComplete> {
     let pos = words
         .iter()
         .position(|w| matches!(*w, "get" | "describe"))?;
@@ -53,16 +50,16 @@ pub(super) fn classify(words: &[&str]) -> Option<Complete> {
         return None;
     }
     match words[pos] {
-        "get" => Some(Complete::GetResource),
-        "describe" => Some(Complete::DescribeResource),
+        "get" => Some(KindComplete::GetResource),
+        "describe" => Some(KindComplete::DescribeResource),
         _ => None,
     }
 }
 
-pub(super) fn collect(kind: &Complete, prefix: &str, out: &mut Vec<String>) {
+pub(super) fn collect(kind: &KindComplete, prefix: &str, out: &mut Vec<String>) {
     let items = match kind {
-        Complete::GetResource => GET_RESOURCES,
-        Complete::DescribeResource => DESCRIBE_RESOURCES,
+        KindComplete::GetResource => GET_RESOURCES,
+        KindComplete::DescribeResource => DESCRIBE_RESOURCES,
     };
     for item in items {
         if item.starts_with(prefix) {

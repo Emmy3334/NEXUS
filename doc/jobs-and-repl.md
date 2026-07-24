@@ -81,6 +81,10 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 
 Otherwise falls back to **all** builtins (`builtins::NAMES`, including `@docker` / `@kube` / `sandbox` / dirstack / …) + `PATH` + filesystem matches.
 
+After a curated host verb, tokens starting with `-` complete common flags (same idea as `git`):
+`kubectl get|describe|logs|apply|delete|exec`, `docker ps|logs|run|exec|rm|images|pull|build`.
+`kubectl get` / `describe` still complete resource kinds when the kind token is not a flag.
+
 Tokens starting with `$` / `${` complete against shell locals ∪ exported names (`$HOME`, `${HOME}`).
 
 Ambiguous matches: insert the shared prefix when it grows, then list remaining choices in
