@@ -1,5 +1,6 @@
 //! `@docker` — native Docker Engine API (bollard).
 
+mod args;
 mod logs;
 mod ps;
 
@@ -17,7 +18,10 @@ pub(super) fn docker_cmd(
     let args = &argv[1..];
     match args.first().map(String::as_str) {
         None | Some("help" | "-h" | "--help") => {
-            writeln!(stderr, "usage: @docker ps | @docker logs <name|id>")?;
+            writeln!(
+                stderr,
+                "usage: @docker ps [-a|--all] | @docker logs [-f|--follow] <name|id>"
+            )?;
             Ok(BuiltinResult::Status(1))
         }
         Some("ps") => ps::run(args, stdout, stderr),

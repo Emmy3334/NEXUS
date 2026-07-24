@@ -40,7 +40,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | History store + `!` designators | Yes |
 | Jobs `&` / `jobs` / `fg` / `bg` (Unix) | Yes |
 | Line edition + `bindkey` (Unix TTY) | Yes |
-| Context Tab complete (CLI registry; verb flags; kinds; arrow menu on ambiguous Tab; `@docker`/`@kube`/`heal`; Tab cycle) | Yes |
+| Context Tab complete (CLI registry; verb flags; kinds; arrow menu; `@docker`/`@kube` flags; heal; Tab cycle) | Yes |
 | Git-aware prompt (`$> [branch*] `) | Yes |
 | Startup RC (`~/.nexusrc` / `NEXUSRC`) on interactive TTY | Yes |
 | Wasm sandbox (`sandbox` run/install/list/rm) + module cache heal | Yes |

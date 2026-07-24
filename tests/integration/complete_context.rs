@@ -171,6 +171,34 @@ fn docker_ps_lists_long_flags() {
     assert!(matches.iter().any(|m| m == "--filter"));
 }
 
+#[test]
+fn at_docker_logs_flag_completes_follow() {
+    let (buf, matches) = complete_at("@docker logs --fol");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "@docker logs --follow");
+}
+
+#[test]
+fn at_docker_ps_lists_long_flags() {
+    let (_, matches) = complete_at("@docker ps --");
+    assert!(matches.iter().any(|m| m == "--all"));
+    assert!(matches.iter().any(|m| m == "--quiet"));
+}
+
+#[test]
+fn at_kube_logs_flag_completes_follow() {
+    let (buf, matches) = complete_at("@kube logs --fol");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "@kube logs --follow");
+}
+
+#[test]
+fn at_kube_pods_lists_namespace_flags() {
+    let (_, matches) = complete_at("@kube pods -");
+    assert!(matches.iter().any(|m| m == "-n" || m == "--namespace"));
+    assert!(matches.iter().any(|m| m == "-A" || m == "--all-namespaces"));
+}
+
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("nexus_complete_{name}_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

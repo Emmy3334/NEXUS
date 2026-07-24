@@ -1,5 +1,6 @@
 //! `@docker ps`.
 
+use super::args;
 use crate::builtins::BuiltinResult;
 use crate::heal;
 
@@ -10,10 +11,12 @@ pub(super) fn run(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<BuiltinResult> {
-    if args.len() > 1 {
-        writeln!(stderr, "usage: @docker ps")?;
+    let _all = args::wants_all(args);
+    if args::first_positional(args, 1).is_some() {
+        writeln!(stderr, "usage: @docker ps [-a|--all]")?;
         return Ok(BuiltinResult::Status(1));
     }
+    // `-a` accepted for Tab/CLI parity; listing stays running-only for now.
     match heal::list_ps_lines() {
         Ok(lines) => {
             for line in lines {

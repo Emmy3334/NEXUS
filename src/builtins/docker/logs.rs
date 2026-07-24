@@ -1,5 +1,6 @@
 //! `@docker logs`.
 
+use super::args;
 use crate::builtins::BuiltinResult;
 use crate::heal;
 
@@ -10,14 +11,12 @@ pub(super) fn run(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<BuiltinResult> {
-    let Some(target) = args.get(1).map(String::as_str) else {
-        writeln!(stderr, "usage: @docker logs <name|id>")?;
+    let _follow = args::wants_follow(args);
+    let Some(target) = args::first_positional(args, 1) else {
+        writeln!(stderr, "usage: @docker logs [-f|--follow] <name|id>")?;
         return Ok(BuiltinResult::Status(1));
     };
-    if args.len() > 2 {
-        writeln!(stderr, "usage: @docker logs <name|id>")?;
-        return Ok(BuiltinResult::Status(1));
-    }
+    // Follow is accepted for Tab/CLI parity; snapshot logs for now (no stream).
     match heal::write_container_logs(target, stdout, stderr) {
         Ok(()) => Ok(BuiltinResult::Status(0)),
         Err(err) => {
