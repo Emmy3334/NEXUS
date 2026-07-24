@@ -12,11 +12,12 @@ use crate::repl::line_edit::complete::CompleteCtx;
 use crate::repl::line_edit::isearch::HistoryISearch;
 use crate::repl::line_edit::probe::quotes_closed;
 use crate::repl::line_edit::recall::HistoryRecall;
-use crate::repl::prompt::PromptLine;
+use crate::repl::prompt::{PromptContext, PromptLine};
 
 use std::collections::VecDeque;
 use std::io::{self, Write};
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn run(
     stdout: &mut impl Write,
     out: &mut String,
@@ -24,10 +25,11 @@ pub(super) fn run(
     bindings: &mut KeyBindings,
     queue: &mut VecDeque<u8>,
     complete_ctx: &CompleteCtx<'_>,
+    prompt_ctx: &PromptContext,
 ) -> io::Result<ReadOutcome> {
     let mut edit = EditBuffer::new();
     let mut nav = HistoryRecall::new(history);
-    let mut prompt = PromptLine::primary();
+    let mut prompt = PromptLine::from_ctx(prompt_ctx);
     let (mut pasting, mut isearch) = (false, None::<HistoryISearch<'_>>);
     bindings.enter_insert_map();
     draw::redraw(stdout, prompt.as_str(), &edit)?;
@@ -37,6 +39,7 @@ pub(super) fn run(
             &mut edit,
             bindings,
             &mut prompt,
+            prompt_ctx,
             &mut nav,
             queue,
             &mut pasting,
@@ -56,6 +59,7 @@ fn poll<'a>(
     edit: &mut EditBuffer,
     bindings: &mut KeyBindings,
     prompt: &mut PromptLine,
+    prompt_ctx: &PromptContext,
     nav: &mut HistoryRecall<'a>,
     queue: &mut VecDeque<u8>,
     pasting: &mut bool,
@@ -77,7 +81,7 @@ fn poll<'a>(
         complete_ctx,
     )?;
     apply_step(
-        step, stdout, edit, prompt, out, queue, nav, history, isearch,
+        step, stdout, edit, prompt, prompt_ctx, out, queue, nav, history, isearch,
     )
 }
 
@@ -87,6 +91,7 @@ fn apply_step<'a>(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
     prompt: &mut PromptLine,
+    prompt_ctx: &PromptContext,
     out: &mut String,
     queue: &mut VecDeque<u8>,
     nav: &mut HistoryRecall<'a>,
@@ -110,7 +115,7 @@ fn apply_step<'a>(
         Loop::Eof => Ok(None),
         Loop::Interrupt => {
             *isearch = None;
-            on_interrupt(stdout, edit, nav, history, prompt)?;
+            on_interrupt(stdout, edit, nav, history, prompt, prompt_ctx)?;
             Ok(None)
         }
     }
@@ -122,11 +127,12 @@ fn on_interrupt<'a>(
     nav: &mut HistoryRecall<'a>,
     history: &'a History,
     prompt: &mut PromptLine,
+    prompt_ctx: &PromptContext,
 ) -> io::Result<()> {
     edit.clear();
     *nav = HistoryRecall::new(history);
     writeln!(stdout, "^C")?;
-    prompt.set_primary();
+    prompt.set_from_ctx(prompt_ctx);
     draw::redraw(stdout, prompt.as_str(), edit)
 }
 
@@ -145,7 +151,6 @@ fn finish_accept(
         stdout.flush()?;
         return Ok(false);
     }
-    // Bracketed paste keeps `\n` in the buffer; run one physical line at a time.
     let text = std::mem::take(&mut edit.text);
     edit.cursor = 0;
     match text.split_once('\n') {

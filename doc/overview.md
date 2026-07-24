@@ -41,7 +41,7 @@ Set `NEXUS_LOG` or `RUST_LOG` (e.g. `nexus=debug` or `info`) to enable stderr tr
 | Jobs `&` / `jobs` / `fg` / `bg` (Unix) | Yes |
 | Line edition + `bindkey` (Unix TTY) | Yes |
 | Context Tab complete (engine: matchers/approx/tags; `compdef`/`compinit`/`compdump`; cloud depth) | Yes |
-| Git-aware prompt (`$> [branch*] `) | Yes |
+| Git-aware / Powerlevel10k-inspired prompt | Yes |
 | Layered startup (`.nexusenv` / `.nexusrc` / `.nexuslogin` / `NEXUSRC` / `NEXUS_DOTDIR`) | Yes |
 | Arrays (`typeset -a`) + `${name:offset}` slices + glob qualifiers `*(.)`/`*(/)`/`*(*)` | Yes |
 | PATH command hash (`hash` / `hash -r`) | Yes |

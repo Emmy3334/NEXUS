@@ -62,6 +62,7 @@ fn read_body_line<I: ReplInput, O: Write, E: Write>(
         line_buf,
         &mut io.input_queue,
         None,
+        None,
     )? {
         ReadOutcome::Eof => {
             writeln!(io.stderr, "case: Unexpected end of file.")?;

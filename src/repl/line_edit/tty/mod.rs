@@ -20,10 +20,12 @@ use super::ReadOutcome;
 use crate::history::History;
 use crate::keybind::KeyBindings;
 use crate::repl::line_edit::complete::CompleteCtx;
+use crate::repl::prompt::PromptContext;
 
 use std::collections::VecDeque;
 use std::io::{self, Write};
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn edit_line(
     stdout: &mut impl Write,
     out: &mut String,
@@ -31,12 +33,20 @@ pub(super) fn edit_line(
     bindings: &mut KeyBindings,
     queue: &mut VecDeque<u8>,
     complete_ctx: &CompleteCtx<'_>,
+    prompt_ctx: &PromptContext,
 ) -> io::Result<ReadOutcome> {
-    // Multi-line paste leftovers: already shown under one prompt; run silently.
     if let Some(line) = take_complete_line(queue) {
         *out = line;
         return Ok(ReadOutcome::Line);
     }
     let _guard = term::RawMode::enter()?;
-    session::run(stdout, out, history, bindings, queue, complete_ctx)
+    session::run(
+        stdout,
+        out,
+        history,
+        bindings,
+        queue,
+        complete_ctx,
+        prompt_ctx,
+    )
 }
