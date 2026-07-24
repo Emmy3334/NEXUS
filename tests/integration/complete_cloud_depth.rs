@@ -59,6 +59,6 @@ fn resource_tag_sorts_before_files_on_score_tie() {
         },
     ];
     let mut sorted = matches;
-    sorted.sort_by(|a, b| (-a.score, a.tag, &a.value).cmp(&(-b.score, b.tag, &b.value)));
+    sorted.sort_by(|a, b| (a.tag, -a.score, &a.value).cmp(&(b.tag, -b.score, &b.value)));
     assert_eq!(sorted[0].tag, Tag::Resources);
 }

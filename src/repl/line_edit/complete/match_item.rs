@@ -15,6 +15,7 @@ pub enum Tag {
     Resources,
     Flags,
     Commands,
+    History,
     Files,
     Vars,
     Other,

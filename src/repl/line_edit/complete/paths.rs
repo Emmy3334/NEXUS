@@ -5,11 +5,13 @@ use crate::pathfind;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(super) fn collect_path_commands(prefix: &str, out: &mut Vec<String>) {
-    let Ok(path) = std::env::var("PATH") else {
+pub(super) fn collect_path_commands(prefix: &str, path: &str, out: &mut Vec<String>) {
+    if path.is_empty() {
         return;
-    };
-    for name in pathfind::list_commands("", &path) {
+    }
+    // Prefix filter in the cache when possible; full scan for substring (len ≥ 2).
+    let scan = if prefix.len() >= 2 { "" } else { prefix };
+    for name in pathfind::list_commands(scan, path) {
         if matches_prefix(&name, prefix) {
             out.push(name);
         }

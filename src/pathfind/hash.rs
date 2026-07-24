@@ -82,7 +82,15 @@ pub fn list_commands(prefix: &str, path_var: &str) -> Vec<String> {
         for dir in path_var.split(':').filter(|d| !d.is_empty()) {
             let dir_path = PathBuf::from(dir);
             for name in dir_names(cache, &dir_path) {
-                if !name.starts_with(prefix) || !seen.insert(name.clone()) {
+                if !prefix.is_empty()
+                    && !name.starts_with(prefix)
+                    && !name
+                        .to_ascii_lowercase()
+                        .starts_with(&prefix.to_ascii_lowercase())
+                {
+                    continue;
+                }
+                if !seen.insert(name.clone()) {
                     continue;
                 }
                 out.push(name);

@@ -61,8 +61,8 @@ fn tagged_menu_groups_mixed_categories() {
         },
     ];
     let lines = list_menu_lines_tagged(&matches, 1);
-    assert!(lines.iter().any(|l| l == "-- Commands --"));
-    assert!(lines.iter().any(|l| l == "-- Flags --"));
-    assert!(lines[0].contains("Commands"));
+    assert!(lines.iter().any(|l| l == "-- commands (2) --"));
+    assert!(lines.iter().any(|l| l == "-- flags (1) --"));
+    assert!(lines[0].contains("flags"));
     assert!(lines.iter().any(|l| l.contains("--oneline")));
 }

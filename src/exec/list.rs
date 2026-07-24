@@ -126,6 +126,9 @@ fn run_simple<I: BufRead, O: Write, E: Write>(
     if let Some(code) = super::arith_cmd::try_run(simple, shell_env, last_status, io.stderr)? {
         return Ok(CommandResult::Status(code));
     }
+    if let Some(code) = super::cond_cmd::try_run(simple, shell_env, last_status, io.stderr)? {
+        return Ok(CommandResult::Status(code));
+    }
     if let Err(code) = expand_for_background(&simple.argv, argv, shell_env, last_status, io)? {
         return Ok(CommandResult::Status(code));
     }

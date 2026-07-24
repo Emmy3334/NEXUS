@@ -8,6 +8,7 @@
 mod arith_span;
 mod brace_param_span;
 mod cmd_subst_span;
+mod cond_span;
 mod expand;
 mod quote;
 mod scan;
@@ -96,6 +97,8 @@ pub enum LexError {
     UnclosedCommandSubst,
     /// `${` was opened without a matching `}`.
     UnclosedBraceParam,
+    /// `[[` was opened without a matching `]]`.
+    UnclosedConditional,
     /// Arithmetic expression was invalid or divided by zero.
     Arithmetic,
 }
@@ -110,6 +113,7 @@ impl LexError {
             Self::UnclosedArithmetic => "Unmatched ((.",
             Self::UnclosedCommandSubst => "Unmatched $(.",
             Self::UnclosedBraceParam => "Unmatched ${.",
+            Self::UnclosedConditional => "Unmatched [[.",
             Self::Arithmetic => "Arithmetic expansion failed.",
         }
     }
