@@ -3,6 +3,7 @@
 use super::super::ReadOutcome;
 use super::actions::Loop;
 use super::buffer::EditBuffer;
+use super::complete_menu;
 use super::draw;
 use super::handle;
 use super::queue;
@@ -129,6 +130,7 @@ fn on_interrupt<'a>(
     prompt: &mut PromptLine,
     prompt_ctx: &PromptContext,
 ) -> io::Result<()> {
+    complete_menu::dismiss_menu(stdout, edit)?;
     edit.clear();
     *nav = HistoryRecall::new(history);
     writeln!(stdout, "^C")?;
@@ -143,6 +145,8 @@ fn finish_accept(
     out: &mut String,
     queue: &mut VecDeque<u8>,
 ) -> io::Result<bool> {
+    // Enter must clear any painted completion menu before the newline / next prompt.
+    complete_menu::dismiss_menu(stdout, edit)?;
     writeln!(stdout)?;
     if !quotes_closed(edit.as_str()) {
         edit.push_char('\n');

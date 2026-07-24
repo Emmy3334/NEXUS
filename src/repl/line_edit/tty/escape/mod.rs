@@ -1,7 +1,10 @@
 //! Decode CSI / SS3 / Meta escape sequences from the input queue.
 
+mod classify;
+
 use super::event::Event;
 use super::queue;
+use classify::{is_csi_final, is_finished};
 
 use std::collections::VecDeque;
 use std::io;
@@ -17,7 +20,15 @@ pub(super) fn decode_escape(q: &mut VecDeque<u8>) -> io::Result<Event> {
         drain(q, seq.len());
         return Ok(Event::PasteEnd);
     }
-    if is_meta_chord(&seq) || is_complete_escape(&seq) {
+    if is_finished(&seq) {
+        drain(q, seq.len());
+        return Ok(Event::Raw(seq));
+    }
+    // Incomplete CSI/SS3: try one more fill, then drain the prefix entirely so
+    // leftovers like `}` / `[1;2A` never land in the line buffer.
+    if seq.len() > 1 {
+        while q.len() < seq.len() + 1 && queue::fill_more(q)? {}
+        let seq = peek_escape(q);
         drain(q, seq.len());
         return Ok(Event::Raw(seq));
     }
@@ -41,30 +52,15 @@ fn peek_escape(q: &VecDeque<u8>) -> Vec<u8> {
         if i == 1 && b != b'[' && b != b'O' {
             break;
         }
-        if i >= 2 && (b.is_ascii_alphabetic() || b == b'~') {
+        if seq.get(1) == Some(&b'O') && seq.len() >= 3 {
             break;
         }
-        if seq.len() >= 6 {
+        if i >= 2 && is_csi_final(b) {
+            break;
+        }
+        if seq.len() >= 32 {
             break;
         }
     }
     seq
-}
-
-fn is_meta_chord(seq: &[u8]) -> bool {
-    matches!(seq, [0x1b, b] if *b != b'[' && *b != b'O')
-}
-
-fn is_complete_escape(seq: &[u8]) -> bool {
-    matches!(
-        seq,
-        b"\x1b[D"
-            | b"\x1b[C"
-            | b"\x1b[A"
-            | b"\x1b[B"
-            | b"\x1b[H"
-            | b"\x1b[F"
-            | b"\x1b[3~"
-            | [0x1b, b'O', _]
-    )
 }

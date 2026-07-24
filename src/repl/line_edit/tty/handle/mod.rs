@@ -98,6 +98,8 @@ fn insert_text(
     prompt: &str,
     text: &str,
 ) -> io::Result<Loop> {
+    // Typing must erase a painted menu (cycle clear alone leaves TTY rows).
+    super::complete_menu::dismiss_menu(stdout, edit)?;
     for ch in text.chars() {
         edit.insert(ch);
     }

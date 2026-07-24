@@ -51,6 +51,11 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Fixed
 
+- Tab completion: CSI escape sequences use the full ECMA-48 final-byte range (including
+  `}`), and unfinished CSI/SS3 prefixes are drained instead of inserting leftovers into
+  the line buffer (fixes stray `}` / control junk after Tab or arrow navigation).
+- Completion menus are erased on typing, Esc, Enter, and Ctrl-C — clearing the cycle
+  alone left painted rows that looked like completions “spilling” after a failed command.
 - Tab completion reads the shell's `PATH` via `harden::effective_path` (honours
   `setenv PATH` and the path jail) instead of the process environ.
 - `cd` integration test shares `cwd_lock::RestoreCwd` with other cwd-mutating
