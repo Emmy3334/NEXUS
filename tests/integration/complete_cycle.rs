@@ -144,3 +144,35 @@ fn stale_cycle_token_restarts_complete() {
     let _ = std::env::set_current_dir(prev);
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn arrow_menu_moves_highlight_and_accept_applies() {
+    let _cwd = crate::cwd_lock::lock();
+    let root = temp_dir("menu");
+    let heads = root.join(".git/refs/heads");
+    fs::create_dir_all(&heads).unwrap();
+    fs::write(heads.join("main"), "abc\n").unwrap();
+    fs::write(heads.join("master"), "def\n").unwrap();
+    let prev = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&root).unwrap();
+
+    let mut cycle = None;
+    let (buf, matches) = cycle_at("git checkout ma", &mut cycle);
+    assert_eq!(matches.len(), 2);
+    let c = cycle.as_mut().unwrap();
+    assert_eq!(c.highlight, 0);
+    c.move_down();
+    assert_eq!(c.highlight, 1);
+    c.move_up();
+    assert_eq!(c.highlight, 0);
+    c.move_up();
+    assert_eq!(c.highlight, 1);
+
+    let mut buffer = buf;
+    let mut cursor = buffer.len();
+    c.accept(&mut buffer, &mut cursor);
+    assert_eq!(buffer, "git checkout master");
+
+    let _ = std::env::set_current_dir(prev);
+    let _ = fs::remove_dir_all(root);
+}

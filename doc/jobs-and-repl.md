@@ -87,10 +87,11 @@ After a curated host verb, tokens starting with `-` complete common flags (same 
 
 Tokens starting with `$` / `${` complete against shell locals ∪ exported names (`$HOME`, `${HOME}`).
 
-Ambiguous matches: insert the shared prefix when it grows, then list remaining choices in
-`$COLUMNS`-aware columns (soft-capped at 100, with an “… and N more” trailer). Further Tabs
-cycle through those matches (wrap), until the token is edited. Unique matches replace the
-token with no listing. Full compsys / `zstyle` menu-select is still out of scope.
+Ambiguous matches: insert the shared prefix when it grows, then list remaining choices
+(vertical menu with reverse-video highlight). **Up/Down** move the highlight; **Enter**
+inserts the highlighted match (does not submit the line); **Esc** / **Ctrl-C** cancel the
+menu. Further **Tabs** still cycle-apply matches. Full compsys / `zstyle` menu-select
+remains out of scope.
 
 ### Git-aware primary prompt
 

@@ -1,9 +1,9 @@
 //! Dispatch bound key actions for the TTY editor.
 
 use super::buffer::{self, EditBuffer};
+use super::complete_menu;
 use super::draw;
 use crate::keybind::{Action, KeyBindings};
-use crate::repl::line_edit::complete;
 use crate::repl::line_edit::recall::HistoryRecall;
 use crate::repl::prompt;
 
@@ -25,6 +25,9 @@ pub(super) fn apply(
     nav: &mut HistoryRecall<'_>,
     var_names: &[String],
 ) -> io::Result<Loop> {
+    if let Some(result) = complete_menu::on_action(stdout, edit, action, prompt, var_names)? {
+        return Ok(result);
+    }
     match action {
         Action::Accept => {
             edit.complete_cycle = None;
@@ -35,7 +38,6 @@ pub(super) fn apply(
             edit.complete_cycle = None;
             Ok(Loop::Interrupt)
         }
-        Action::Complete => complete_token(stdout, edit, prompt, var_names),
         other => {
             edit.complete_cycle = None;
             apply_other(stdout, edit, bindings, other, prompt, nav)
@@ -134,29 +136,6 @@ fn mutate(
         Action::Yank => buffer::yank(edit),
         Action::TransposeWords => buffer::transpose_words(edit),
         _ => {}
-    }
-    draw::redraw(stdout, prompt, edit)?;
-    Ok(Loop::Continue)
-}
-
-fn complete_token(
-    stdout: &mut impl Write,
-    edit: &mut EditBuffer,
-    prompt: &str,
-    var_names: &[String],
-) -> io::Result<Loop> {
-    let matches = complete::complete_or_cycle(
-        &mut edit.text,
-        &mut edit.cursor,
-        var_names,
-        &mut edit.complete_cycle,
-    );
-    let lines = complete::list_display_lines(&matches);
-    if !lines.is_empty() {
-        writeln!(stdout)?;
-    }
-    for line in &lines {
-        writeln!(stdout, "{line}")?;
     }
     draw::redraw(stdout, prompt, edit)?;
     Ok(Loop::Continue)

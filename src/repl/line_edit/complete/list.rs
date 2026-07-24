@@ -40,6 +40,23 @@ pub fn list_display_lines_width(matches: &[String], width: usize) -> Vec<String>
     lines
 }
 
+/// Vertical menu lines with reverse-video on `highlight` (arrow menu-select).
+pub fn list_menu_lines(matches: &[String], highlight: usize) -> Vec<String> {
+    let (shown, omitted) = truncate(matches);
+    let mut lines = Vec::with_capacity(shown.len() + usize::from(omitted > 0));
+    for (i, item) in shown.iter().enumerate() {
+        if i == highlight {
+            lines.push(format!("\x1b[7m{item}\x1b[0m"));
+        } else {
+            lines.push(item.clone());
+        }
+    }
+    if omitted > 0 {
+        lines.push(format!("... and {omitted} more"));
+    }
+    lines
+}
+
 fn truncate(matches: &[String]) -> (&[String], usize) {
     if matches.len() > LIST_MAX {
         (&matches[..LIST_MAX], matches.len() - LIST_MAX)
