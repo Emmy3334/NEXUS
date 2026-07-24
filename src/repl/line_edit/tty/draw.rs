@@ -28,6 +28,16 @@ pub(super) fn redraw(
     stdout.flush()
 }
 
+/// Move the terminal cursor by `delta` rows (negative = up) before a redraw.
+pub(super) fn shift_rows(stdout: &mut impl Write, delta: i32) -> io::Result<()> {
+    if delta < 0 {
+        write!(stdout, "\x1b[{}A", -delta)?;
+    } else if delta > 0 {
+        write!(stdout, "\x1b[{delta}B")?;
+    }
+    Ok(())
+}
+
 fn visible_line(edit: &EditBuffer) -> (&str, usize, bool) {
     let text = edit.as_str();
     let cursor = edit.cursor;

@@ -12,6 +12,7 @@ mod queue;
 mod session;
 mod term;
 
+pub use buffer::{after_line_down, after_line_up};
 pub use queue::take_complete_line;
 
 use super::ReadOutcome;

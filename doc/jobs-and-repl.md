@@ -99,7 +99,9 @@ Interactive primary prompts come from `repl::format_primary()` (`src/repl/prompt
 Branch is read from `.git/HEAD` (no subprocess). Dirty state uses `git status --porcelain -uno` when available, with a short TTL / metadata cache so successive prompts avoid redundant spawns.
 
 **Bracketed paste**: multi-line paste keeps one PS1 on the first row (continuation
-rows are bare, like zsh). Enter runs each physical line in order via `input_queue`.
+rows are bare, like zsh). Up/Down move between those rows only — history recall is
+disabled while the buffer contains a newline. Enter runs each physical line via
+`input_queue`.
 
 **Completion**: path-oriented helpers under `line_edit/complete/`.
 
