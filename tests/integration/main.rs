@@ -40,6 +40,7 @@ mod line_edit_isearch;
 mod line_edit_nav;
 mod line_edit_paste;
 mod line_edit_word;
+mod newuser;
 mod nexusrc;
 mod observability;
 mod parse;

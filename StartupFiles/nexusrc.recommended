@@ -1,0 +1,15 @@
+# Recommended interactive config for new NEXUS users.
+# Installed by nexus-newuser-install option (2), or copy by hand to ~/.nexusrc.
+
+set histsize = 10000
+bindkey -e
+
+# Native Powerlevel10k-inspired prompt (install a Nerd Font, e.g. MesloLGS NF).
+setenv NEXUS_PROMPT_STYLE powerlevel10k
+setenv NEXUS_PROMPT_ICONS nerdfont
+
+# Optional: Oh My Nexus plugin framework (https://github.com/Emmy3334/oh-my-nexus)
+# setenv NEXUS_OMN "$HOME/.oh-my-nexus"
+# set omn_theme = powerlevel10k
+# set omn_plugins = "git directories aliases"
+# source $NEXUS_OMN/oh-my-nexus.nexus

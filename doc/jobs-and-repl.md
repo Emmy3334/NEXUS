@@ -23,7 +23,9 @@ Buffers (`line`, `expanded`, `tokens`, `argv`) are reused across steps to avoid 
 
 Interactive TTY sessions:
 
-1. Load layered startup (`.nexusenv` → `.nexusrc` → `.nexuslogin` when login) on interactive TTY
+1. Load layered startup (`.nexusenv` → `.nexusrc` → `.nexuslogin` when login) on interactive TTY.
+   If none of those files exist yet, `nexus-newuser-install` offers a first-run setup menu
+   (zsh-newuser-install analogue). Skip with `NEXUS_NONEWUSER=1`.
 2. Soft-load `~/.nexus_history` (or the `histfile` local if set in RC / env)
 3. Run the REPL (typed lines are recorded)
 4. Soft-save the histfile on exit / EOF
