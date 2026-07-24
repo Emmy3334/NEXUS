@@ -59,8 +59,8 @@ Handled mainly in `src/expand/`:
 | `$n` / `$#` / `$*` | Positional / count / all (scripting argv) |
 | `$((expr))` | Integer arithmetic expansion: `+ - * / % **`, unary `+ - ! ~`, prefix/postfix
   `++`/`--`, `(…)`, shifts, bitwise, compare / `&&` `||`, ternary `?:`, assignments
-  `=` / `+=` `-=` `*=` `/=` `%=`, `$name`/`$?`/`$n`, bare names, nested `$((…))`
-  (unset → 0); result becomes a word |
+  `=` / `+=` `-=` `*=` `/=` `%=` / `&=` `|=` `^=` `<<=` `>>=`, comma `,`, `$name`/`$?`/`$n`,
+  bare names, nested `$((…))` (unset → 0); result becomes a word |
 | `((expr))` | Arithmetic **command**: same engine / writebacks; status 0 if result ≠ 0, else 1;
   does not run the number as a command |
 | `` `cmd` `` / `$(cmd)` | Capture stdout of nested command (trailing newlines stripped; process

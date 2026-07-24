@@ -108,3 +108,15 @@ fn div_by_zero_is_status_one() {
     assert_eq!(result, CommandResult::Status(1));
     assert!(String::from_utf8_lossy(&err).contains("Arithmetic"));
 }
+
+#[test]
+fn comma_and_bitwise_assign_in_arith_cmd() {
+    let mut env = test_env();
+    assert_eq!(run("((x=15, x&=6, x))", &mut env), CommandResult::Status(0));
+    assert_eq!(env.lookup("x"), Some("6"));
+    assert_eq!(
+        run("((y=1, y<<=2, y-4))", &mut env),
+        CommandResult::Status(1)
+    );
+    assert_eq!(env.lookup("y"), Some("4"));
+}
