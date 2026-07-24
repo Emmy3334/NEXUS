@@ -116,11 +116,12 @@ Uses bollard against the local Docker socket (same stack as Docker heal / Tab).
 
 | Form | Behavior |
 |------|----------|
-| `@docker ps` | Running containers (Docker CLI–style columns) |
-| `@docker logs <name\|id>` | Container logs to stdout |
+| `@docker ps [-a\|--all]` | Running containers (Docker CLI–style columns); `-a` includes exited |
+| `@docker logs [-f\|--follow] <name\|id>` | Container logs; `-f` follows until the container stops |
 | daemon down / API error | Status `1` + stderr |
 
-Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running container names (soft-empty if daemon down).
+Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running container names
+(soft-empty if daemon down); after `ps`/`logs` with `-` → curated flags.
 
 ## Recognition list
 

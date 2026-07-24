@@ -11,13 +11,12 @@ pub(super) fn run(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<BuiltinResult> {
-    let _all = args::wants_all(args);
+    let all = args::wants_all(args);
     if args::first_positional(args, 1).is_some() {
         writeln!(stderr, "usage: @docker ps [-a|--all]")?;
         return Ok(BuiltinResult::Status(1));
     }
-    // `-a` accepted for Tab/CLI parity; listing stays running-only for now.
-    match heal::list_ps_lines() {
+    match heal::list_ps_lines(all) {
         Ok(lines) => {
             for line in lines {
                 writeln!(stdout, "{line}")?;

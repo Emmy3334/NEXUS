@@ -102,3 +102,80 @@ fn docker_logs_live_when_daemon_up() {
         "log_out={log_out} err={log_err}"
     );
 }
+
+#[test]
+fn docker_ps_all_and_logs_follow_when_daemon_up() {
+    if !Command::new("docker")
+        .args(["info"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
+        return;
+    }
+    let stopped = format!("nexus_docker_stopped_{}", std::process::id());
+    let follow = format!("nexus_docker_follow_{}", std::process::id());
+    let stop_ok = Command::new("docker")
+        .args([
+            "run",
+            "--name",
+            &stopped,
+            "alpine:3.20",
+            "echo",
+            "stopped-nexus",
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    let follow_ok = Command::new("docker")
+        .args([
+            "run",
+            "-d",
+            "--name",
+            &follow,
+            "alpine:3.20",
+            "sh",
+            "-c",
+            "echo follow-nexus; sleep 2",
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if !stop_ok || !follow_ok {
+        let _ = Command::new("docker")
+            .args(["rm", "-f", &stopped, &follow])
+            .status();
+        return;
+    }
+
+    let (ps_run, ps_run_out, _) = run_docker(&["ps"]);
+    let (ps_all, ps_all_out, ps_all_err) = run_docker(&["ps", "-a"]);
+    let (log_f, log_f_out, log_f_err) = run_docker(&["logs", "-f", &follow]);
+    let _ = Command::new("docker")
+        .args(["rm", "-f", &stopped, &follow])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+
+    assert_eq!(ps_run, BuiltinResult::Status(0));
+    assert!(
+        !ps_run_out.contains(&stopped),
+        "running ps should omit exited: {ps_run_out}"
+    );
+    assert_eq!(ps_all, BuiltinResult::Status(0), "stderr={ps_all_err}");
+    assert!(
+        ps_all_out.contains(&stopped),
+        "ps -a missing stopped: {ps_all_out}"
+    );
+    assert_eq!(log_f, BuiltinResult::Status(0), "stderr={log_f_err}");
+    assert!(
+        log_f_out.contains("follow-nexus"),
+        "log_out={log_f_out} err={log_f_err}"
+    );
+}

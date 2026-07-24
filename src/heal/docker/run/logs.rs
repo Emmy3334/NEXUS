@@ -9,12 +9,14 @@ use std::io::{self, Write};
 pub(in crate::heal::docker) async fn copy_logs(
     docker: &Docker,
     id: &str,
+    follow: bool,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> io::Result<()> {
     let mut stream = docker.logs(
         id,
         Some(LogsOptions::<String> {
+            follow,
             stdout: true,
             stderr: true,
             ..Default::default()
@@ -29,9 +31,13 @@ pub(in crate::heal::docker) async fn copy_logs(
 fn write_chunk(chunk: LogOutput, stdout: &mut dyn Write, stderr: &mut dyn Write) -> io::Result<()> {
     match chunk {
         LogOutput::StdOut { message } | LogOutput::Console { message } => {
-            stdout.write_all(&message)
+            stdout.write_all(&message)?;
+            stdout.flush()
         }
-        LogOutput::StdErr { message } => stderr.write_all(&message),
+        LogOutput::StdErr { message } => {
+            stderr.write_all(&message)?;
+            stderr.flush()
+        }
         LogOutput::StdIn { .. } => Ok(()),
     }
 }
