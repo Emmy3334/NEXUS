@@ -71,6 +71,7 @@ fn step(
             if ch == '\'' {
                 Ok(QuoteState::Normal)
             } else {
+                fields.clear_elide();
                 fields.current().push_literal(ch);
                 Ok(QuoteState::Single)
             }
@@ -91,28 +92,33 @@ fn step_normal(
         '\'' => Ok(QuoteState::Single),
         '"' => Ok(QuoteState::Double),
         '`' => {
+            fields.clear_elide();
             push_backtick(chars, fields, true, capture)?;
             Ok(QuoteState::Normal)
         }
         '\\' => {
+            fields.clear_elide();
             if let Some(next) = chars.next() {
                 fields.current().push_literal(next);
             }
             Ok(QuoteState::Normal)
         }
         '*' | '?' | '[' => {
+            fields.clear_elide();
             fields.current().push_glob_meta(ch);
             Ok(QuoteState::Normal)
         }
         '$' => {
             if cmd_subst::looks_like(chars) {
+                fields.clear_elide();
                 push_dollar_paren(chars, fields, true, capture)?;
             } else {
-                push_parameter(chars, env, last_status, fields.current(), true)?;
+                push_parameter(chars, env, last_status, fields, true)?;
             }
             Ok(QuoteState::Normal)
         }
         _ => {
+            fields.clear_elide();
             fields.current().push_literal(ch);
             Ok(QuoteState::Normal)
         }
@@ -130,22 +136,26 @@ fn step_double(
     match ch {
         '"' => Ok(QuoteState::Normal),
         '`' => {
+            fields.clear_elide();
             push_backtick(chars, fields, false, capture)?;
             Ok(QuoteState::Double)
         }
         '\\' => {
+            fields.clear_elide();
             escape_double(chars, fields);
             Ok(QuoteState::Double)
         }
         '$' => {
             if cmd_subst::looks_like(chars) {
+                fields.clear_elide();
                 push_dollar_paren(chars, fields, false, capture)?;
             } else {
-                push_parameter(chars, env, last_status, fields.current(), false)?;
+                push_parameter(chars, env, last_status, fields, false)?;
             }
             Ok(QuoteState::Double)
         }
         _ => {
+            fields.clear_elide();
             fields.current().push_literal(ch);
             Ok(QuoteState::Double)
         }

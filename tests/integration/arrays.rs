@@ -42,7 +42,7 @@ fn typeset_array_index_and_join() {
 typeset -a fruits=apple:banana:cherry
 printf '%s\\n' ${{fruits[1]}} > {}
 printf '%s\\n' ${{fruits[2]}} >> {}
-printf '%s\\n' ${{fruits[@]}} >> {}
+printf '%s\\n' ${{fruits[*]}} >> {}
 printf '%s\\n' ${{#fruits}} >> {}
 ",
         path.display(),
@@ -56,6 +56,78 @@ printf '%s\\n' ${{#fruits}} >> {}
         fs::read_to_string(&path).unwrap(),
         "apple\nbanana\napple banana cherry\n3\n"
     );
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn at_splat_expands_to_separate_fields() {
+    let path = scratch("splat");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -a fruits=apple:banana:cherry
+printf '%s\\n' ${{fruits[@]}} > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "apple\nbanana\ncherry\n"
+    );
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn quoted_at_splat_keeps_separate_fields() {
+    let path = scratch("qsplat");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -a fruits=apple:banana
+printf '%s\\n' \"${{fruits[@]}}\" > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "apple\nbanana\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn quoted_star_joins_to_one_field() {
+    let path = scratch("qstar");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -a fruits=apple:banana
+printf '%s\\n' \"${{fruits[*]}}\" > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "apple banana\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn empty_at_splat_contributes_no_fields() {
+    let path = scratch("empty_at");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -a empty
+printf 'X%sX\\n' ${{empty[@]}} > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    // No empty argv word: printf gets only the format → prints `XX` plus newline.
+    assert_eq!(fs::read_to_string(&path).unwrap(), "XX\n");
     let _ = fs::remove_file(&path);
 }
 

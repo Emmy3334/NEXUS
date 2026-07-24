@@ -1,7 +1,7 @@
 //! `${name:offset}` and `${name:offset:length}` substring expansion.
 
+use super::super::ExpandedWord;
 use super::value;
-use super::ExpandedWord;
 use crate::env::ShellEnvironment;
 
 pub(super) fn slice(

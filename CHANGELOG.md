@@ -10,6 +10,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Unquoted and quoted `${name[@]}` expand to **one argv field per element** (empty
+  array contributes no fields); `${name[*]}` still joins with spaces.
 - Beat-zsh PR6: shell arrays (`typeset -a`, `${name[i]}`, `${name[@]}`, `${#name}` element count),
   bash-style `${name:offset}` / `${name:offset:length}` slices (negative offset: `${name: -N}`),
   and zsh-style glob qualifiers `*(.)` / `*(/)` / `*(*)` on active patterns.
