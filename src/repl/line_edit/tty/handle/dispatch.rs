@@ -2,6 +2,7 @@
 
 use super::super::actions::{self, Loop};
 use super::super::buffer::EditBuffer;
+use super::super::complete_menu;
 use super::super::draw;
 use super::super::isearch_mode;
 use crate::history::History;
@@ -104,7 +105,7 @@ pub(super) fn raw(
                 .as_ref()
                 .is_some_and(|c| c.is_active(&edit.text, edit.cursor)) =>
         {
-            edit.complete_cycle = None;
+            complete_menu::dismiss_menu(stdout, edit)?;
             draw::redraw(stdout, prompt, edit)?;
             Ok(Loop::Continue)
         }
@@ -166,6 +167,7 @@ fn apply_binding(
             actions::apply(stdout, edit, bindings, action, prompt, nav, complete_ctx)
         }
         Binding::Command(cmd) => {
+            complete_menu::dismiss_menu(stdout, edit)?;
             edit.clear();
             for ch in cmd.chars() {
                 edit.insert(ch);
@@ -173,6 +175,7 @@ fn apply_binding(
             Ok(Loop::Accept)
         }
         Binding::Literal(text) => {
+            complete_menu::dismiss_menu(stdout, edit)?;
             for ch in text.chars() {
                 edit.insert(ch);
             }

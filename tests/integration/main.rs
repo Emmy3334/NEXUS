@@ -53,4 +53,5 @@ mod shell_env;
 mod specials;
 mod startup_layers;
 mod trusted_bin;
+mod tty_escape;
 mod while_loop;
