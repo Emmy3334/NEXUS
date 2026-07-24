@@ -90,6 +90,34 @@ fn systemctl_subcommand_completes_unique_prefix() {
 }
 
 #[test]
+fn helm_install_flag_completes_namespace() {
+    let (buf, matches) = complete_at("helm install --names");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "helm install --namespace");
+}
+
+#[test]
+fn helm_upgrade_lists_long_flags() {
+    let (_, matches) = complete_at("helm upgrade --");
+    assert!(matches.iter().any(|m| m == "--install"));
+    assert!(matches.iter().any(|m| m == "--reuse-values"));
+}
+
+#[test]
+fn systemctl_status_flag_completes_user() {
+    let (buf, matches) = complete_at("systemctl status --us");
+    assert!(matches.is_empty());
+    assert_eq!(buf, "systemctl status --user");
+}
+
+#[test]
+fn systemctl_with_user_flag_still_completes_verb_flags() {
+    let (_, matches) = complete_at("systemctl --user restart --");
+    assert!(matches.iter().any(|m| m == "--no-block"));
+    assert!(matches.iter().any(|m| m == "--no-ask-password"));
+}
+
+#[test]
 fn git_commit_flag_completes_amend() {
     let (buf, matches) = complete_at("git commit --am");
     assert!(matches.is_empty());
