@@ -1,4 +1,4 @@
-//! Assignment operators at the top of `$((…))` (`=` `+=` `-=` `*=` `/=` `%=`).
+//! Assignment operators (`=` `+=` … `&=` `|=` `^=` `<<=` `>>=`).
 
 use super::primary::{is_name_start, lookup_int, skip_ws, take_name};
 use super::store::store;
@@ -15,6 +15,11 @@ enum Op {
     Mul,
     Div,
     Rem,
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
 }
 
 /// Right-associative assignment, else ternary.
@@ -50,46 +55,54 @@ fn take_lvalue_name(chars: &mut Peekable<Chars<'_>>) -> Option<String> {
 }
 
 fn take_assign_op(chars: &mut Peekable<Chars<'_>>) -> Option<Op> {
+    take_shift_assign(chars).or_else(|| take_two_char_assign(chars))
+}
+
+fn take_shift_assign(chars: &mut Peekable<Chars<'_>>) -> Option<Op> {
+    let first = chars.peek().copied()?;
+    let mut ahead = chars.clone();
+    ahead.next();
+    let second = ahead.peek().copied()?;
+    ahead.next();
+    let third = ahead.peek().copied()?;
+    let op = match (first, second, third) {
+        ('<', '<', '=') => Op::Shl,
+        ('>', '>', '=') => Op::Shr,
+        _ => return None,
+    };
+    chars.next();
+    chars.next();
+    chars.next();
+    Some(op)
+}
+
+fn take_two_char_assign(chars: &mut Peekable<Chars<'_>>) -> Option<Op> {
     let first = chars.peek().copied()?;
     let mut ahead = chars.clone();
     ahead.next();
     let second = ahead.peek().copied();
-    match (first, second) {
-        ('=', Some('=')) | ('+', Some('+')) | ('-', Some('-')) => None,
-        ('=', _) => {
-            chars.next();
-            Some(Op::Set)
-        }
-        ('+', Some('=')) => {
-            chars.next();
-            chars.next();
-            Some(Op::Add)
-        }
-        ('-', Some('=')) => {
-            chars.next();
-            chars.next();
-            Some(Op::Sub)
-        }
-        ('*', Some('=')) => {
-            chars.next();
-            chars.next();
-            Some(Op::Mul)
-        }
-        ('/', Some('=')) => {
-            chars.next();
-            chars.next();
-            Some(Op::Div)
-        }
-        ('%', Some('=')) => {
-            chars.next();
-            chars.next();
-            Some(Op::Rem)
-        }
-        _ => None,
+    let op = match (first, second) {
+        ('=', Some('=')) | ('+', Some('+')) | ('-', Some('-')) => return None,
+        ('=', _) => Op::Set,
+        ('+', Some('=')) => Op::Add,
+        ('-', Some('=')) => Op::Sub,
+        ('*', Some('=')) => Op::Mul,
+        ('/', Some('=')) => Op::Div,
+        ('%', Some('=')) => Op::Rem,
+        ('&', Some('=')) => Op::And,
+        ('|', Some('=')) => Op::Or,
+        ('^', Some('=')) => Op::Xor,
+        _ => return None,
+    };
+    chars.next();
+    if !matches!(op, Op::Set) {
+        chars.next();
     }
+    Some(op)
 }
 
 fn apply(op: Op, left: i64, right: i64) -> Result<i64, LexError> {
+    let shl = |n: i64| u32::try_from(n.clamp(0, 63)).unwrap_or(0);
     match op {
         Op::Set => Ok(right),
         Op::Add => Ok(left.wrapping_add(right)),
@@ -99,5 +112,10 @@ fn apply(op: Op, left: i64, right: i64) -> Result<i64, LexError> {
         Op::Div => Ok(left.wrapping_div(right)),
         Op::Rem if right == 0 => Err(LexError::Arithmetic),
         Op::Rem => Ok(left.wrapping_rem(right)),
+        Op::And => Ok(left & right),
+        Op::Or => Ok(left | right),
+        Op::Xor => Ok(left ^ right),
+        Op::Shl => Ok(left.wrapping_shl(shl(right))),
+        Op::Shr => Ok(left.wrapping_shr(shl(right))),
     }
 }

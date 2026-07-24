@@ -22,6 +22,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Arithmetic bitwise assignments `&=` `|=` `^=` `<<=` `>>=` and comma `,` in
+  `$((…))` / `((…))` (value is the rightmost expression).
 - Host spawn hardening: absolute-only **PATH jail** (default on;
   `path_jail=0` / `NEXUS_PATH_JAIL=0` to disable) and opt-in child **setrlimit**
   (`rlimit=1` / `NEXUS_RLIMIT=1`; CPU/NOFILE everywhere; AS/NPROC on Linux —

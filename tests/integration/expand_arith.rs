@@ -253,3 +253,60 @@ fn postfix_in_expression() {
 fn inc_on_non_lvalue_errors() {
     assert_eq!(expand("$((1++))"), Err(LexError::Arithmetic));
 }
+
+#[test]
+fn bitwise_assignments() {
+    let mut env = test_env();
+    env.set_local("x", "15");
+    assert_eq!(
+        expand_word_for_exec("$((x&=6))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "6"
+    );
+    assert_eq!(env.lookup("x"), Some("6"));
+    assert_eq!(
+        expand_word_for_exec("$((x|=1))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "7"
+    );
+    assert_eq!(
+        expand_word_for_exec("$((x^=3))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "4"
+    );
+    env.set_local("y", "1");
+    assert_eq!(
+        expand_word_for_exec("$((y<<=3))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "8"
+    );
+    assert_eq!(
+        expand_word_for_exec("$((y>>=1))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "4"
+    );
+}
+
+#[test]
+fn comma_yields_rightmost_and_runs_side_effects() {
+    let mut env = test_env();
+    assert_eq!(
+        expand_word_for_exec("$((a=1, b=2, a+b))", &mut env, 0)
+            .unwrap()
+            .into_string(),
+        "3"
+    );
+    assert_eq!(env.lookup("a"), Some("1"));
+    assert_eq!(env.lookup("b"), Some("2"));
+}
+
+#[test]
+fn shift_is_not_shift_assign() {
+    assert_eq!(expand("$((1<<3))").unwrap(), "8");
+    assert_eq!(expand("$((8>>1))").unwrap(), "4");
+}
