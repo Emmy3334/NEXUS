@@ -60,11 +60,8 @@ fn apply_other(
             bindings.enter_insert_map();
             Ok(Loop::Continue)
         }
-        Action::HistoryUp if prompt::is_primary(prompt) => {
-            apply_recall(stdout, edit, prompt, |n, line| n.older(line), nav)
-        }
-        Action::HistoryDown if prompt::is_primary(prompt) => {
-            apply_recall(stdout, edit, prompt, |n, line| n.newer(line), nav)
+        Action::HistoryUp | Action::HistoryDown if prompt::is_primary(prompt) => {
+            history_vertical(stdout, edit, prompt, nav, action)
         }
         Action::HistoryUp | Action::HistoryDown => Ok(Loop::Continue),
         Action::ClearScreen => {
@@ -74,6 +71,32 @@ fn apply_other(
         }
         other => mutate(stdout, edit, other, prompt),
     }
+}
+
+fn history_vertical(
+    stdout: &mut impl Write,
+    edit: &mut EditBuffer,
+    prompt: &str,
+    nav: &mut HistoryRecall<'_>,
+    action: Action,
+) -> io::Result<Loop> {
+    // Multi-line paste/edit: Up/Down only move rows — never history.
+    if edit.text.contains('\n') {
+        let moved = if action == Action::HistoryUp {
+            buffer::move_line_up(edit)
+        } else {
+            buffer::move_line_down(edit)
+        };
+        if moved {
+            draw::shift_rows(stdout, if action == Action::HistoryUp { -1 } else { 1 })?;
+            draw::redraw(stdout, prompt, edit)?;
+        }
+        return Ok(Loop::Continue);
+    }
+    if action == Action::HistoryUp {
+        return apply_recall(stdout, edit, prompt, |n, line| n.older(line), nav);
+    }
+    apply_recall(stdout, edit, prompt, |n, line| n.newer(line), nav)
 }
 
 fn apply_recall(

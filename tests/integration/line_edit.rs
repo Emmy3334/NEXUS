@@ -145,3 +145,24 @@ fn multiline_accept_queues_remaining_lines_in_order() {
     assert_eq!(repl::take_complete_line(&mut q), None);
     assert!(q.is_empty());
 }
+
+#[cfg(unix)]
+#[test]
+fn multiline_arrow_moves_within_buffer_before_history_edge() {
+    let text = "aaa\nbbbb\ncc";
+    let at_cc_end = text.len();
+    // From end of "cc" (col 2) → same column on "bbbb".
+    let on_bbbb = repl::after_line_up(text, at_cc_end).unwrap();
+    assert_eq!(on_bbbb, "aaa\n".len() + 2);
+    // Col 2 on "bbbb" → col 2 on "aaa" (third character).
+    let on_aaa = repl::after_line_up(text, on_bbbb).unwrap();
+    assert_eq!(on_aaa, 2);
+    assert_eq!(repl::after_line_up(text, on_aaa), None);
+    // From past-EOL on "bbbb", up clamps to end of "aaa".
+    let end_bbbb = "aaa\nbbbb".len();
+    assert_eq!(repl::after_line_up(text, end_bbbb), Some("aaa".len()));
+
+    let down = repl::after_line_down(text, 1).unwrap();
+    assert_eq!(down, "aaa\n".len() + 1);
+    assert_eq!(repl::after_line_down(text, at_cc_end), None);
+}

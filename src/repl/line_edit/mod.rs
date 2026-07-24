@@ -15,7 +15,7 @@ pub use input::ReplInput;
 pub use isearch::HistoryISearch;
 pub use recall::HistoryRecall;
 #[cfg(unix)]
-pub use tty::take_complete_line;
+pub use tty::{after_line_down, after_line_up, take_complete_line};
 
 pub use complete::{complete, complete_or_cycle, CompleteCycle};
 /// Column layout helpers for ambiguous completion listings.

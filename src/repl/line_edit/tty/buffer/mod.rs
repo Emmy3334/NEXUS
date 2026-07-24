@@ -4,6 +4,7 @@ mod home;
 mod kill;
 mod nav;
 mod transpose;
+mod vline;
 mod word;
 
 use std::collections::VecDeque;
@@ -12,6 +13,8 @@ pub(super) use home::{move_end, move_home};
 pub(super) use kill::{kill_line, kill_to_eol, kill_word_backward, kill_word_forward, yank};
 pub(super) use nav::{backspace, delete, move_left, move_right};
 pub(super) use transpose::transpose_words;
+pub use vline::{after_line_down, after_line_up};
+pub(super) use vline::{move_line_down, move_line_up};
 pub(super) use word::{move_word_left, move_word_right};
 
 #[derive(Debug, Default)]

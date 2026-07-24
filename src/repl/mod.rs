@@ -24,7 +24,7 @@ mod while_run;
 
 pub use history_persist::{load_session_history, save_session_history};
 #[cfg(unix)]
-pub use line_edit::take_complete_line;
+pub use line_edit::{after_line_down, after_line_up, take_complete_line};
 pub use line_edit::{
     complete, complete_or_cycle, format_columns, list_display_lines, list_display_lines_width,
     Action, CompleteCycle, HistoryISearch, HistoryRecall, KeyBindings, ReplInput,
