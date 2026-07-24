@@ -1,9 +1,8 @@
 //! Invoke a stored function with positional argv swap.
 
 use crate::env::ShellEnvironment;
-use crate::exec::{self, CommandResult};
-use crate::lex;
-use crate::parse;
+use crate::exec::CommandResult;
+use crate::repl::body_run;
 
 use std::io::{self, Write};
 
@@ -53,66 +52,9 @@ fn invoke(
     call_argv.extend(argv.iter().skip(1).cloned());
     shell_env.set_argv(call_argv);
     shell_env.enter_function();
-    let result = run_body(body, shell_env, last_status, stdout, stderr);
+    let result = body_run::run_body_str(body, shell_env, last_status, stdout, stderr);
     shell_env.leave_function();
     shell_env.set_argv(saved_argv);
     let _ = shell_env.take_return();
     result
-}
-
-fn run_body(
-    body: &str,
-    shell_env: &mut ShellEnvironment,
-    mut last_status: u8,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> io::Result<CommandResult> {
-    let mut argv = Vec::new();
-    let mut tokens = Vec::new();
-    let mut stdin = io::Cursor::new(Vec::<u8>::new());
-    for raw in body.lines() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        tokens.clear();
-        if let Err(err) = lex::tokenize_into(line, &mut tokens) {
-            writeln!(stderr, "{}", err.message())?;
-            return Ok(CommandResult::Status(1));
-        }
-        match parse::parse_line(line, &tokens) {
-            Ok(None) => {}
-            Ok(Some(list)) => {
-                match exec::execute_list_captured(
-                    &list,
-                    &mut argv,
-                    shell_env,
-                    last_status,
-                    Vec::new(),
-                    &mut stdin,
-                    stdout,
-                    stderr,
-                )? {
-                    CommandResult::Status(code) => {
-                        last_status = code;
-                        if shell_env.return_requested() {
-                            return Ok(CommandResult::Status(
-                                shell_env.take_return().unwrap_or(code),
-                            ));
-                        }
-                    }
-                    CommandResult::Exit(code) => return Ok(CommandResult::Exit(code)),
-                    CommandResult::Source(_) => {
-                        writeln!(stderr, "source: not supported in functions")?;
-                        return Ok(CommandResult::Status(1));
-                    }
-                }
-            }
-            Err(err) => {
-                writeln!(stderr, "{}", err.message())?;
-                return Ok(CommandResult::Status(1));
-            }
-        }
-    }
-    Ok(CommandResult::Status(last_status))
 }

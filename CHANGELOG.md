@@ -19,6 +19,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 ### Fixed
 
 - `` `…` `` / `$(…)` restore process cwd after `cd` (same as `(…)` subshells).
+- Function bodies replay through the same control path as loop/`if`/`case` bodies, so
+  nested `foreach` / `while` / `if` / `case` (and `return` from inside them) work.
 
 ### Added
 

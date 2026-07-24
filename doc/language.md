@@ -77,7 +77,7 @@ function name { … }
 function name() { … }
 ```
 
-Bodies may be one line or continue until a matching `}`. Calling `name args…` runs the body with `$0`=`name`, `$1…` from the call, and `$#`/`$*` updated for the duration. Nested calls are capped (depth 64). `return [n]` leaves the current function (error if not in one). `local name[=value]` declares a function-scoped shell local (same map as `set`); the prior value is restored when the function returns (including via `return`). Error if `local` is used outside a function. Function bodies are line-oriented command lists (no nested `foreach`/`while`/`if` collection inside the body runner yet).
+Bodies may be one line or continue until a matching `}`. Calling `name args…` runs the body with `$0`=`name`, `$1…` from the call, and `$#`/`$*` updated for the duration. Nested calls are capped (depth 64). `return [n]` leaves the current function (error if not in one). `local name[=value]` declares a function-scoped shell local (same map as `set`); the prior value is restored when the function returns (including via `return`). Error if `local` is used outside a function. Function bodies replay through the same path as `foreach`/`while`/`if`/`case` bodies (`repl::body_run`), so nested control structures and `return` from inside them work.
 
 Module: `src/functions/` + `env` function table / local frames; `return` and `local` builtins.
 

@@ -1,7 +1,7 @@
 //! Expand the case subject, match an arm, and run its body.
 
+use super::body_run::run_body;
 use super::case_collect::{collect_case, CasePlan};
-use super::foreach_run::run_body;
 use super::line_edit::ReplInput;
 use super::ReplIo;
 use crate::case_block::{self, CaseHeader};

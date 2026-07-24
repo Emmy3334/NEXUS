@@ -226,3 +226,102 @@ printf '%s\\n' $x > {}
     assert_eq!(fs::read_to_string(&path).unwrap(), "outer\n");
     let _ = fs::remove_file(&path);
 }
+
+#[test]
+fn nested_foreach_in_function() {
+    let path = scratch("foreach_fn");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+walk() {{
+foreach i (a b)
+printf '%s\\n' \"$i\"
+end
+}}
+walk > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "a\nb\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn nested_while_if_in_function() {
+    let path = scratch("while_if_fn");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+count() {{
+set i=0
+while ($i < 2)
+if (1) then
+printf '%s\\n' \"$i\"
+endif
+@ i++
+end
+}}
+count > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "0\n1\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn return_from_nested_while_in_function() {
+    let path = scratch("ret_while_fn");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+early() {{
+set i=0
+while ($i < 5)
+if ($i == 1) then
+return 7
+endif
+@ i++
+end
+printf '%s\\n' never
+}}
+early
+printf '%s\\n' $? > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "7\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn nested_case_in_function() {
+    let path = scratch("case_fn");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+pick() {{
+case $1 in
+a)
+printf 'A\\n'
+;;
+*)
+printf 'other\\n'
+;;
+esac
+}}
+pick a > {}
+",
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "A\n");
+    let _ = fs::remove_file(&path);
+}
