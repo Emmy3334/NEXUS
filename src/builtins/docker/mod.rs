@@ -20,7 +20,7 @@ pub(super) fn docker_cmd(
         None | Some("help" | "-h" | "--help") => {
             writeln!(
                 stderr,
-                "usage: @docker ps [-a|--all] | @docker logs [-f|--follow] <name|id>"
+                "usage: @docker ps [-a|--all] [-q|--quiet] | @docker logs [-f|--follow] <name|id>"
             )?;
             Ok(BuiltinResult::Status(1))
         }

@@ -179,3 +179,59 @@ fn docker_ps_all_and_logs_follow_when_daemon_up() {
         "log_out={log_f_out} err={log_f_err}"
     );
 }
+
+#[test]
+fn docker_ps_quiet_when_daemon_up() {
+    if !Command::new("docker")
+        .args(["info"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
+        return;
+    }
+    let name = format!("nexus_docker_quiet_{}", std::process::id());
+    let status = Command::new("docker")
+        .args([
+            "run",
+            "-d",
+            "--rm",
+            "--name",
+            &name,
+            "alpine:3.20",
+            "sleep",
+            "30",
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+    if !status.map(|s| s.success()).unwrap_or(false) {
+        return;
+    }
+    let id = Command::new("docker")
+        .args(["inspect", "-f", "{{.Id}}", &name])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().chars().take(12).collect::<String>())
+        .unwrap_or_default();
+
+    let (result, out, err) = run_docker(&["ps", "-q"]);
+    let _ = Command::new("docker")
+        .args(["rm", "-f", &name])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+
+    assert_eq!(result, BuiltinResult::Status(0), "stderr={err}");
+    assert!(
+        !out.contains("CONTAINER ID"),
+        "quiet should omit header: {out}"
+    );
+    assert!(
+        !id.is_empty() && out.lines().any(|line| line == id),
+        "expected short id {id} in {out}"
+    );
+}

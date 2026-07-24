@@ -23,6 +23,20 @@ pub(super) fn render(containers: &[ContainerSummary]) -> Vec<String> {
     pad_rows(&rows)
 }
 
+/// One short container ID per line (`docker ps -q`).
+pub(super) fn ids(containers: &[ContainerSummary]) -> Vec<String> {
+    containers
+        .iter()
+        .map(|container| {
+            container
+                .id
+                .as_deref()
+                .map(fields::short_id)
+                .unwrap_or_else(|| "-".into())
+        })
+        .collect()
+}
+
 fn cells(container: &ContainerSummary) -> [String; 7] {
     [
         container
