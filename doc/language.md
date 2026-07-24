@@ -53,7 +53,9 @@ Handled mainly in `src/expand/`:
 | `${name:-word}` | If unset or empty → expand `word`; else value |
 | `${name:+word}` | If unset or empty → empty; else expand `word` |
 | `${#name}` / `${#}` | Character length of scalar value / array element count / argc |
-| `${name[n]}` / `${name[@]}` / `${name[*]}` | Array element (1-based), or join with spaces (`typeset -a`) |
+| `${name[n]}` | Array element (1-based; `typeset -a`) |
+| `${name[@]}` | One argv field per element (quoted or unquoted); empty array → no fields |
+| `${name[*]}` | Join elements with spaces into one field |
 | `${name:offset}` / `${name:offset:length}` | Substring by char index (0-based). Negative offset needs a space after `:` (bash-style `${name: -2}`) so `:-` stays default substitution |
 | `${name#pat}` / `##` / `%` / `%%` | Strip shortest/longest matching prefix (`#`/`##`) or suffix (`%`/`%%`); `pat` uses `*` / `?` |
 | `{a,b}` / `pre{a,b}post` | Brace expand (before `$`); needs a comma; quoted braces stay literal |
