@@ -73,8 +73,10 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `python` / `python3` | Cwd files ending in `.py` (dirs still listed) |
 | `ruby` | Cwd files ending in `.rb` |
 | `@docker ` (no subcommand yet) | `ps` / `logs` / `help` |
-| `@docker … logs …` | Running container names via bollard |
+| `@docker ps` / `logs` when token starts with `-` | Curated builtin flags (`--follow`, `--all`, …) |
+| `@docker … logs …` (non-flag token) | Running container names via bollard |
 | `@kube …` after `@kube ` | Subcommands (`nodes`, `pods`, `logs`, `exec`, `get`, `describe`, …) |
+| `@kube <verb>` when token starts with `-` | Builtin flags (`-n` / `--follow` / `-A`, …) |
 | `@kube … -n ` | Namespace names via kube-rs |
 | `@kube … logs …` / `exec …` / `describe pod …` | Pod names via kube-rs (soft-fail if no cluster) |
 | `heal ` / `doctor ` | `help` |

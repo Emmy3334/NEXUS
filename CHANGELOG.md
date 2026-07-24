@@ -24,6 +24,10 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- `@docker` / `@kube` curated verb **flag** Tab complete (e.g. `@docker logs --fol` →
+  `--follow`; `@kube pods -` → `-n` / `-A`); host `docker`/`kubectl` flags unchanged.
+  `@docker` also accepts `-f`/`--follow` and `-a`/`--all` in argv (follow/all listing
+  behavior still snapshot / running-only for now).
 - Opt-in **trusted-bin** allowlist: `trusted_bin` / `NEXUS_TRUSTED_BIN` =
   colon-separated absolute files/dirs; unmatched resolved externals → stderr +
   status 126 (no heal). Default off.
