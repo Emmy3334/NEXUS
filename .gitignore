@@ -19,3 +19,7 @@
 *.swp
 *.swo
 *~
+
+# ── Local reference trees (do not commit) ───────────
+/ohmyzsh-master/
+/zsh-master/
