@@ -6,6 +6,7 @@
 //! part of the word.
 
 mod arith_span;
+mod brace_param_span;
 mod cmd_subst_span;
 mod expand;
 mod quote;
@@ -93,6 +94,8 @@ pub enum LexError {
     UnclosedArithmetic,
     /// `$(` was opened without a matching `)`.
     UnclosedCommandSubst,
+    /// `${` was opened without a matching `}`.
+    UnclosedBraceParam,
     /// Arithmetic expression was invalid or divided by zero.
     Arithmetic,
 }
@@ -106,6 +109,7 @@ impl LexError {
             Self::CommandSubstitution => "Command substitution failed.",
             Self::UnclosedArithmetic => "Unmatched ((.",
             Self::UnclosedCommandSubst => "Unmatched $(.",
+            Self::UnclosedBraceParam => "Unmatched ${.",
             Self::Arithmetic => "Arithmetic expansion failed.",
         }
     }

@@ -39,9 +39,14 @@ pub(super) enum Form<'a> {
         offset: &'a str,
         length: Option<&'a str>,
     },
+    Keys(&'a str),
+    Values(&'a str),
 }
 
 pub(super) fn form(body: &str) -> Form<'_> {
+    if let Some(form) = flag_form(body) {
+        return form;
+    }
     if let Some(name) = length_name(body) {
         return Form::Length(name);
     }
@@ -61,6 +66,22 @@ pub(super) fn form(body: &str) -> Form<'_> {
         return form;
     }
     operator(name, rest).unwrap_or(Form::Plain(body))
+}
+
+/// `${(k)name}` / `${(v)name}` associative-array key/value flags.
+fn flag_form(body: &str) -> Option<Form<'_>> {
+    let rest = body.strip_prefix('(')?;
+    let close = rest.find(')')?;
+    let flag = &rest[..close];
+    let name = &rest[close + 1..];
+    if name.is_empty() || param_name_end(name) != name.len() {
+        return None;
+    }
+    match flag {
+        "k" => Some(Form::Keys(name)),
+        "v" => Some(Form::Values(name)),
+        _ => None,
+    }
 }
 
 fn length_name(body: &str) -> Option<&str> {

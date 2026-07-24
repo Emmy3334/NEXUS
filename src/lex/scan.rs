@@ -1,6 +1,8 @@
 //! Splitting a source line into [`Token`] spans.
 
-use super::{arith_span, cmd_subst_span, quote, LexError, QuoteState, Token, TokenKind};
+use super::{
+    arith_span, brace_param_span, cmd_subst_span, quote, LexError, QuoteState, Token, TokenKind,
+};
 
 /// Tokenize `source` into `tokens`, reusing `tokens`' capacity.
 ///
@@ -91,6 +93,10 @@ fn scan_word_end(source: &str, from: usize) -> Result<usize, LexError> {
                 continue;
             }
             if let Some(end) = cmd_subst_span::try_close(source, i)? {
+                i = end;
+                continue;
+            }
+            if let Some(end) = brace_param_span::try_close(source, i)? {
                 i = end;
                 continue;
             }

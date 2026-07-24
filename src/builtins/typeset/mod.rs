@@ -1,6 +1,7 @@
 //! `typeset` — function-local scalars, optional `-x`, and `-a` arrays.
 
 mod array;
+mod assoc;
 mod flags;
 mod scalar;
 
@@ -24,6 +25,7 @@ pub(super) fn run(
     };
     match mode {
         flags::Mode::Array => array::run(args, shell_env, stderr),
+        flags::Mode::Assoc => assoc::run(args, shell_env, stderr),
         flags::Mode::Scalar { export } => {
             if !export && shell_env.func_depth() == 0 {
                 writeln!(stderr, "typeset: not in a function")?;

@@ -10,6 +10,13 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Associative arrays: `typeset -A name=k1:v1,k2:v2` (comma-separated `key:value` pairs,
+  keys stored sorted, later duplicate keys win), with `${name[key]}` lookup,
+  `${name[@]}` / `${name[*]}` values, `${(k)name}` / `${(v)name}` keys/values, and
+  `${#name}` entry count. Arrays and associative arrays of the same name are mutually
+  exclusive; function-local associative arrays restore on leave; `-A` rejects `-a` / `-x`.
+- Lexer keeps whole `${…}` expansions in one word so operator characters such as `(`
+  (e.g. `${(k)name}`) no longer split the token.
 - Unquoted and quoted `${name[@]}` expand to **one argv field per element** (empty
   array contributes no fields); `${name[*]}` still joins with spaces.
 - Beat-zsh PR6: shell arrays (`typeset -a`, `${name[i]}`, `${name[@]}`, `${#name}` element count),

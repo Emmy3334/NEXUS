@@ -13,6 +13,8 @@ pub(crate) struct LocalFrame {
     saved_vars: BTreeMap<String, Option<String>>,
     /// Prior array per name (`None` = was unset before `typeset -a`).
     pub(super) saved_arrays: BTreeMap<String, Option<Vec<String>>>,
+    /// Prior associative array per name (`None` = was unset before `typeset -A`).
+    pub(super) saved_assoc: BTreeMap<String, Option<BTreeMap<String, String>>>,
 }
 
 impl ShellEnvironment {
@@ -47,6 +49,20 @@ impl ShellEnvironment {
                 }
                 None => {
                     self.arrays.remove(&name);
+                }
+            }
+        }
+        self.restore_assoc(frame.saved_assoc);
+    }
+
+    fn restore_assoc(&mut self, saved: BTreeMap<String, Option<BTreeMap<String, String>>>) {
+        for (name, prior) in saved {
+            match prior {
+                Some(value) => {
+                    self.assoc.insert(name, value);
+                }
+                None => {
+                    self.assoc.remove(&name);
                 }
             }
         }
