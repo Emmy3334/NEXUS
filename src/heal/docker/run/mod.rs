@@ -30,7 +30,7 @@ pub(super) async fn execute(
         stdin::feed(docker, &id, bytes).await?;
     }
     let code = wait_status(docker, &id).await?;
-    copy_logs(docker, &id, stdout, stderr).await?;
+    copy_logs(docker, &id, false, stdout, stderr).await?;
     let _ = remove(docker, &id).await;
     Ok((code, short_id(&id)))
 }

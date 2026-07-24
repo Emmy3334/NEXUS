@@ -1,4 +1,4 @@
-//! Running-container table for `@docker ps`.
+//! Container table for `@docker ps` (running, or all with `-a`).
 
 mod age;
 mod fields;
@@ -13,17 +13,19 @@ use std::collections::HashMap;
 use std::io;
 
 /// Lines for `@docker ps` (Docker CLI–style columns); daemon errors propagate.
-pub fn list_ps_lines() -> io::Result<Vec<String>> {
+///
+/// `all` matches Docker’s `-a` / `--all` (include exited containers).
+pub fn list_ps_lines(all: bool) -> io::Result<Vec<String>> {
     let docker = client::connect()?;
-    match block_on(fetch(&docker)) {
+    match block_on(fetch(&docker, all)) {
         Ok(inner) => inner,
         Err(err) => Err(err),
     }
 }
 
-async fn fetch(docker: &Docker) -> io::Result<Vec<String>> {
+async fn fetch(docker: &Docker, all: bool) -> io::Result<Vec<String>> {
     let options = Some(ListContainersOptions::<String> {
-        all: false,
+        all,
         filters: HashMap::new(),
         ..Default::default()
     });

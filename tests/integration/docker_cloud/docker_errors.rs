@@ -16,3 +16,10 @@ fn docker_logs_rejects_extra_args() {
     assert_eq!(result, BuiltinResult::Status(1));
     assert!(err.contains("usage:"));
 }
+
+#[test]
+fn docker_logs_follow_flag_alone_still_needs_target() {
+    let (result, _, err) = run_docker(&["logs", "-f"]);
+    assert_eq!(result, BuiltinResult::Status(1));
+    assert!(err.contains("usage:"));
+}

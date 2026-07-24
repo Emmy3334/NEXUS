@@ -11,13 +11,16 @@ pub(super) fn run(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> io::Result<BuiltinResult> {
-    let _follow = args::wants_follow(args);
+    let follow = args::wants_follow(args);
     let Some(target) = args::first_positional(args, 1) else {
         writeln!(stderr, "usage: @docker logs [-f|--follow] <name|id>")?;
         return Ok(BuiltinResult::Status(1));
     };
-    // Follow is accepted for Tab/CLI parity; snapshot logs for now (no stream).
-    match heal::write_container_logs(target, stdout, stderr) {
+    if args::positional_count(args, 1) > 1 {
+        writeln!(stderr, "usage: @docker logs [-f|--follow] <name|id>")?;
+        return Ok(BuiltinResult::Status(1));
+    }
+    match heal::write_container_logs(target, follow, stdout, stderr) {
         Ok(()) => Ok(BuiltinResult::Status(0)),
         Err(err) => {
             writeln!(stderr, "@docker: {err}")?;
