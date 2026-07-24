@@ -33,3 +33,14 @@ fn empty_list_yields_no_lines() {
     assert!(format_columns(&[], 80).is_empty());
     assert!(list_display_lines(&[]).is_empty());
 }
+
+#[test]
+fn menu_lines_highlight_selected_row() {
+    use nexus::repl::list_menu_lines;
+    let items = ["alpha", "beta"].map(str::to_owned).to_vec();
+    let lines = list_menu_lines(&items, 1);
+    assert_eq!(lines[0], "alpha");
+    assert!(lines[1].contains("\x1b[7m"));
+    assert!(lines[1].contains("beta"));
+    assert!(lines[1].contains("\x1b[0m"));
+}

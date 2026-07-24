@@ -89,6 +89,16 @@ pub(super) fn raw(
 ) -> io::Result<Loop> {
     match bindings.lookup(bytes).cloned() {
         Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding, var_names),
+        None if bytes == [0x1b]
+            && edit
+                .complete_cycle
+                .as_ref()
+                .is_some_and(|c| c.is_active(&edit.text, edit.cursor)) =>
+        {
+            edit.complete_cycle = None;
+            draw::redraw(stdout, prompt, edit)?;
+            Ok(Loop::Continue)
+        }
         None if bytes.len() == 2 && bytes[0] == 0x1b => {
             if matches!(
                 bindings.lookup(&[0x1b]),

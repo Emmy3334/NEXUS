@@ -21,7 +21,7 @@ use self::token::{apply_match, common_prefix, token_at};
 use crate::env::ShellEnvironment;
 
 pub use cycle::{complete_or_cycle, CompleteCycle};
-pub use list::{format_columns, list_display_lines, list_display_lines_width};
+pub use list::{format_columns, list_display_lines, list_display_lines_width, list_menu_lines};
 
 /// Replace the token under the cursor; returns display lines for ambiguous matches.
 pub fn complete(buffer: &mut String, cursor: &mut usize, env: &ShellEnvironment) -> Vec<String> {

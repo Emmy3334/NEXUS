@@ -22,6 +22,8 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- Ambiguous Tab **arrow menu**: Up/Down highlight a match, Enter inserts it, Esc cancels;
+  Tab still cycles. Soft-capped list (100).
 - Host `docker` / `kubectl` Tab flags after curated verbs (e.g. `docker logs --fol` →
   `--follow`; `kubectl get --names` → `--namespace`); `kubectl get`/`describe` kinds unchanged.
 - Arithmetic bitwise assignments `&=` `|=` `^=` `<<=` `>>=` and comma `,` in

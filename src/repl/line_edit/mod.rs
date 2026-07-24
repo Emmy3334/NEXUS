@@ -19,7 +19,7 @@ pub use tty::{after_line_down, after_line_up, take_complete_line};
 
 pub use complete::{complete, complete_or_cycle, CompleteCycle};
 /// Column layout helpers for ambiguous completion listings.
-pub use complete::{format_columns, list_display_lines, list_display_lines_width};
+pub use complete::{format_columns, list_display_lines, list_display_lines_width, list_menu_lines};
 
 use super::prompt;
 use crate::history::History;

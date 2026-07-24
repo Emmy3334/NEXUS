@@ -2,6 +2,7 @@
 
 mod actions;
 mod buffer;
+mod complete_menu;
 mod draw;
 mod escape;
 mod event;
