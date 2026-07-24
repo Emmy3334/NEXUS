@@ -1,6 +1,6 @@
 //! Owned primary / continuation prompt for the TTY editor.
 
-use super::{format_primary, CONTINUE};
+use super::{format_primary_with, PromptContext, CONTINUE};
 
 /// Prompt text that can switch between primary and continuation forms.
 pub(crate) enum PromptLine {
@@ -10,8 +10,8 @@ pub(crate) enum PromptLine {
 
 impl PromptLine {
     #[must_use]
-    pub(crate) fn primary() -> Self {
-        Self::Primary(format_primary())
+    pub(crate) fn from_ctx(ctx: &PromptContext) -> Self {
+        Self::Primary(format_primary_with(ctx))
     }
 
     #[must_use]
@@ -22,8 +22,8 @@ impl PromptLine {
         }
     }
 
-    pub(crate) fn set_primary(&mut self) {
-        *self = Self::primary();
+    pub(crate) fn set_from_ctx(&mut self, ctx: &PromptContext) {
+        *self = Self::from_ctx(ctx);
     }
 
     pub(crate) fn set_continue(&mut self) {

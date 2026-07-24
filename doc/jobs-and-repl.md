@@ -119,15 +119,24 @@ inserts the highlighted match (does not submit the line); **Esc** / **Ctrl-C** c
 menu. Further **Tabs** still cycle-apply matches. Full compsys / `zstyle` menu-select
 remains out of scope.
 
-### Git-aware primary prompt
+### Primary prompt
 
-Interactive primary prompts come from `repl::format_primary()` (`src/repl/prompt/`):
+Interactive primary prompts come from `repl::format_primary()` / `format_primary_with()` (`src/repl/prompt/`):
+
+**Classic** (default when `NEXUS_PROMPT_STYLE` is unset):
 
 - Outside a git work tree: `$> `
 - On a branch: `$> [main] `
 - With uncommitted changes (`git status --porcelain -uno`): `$> [main*] `
 
-Branch is read from `.git/HEAD` (no subprocess). Dirty state uses `git status --porcelain -uno` when available, with a short TTL / metadata cache so successive prompts avoid redundant spawns.
+**Powerlevel10k-inspired** (`NEXUS_PROMPT_STYLE=powerlevel10k`, typically via Oh My Nexus `omn_theme = powerlevel10k`):
+
+- Left segments from `NEXUS_PROMPT_ELEMENTS` (default: `os_icon user dir vcs prompt_char`)
+- Nerd Font icons when `NEXUS_PROMPT_ICONS=nerdfont` (use `ascii` otherwise)
+- Directory shortened with unique prefixes under `$home` (`~/Doc/G/NEXUS`)
+- `❯` colored by previous command status
+
+Branch is read from `.git/HEAD` (no subprocess). Dirty state uses `git status --porcelain -uno` when available, with a short TTL / metadata cache so successive prompts avoid redundant spawns. TTY redraw measures **display columns** (ANSI stripped) so colored / wide-glyph prompts keep the cursor aligned.
 
 **Bracketed paste**: multi-line paste keeps one PS1 on the first row (continuation
 rows are bare, like zsh). Up/Down move between those rows only — history recall is

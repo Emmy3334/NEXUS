@@ -25,7 +25,7 @@ pub(super) fn action<'a>(
     action: Action,
     complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
-    if let Some(result) = isearch_mode::on_action(stdout, edit, isearch, action)? {
+    if let Some(result) = isearch_mode::on_action(stdout, edit, isearch, action, prompt.as_str())? {
         return Ok(result);
     }
     if action == Action::HistoryISearch {
@@ -80,7 +80,7 @@ pub(super) fn isearch_raw<'a>(
         }
         None if bytes == [0x1b] => {
             isearch_mode::abort(edit, isearch);
-            isearch_mode::redraw_primary(stdout, edit)?;
+            isearch_mode::redraw_primary(stdout, edit, prompt.as_str())?;
             Ok(Loop::Continue)
         }
         None => Ok(Loop::Continue),

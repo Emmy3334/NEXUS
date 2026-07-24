@@ -32,7 +32,15 @@ pub(super) fn replay_one<I: ReplInput, O: Write, E: Write>(
     shell_env: &mut ShellEnvironment,
     last_status: u8,
 ) -> io::Result<Replay> {
-    match line::read_and_parse(io, false, line_buffer, expanded, tokens, shell_env)? {
+    match line::read_and_parse(
+        io,
+        false,
+        line_buffer,
+        expanded,
+        tokens,
+        shell_env,
+        last_status,
+    )? {
         line::ParseOutcome::Eof => Ok(Replay::Eof),
         line::ParseOutcome::Blank => Ok(Replay::Continue(last_status)),
         line::ParseOutcome::Failed(code) => Ok(Replay::Continue(code)),

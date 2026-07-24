@@ -47,6 +47,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     expanded: &'a mut String,
     tokens: &mut Vec<lex::Token>,
     shell_env: &mut ShellEnvironment,
+    last_status: u8,
 ) -> io::Result<ParseOutcome<'a>> {
     // Tab complete only needs names on a live TTY; skip the snapshot otherwise.
     let tty = interactive && io.stdin.is_terminal();
@@ -68,6 +69,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         cmd_names: &cmd_names,
         history: Some(&shell_env.history),
     };
+    let prompt_ctx = crate::repl::prompt::PromptContext::from_env(shell_env, last_status);
     match line_edit::read_logical_line(
         io.stdin,
         io.stdout,
@@ -77,6 +79,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         line_buffer,
         &mut io.input_queue,
         if tty { Some(&complete_ctx) } else { None },
+        Some(&prompt_ctx),
     )? {
         ReadOutcome::Eof => return Ok(ParseOutcome::Eof),
         ReadOutcome::Line => {}

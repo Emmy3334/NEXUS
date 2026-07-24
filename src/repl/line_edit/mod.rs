@@ -27,7 +27,7 @@ pub use complete::{
     list_menu_lines_tagged,
 };
 
-use super::prompt;
+use super::prompt::{self, PromptContext};
 use crate::history::History;
 use crate::keybind::KeyBindings as Bindings;
 use std::collections::VecDeque;
@@ -44,13 +44,14 @@ pub(super) fn read_logical_line(
     buffer: &mut String,
     queue: &mut VecDeque<u8>,
     complete_ctx: Option<&CompleteCtx<'_>>,
+    prompt_ctx: Option<&PromptContext>,
 ) -> io::Result<ReadOutcome> {
     buffer.clear();
     if interactive && stdin.is_terminal() {
         let ctx = complete_ctx.expect("TTY line edit requires CompleteCtx");
-        return read_tty(stdout, buffer, history, bindings, queue, ctx);
+        return read_tty(stdout, buffer, history, bindings, queue, ctx, prompt_ctx);
     }
-    prompt::write_primary(stdout, interactive)?;
+    write_prompt(stdout, interactive, prompt_ctx)?;
     if !plain::read_into(stdin, buffer, queue)? {
         return Ok(ReadOutcome::Eof);
     }
@@ -66,6 +67,17 @@ pub(super) enum ReadOutcome {
     Line,
 }
 
+fn write_prompt(
+    stdout: &mut impl Write,
+    interactive: bool,
+    prompt_ctx: Option<&PromptContext>,
+) -> io::Result<()> {
+    match prompt_ctx {
+        Some(ctx) => prompt::write_primary_ctx(stdout, interactive, ctx),
+        None => prompt::write_primary(stdout, interactive),
+    }
+}
+
 fn read_tty(
     stdout: &mut impl Write,
     buffer: &mut String,
@@ -73,14 +85,31 @@ fn read_tty(
     bindings: &mut Bindings,
     queue: &mut VecDeque<u8>,
     complete_ctx: &CompleteCtx<'_>,
+    prompt_ctx: Option<&PromptContext>,
 ) -> io::Result<ReadOutcome> {
     #[cfg(unix)]
     {
-        tty::edit_line(stdout, buffer, history, bindings, queue, complete_ctx)
+        let owned;
+        let ctx = match prompt_ctx {
+            Some(c) => c,
+            None => {
+                owned = PromptContext::classic_default();
+                &owned
+            }
+        };
+        tty::edit_line(stdout, buffer, history, bindings, queue, complete_ctx, ctx)
     }
     #[cfg(not(unix))]
     {
-        let _ = (stdout, buffer, history, bindings, queue, complete_ctx);
+        let _ = (
+            stdout,
+            buffer,
+            history,
+            bindings,
+            queue,
+            complete_ctx,
+            prompt_ctx,
+        );
         Ok(ReadOutcome::Eof)
     }
 }

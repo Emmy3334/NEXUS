@@ -42,6 +42,7 @@ pub(super) fn collect_body<I: ReplInput, O: Write, E: Write>(
             &mut line_buf,
             &mut io.input_queue,
             None,
+            None,
         )? {
             ReadOutcome::Eof => {
                 writeln!(io.stderr, "{}: Unexpected end of file.", keyword(kind))?;

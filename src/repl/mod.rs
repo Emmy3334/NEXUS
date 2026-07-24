@@ -31,7 +31,7 @@ pub use line_edit::{
     list_display_lines_width, list_menu_fit, list_menu_lines, list_menu_lines_tagged, Action,
     CompleteCtx, CompleteCycle, HistoryISearch, HistoryRecall, KeyBindings, Match, ReplInput, Tag,
 };
-pub use prompt::format_primary;
+pub use prompt::{format_primary, format_primary_env, format_primary_with, PromptContext};
 pub use rc::{
     load_logout, load_startup_chain, load_startup_env, load_startup_rc, source_rc, RcLoad,
 };
@@ -173,6 +173,7 @@ fn step<I: ReplInput, O: Write, E: Write>(
         &mut buffers.expanded,
         &mut buffers.tokens,
         shell_env,
+        last_status,
     )?;
     let is_eof = matches!(parsed, ParseOutcome::Eof);
     if step_prep::suppress_eof(interactive, is_eof, shell_env, eof_streak, io.stderr)? {

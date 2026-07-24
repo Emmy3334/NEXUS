@@ -42,6 +42,7 @@ pub(super) fn on_action(
     edit: &mut EditBuffer,
     isearch: &mut Option<HistoryISearch<'_>>,
     action: Action,
+    primary_prompt: &str,
 ) -> io::Result<Option<Loop>> {
     let Some(active) = isearch.as_mut() else {
         return Ok(None);
@@ -66,11 +67,10 @@ pub(super) fn on_action(
         }
         Action::Interrupt | Action::Eof => {
             abort(edit, isearch);
-            redraw_primary(stdout, edit)?;
+            redraw_primary(stdout, edit, primary_prompt)?;
             Ok(Some(Loop::Continue))
         }
         _ => {
-            // Leave isearch with the current match (zsh-like) and fall through.
             sync(edit, active);
             *isearch = None;
             Ok(None)
@@ -100,6 +100,10 @@ pub(super) fn abort(edit: &mut EditBuffer, search: &mut Option<HistoryISearch<'_
     }
 }
 
-pub(super) fn redraw_primary(stdout: &mut impl Write, edit: &EditBuffer) -> io::Result<()> {
-    draw::redraw(stdout, &crate::repl::prompt::format_primary(), edit)
+pub(super) fn redraw_primary(
+    stdout: &mut impl Write,
+    edit: &EditBuffer,
+    primary_prompt: &str,
+) -> io::Result<()> {
+    draw::redraw(stdout, primary_prompt, edit)
 }

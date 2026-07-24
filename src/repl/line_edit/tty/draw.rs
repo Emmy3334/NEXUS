@@ -1,7 +1,7 @@
 //! Redraw the current visual line on the TTY.
 
 use super::buffer::EditBuffer;
-use crate::repl::prompt;
+use crate::repl::prompt::{self, visible_columns};
 use std::io::{self, Write};
 
 pub(super) fn clear_screen(stdout: &mut impl Write) -> io::Result<()> {
@@ -14,14 +14,13 @@ pub(super) fn redraw(
     edit: &EditBuffer,
 ) -> io::Result<()> {
     let (line, cursor_in_line, continuation) = visible_line(edit);
-    // Paste / multi-line under PS1: bare continuation rows (zsh-like). PS2 still repeats.
     let shown = if continuation && prompt::is_primary(prompt_str) {
         ""
     } else {
         prompt_str
     };
     write!(stdout, "\r\x1b[2K{shown}{line}")?;
-    let after = line.len().saturating_sub(cursor_in_line);
+    let after = visible_columns(&line[cursor_in_line..]);
     if after > 0 {
         write!(stdout, "\x1b[{after}D")?;
     }
