@@ -1,14 +1,21 @@
 //! Match collection for Tab completion contexts.
 
 use super::context::{self, Kind};
+use super::matchers::matches_prefix;
 use super::paths::{collect_file_matches, collect_path_commands};
 use super::{
     aws, docker, docker_host, gcloud, git, heal, helm, interp, kube, kubectl, subcmds, systemctl,
     vars,
 };
 use crate::builtins::NAMES;
+use crate::env::CompRegistry;
 
-pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) -> Vec<String> {
+pub(super) fn collect_matches(
+    before: &str,
+    prefix: &str,
+    var_names: &[String],
+    registry: &CompRegistry,
+) -> Vec<String> {
     let mut out = Vec::new();
     if vars::is_var_token(prefix) {
         vars::collect(prefix, var_names, &mut out);
@@ -17,14 +24,31 @@ pub(super) fn collect_matches(before: &str, prefix: &str, var_names: &[String]) 
         return out;
     }
     let words: Vec<&str> = before.split_whitespace().collect();
-    collect_kind(context::classify(before), &words, prefix, &mut out);
+    collect_kind(
+        context::classify(before, registry),
+        &words,
+        prefix,
+        registry,
+        &mut out,
+    );
     out.sort();
     out.dedup();
     out
 }
 
-fn collect_kind(kind: Kind, words: &[&str], prefix: &str, out: &mut Vec<String>) {
+fn collect_kind(
+    kind: Kind,
+    words: &[&str],
+    prefix: &str,
+    registry: &CompRegistry,
+    out: &mut Vec<String>,
+) {
     match kind {
+        Kind::RegisteredFirstVerb => {
+            if let Some(cmd) = words.first() {
+                registry.collect(cmd, prefix, out);
+            }
+        }
         Kind::GitVerb(verb) => {
             git::collect_for_verb(verb, prefix, out);
             if out.is_empty() && !prefix.starts_with('-') && !git::is_branch_verb(verb) {
@@ -48,11 +72,11 @@ fn collect_kind(kind: Kind, words: &[&str], prefix: &str, out: &mut Vec<String>)
             fallback_default(prefix, out);
         }
         Kind::AwsVerb(verb) => {
-            aws::collect_for_verb(verb, prefix, out);
+            aws::collect_for_verb(verb, words, prefix, out);
             fallback_default(prefix, out);
         }
         Kind::GcloudVerb(verb) => {
-            gcloud::collect_for_verb(verb, prefix, out);
+            gcloud::collect_for_verb(verb, words, prefix, out);
             fallback_default(prefix, out);
         }
         Kind::Subcommand(names) => subcmds::collect(names, prefix, out),
@@ -76,7 +100,7 @@ fn default_matches(prefix: &str, out: &mut Vec<String>) {
         return;
     }
     for name in NAMES {
-        if name.starts_with(prefix) {
+        if matches_prefix(name, prefix) {
             out.push((*name).to_owned());
         }
     }

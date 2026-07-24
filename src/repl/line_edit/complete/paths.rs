@@ -1,5 +1,7 @@
 //! Filesystem / PATH scanners for completion.
 
+use super::matchers::matches_prefix;
+use crate::pathfind;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -7,15 +9,9 @@ pub(super) fn collect_path_commands(prefix: &str, out: &mut Vec<String>) {
     let Ok(path) = std::env::var("PATH") else {
         return;
     };
-    for dir in path.split(':').filter(|d| !d.is_empty()) {
-        let Ok(entries) = fs::read_dir(dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with(prefix) {
-                out.push(name);
-            }
+    for name in pathfind::list_commands("", &path) {
+        if matches_prefix(&name, prefix) {
+            out.push(name);
         }
     }
 }
@@ -33,7 +29,7 @@ pub(super) fn collect_file_matches(prefix: &str, out: &mut Vec<String>) {
     };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        if !name.starts_with(&file_prefix) {
+        if !matches_prefix(&name, &file_prefix) {
             continue;
         }
         let mut rendered = dir.join(&name).display().to_string();

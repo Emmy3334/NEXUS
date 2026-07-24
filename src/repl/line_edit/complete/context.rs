@@ -1,10 +1,12 @@
 //! Classify the completion context from words before the current token.
 
 use super::{aws, docker, docker_host, gcloud, git, heal, helm, kube, kubectl, subcmds, systemctl};
+use crate::env::CompRegistry;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
     Default,
+    RegisteredFirstVerb,
     GitVerb(&'static str),
     KubectlVerb(&'static str),
     DockerVerb(&'static str),
@@ -23,7 +25,7 @@ pub(super) enum Kind {
 ///
 /// Subcommands may be followed by flags (e.g. `git checkout -b `, `@docker logs -f `).
 #[must_use]
-pub(super) fn classify(before: &str) -> Kind {
+pub(super) fn classify(before: &str, registry: &CompRegistry) -> Kind {
     let words: Vec<&str> = before.split_whitespace().collect();
     if let Some(verb) = git::verb_in(&words) {
         return Kind::GitVerb(verb);
@@ -49,6 +51,9 @@ pub(super) fn classify(before: &str) -> Kind {
     if let Some(names) = subcmds::first_verb(&words) {
         return Kind::Subcommand(names);
     }
+    if registered_first_verb(&words, registry) {
+        return Kind::RegisteredFirstVerb;
+    }
     if let Some(docker) = docker::classify(&words) {
         return Kind::Docker(docker);
     }
@@ -67,4 +72,11 @@ pub(super) fn classify(before: &str) -> Kind {
         },
         _ => Kind::Default,
     }
+}
+
+fn registered_first_verb(words: &[&str], registry: &CompRegistry) -> bool {
+    let Some(cmd) = words.first().copied() else {
+        return false;
+    };
+    registry.has_cmd(cmd) && words.iter().skip(1).all(|w| w.starts_with('-'))
 }

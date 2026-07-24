@@ -25,6 +25,10 @@ fn run() -> io::Result<u8> {
     observability::init();
     let mut args: Vec<String> = env::args().collect();
     let program = args.first().cloned().unwrap_or_else(|| "nexus".into());
+    let mut login = detect_login(&program);
+    if strip_login_flag(&mut args) {
+        login = true;
+    }
     if args.len() >= 2 {
         return run_script_args(&mut args);
     }
@@ -36,8 +40,21 @@ fn run() -> io::Result<u8> {
         io::stdout(),
         io::stderr(),
         interactive,
+        login,
         &mut shell_env,
     )
+}
+
+fn detect_login(program: &str) -> bool {
+    program.starts_with('-') || env::var("NEXUS_LOGIN").as_deref() == Ok("1")
+}
+
+fn strip_login_flag(args: &mut Vec<String>) -> bool {
+    if args.len() >= 2 && args[1] == "-l" {
+        args.remove(1);
+        return true;
+    }
+    false
 }
 
 fn run_script_args(args: &mut Vec<String>) -> io::Result<u8> {

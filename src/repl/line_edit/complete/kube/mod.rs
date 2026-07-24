@@ -2,6 +2,7 @@
 
 mod flags;
 
+use super::matchers::matches_prefix;
 use crate::kube;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,7 +90,7 @@ fn verb_of(kind: &Complete) -> Option<&'static str> {
 
 fn push_static(items: &[&str], prefix: &str, out: &mut Vec<String>) {
     for item in items {
-        if item.starts_with(prefix) {
+        if matches_prefix(item, prefix) {
             out.push((*item).to_owned());
         }
     }

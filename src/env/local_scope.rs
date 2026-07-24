@@ -11,6 +11,8 @@ pub(crate) struct LocalFrame {
     saved: BTreeMap<String, Option<String>>,
     /// Prior exported value when `typeset -x` touched the export map.
     saved_vars: BTreeMap<String, Option<String>>,
+    /// Prior array per name (`None` = was unset before `typeset -a`).
+    pub(super) saved_arrays: BTreeMap<String, Option<Vec<String>>>,
 }
 
 impl ShellEnvironment {
@@ -35,6 +37,16 @@ impl ShellEnvironment {
                 Some(value) => self.set(name, value),
                 None => {
                     let _ = self.unset(&name);
+                }
+            }
+        }
+        for (name, prior) in frame.saved_arrays {
+            match prior {
+                Some(value) => {
+                    self.arrays.insert(name, value);
+                }
+                None => {
+                    self.arrays.remove(&name);
                 }
             }
         }

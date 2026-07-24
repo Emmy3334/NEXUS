@@ -23,7 +23,7 @@ Buffers (`line`, `expanded`, `tokens`, `argv`) are reused across steps to avoid 
 
 Interactive TTY sessions:
 
-1. Load `~/.nexusrc` (RC / `source` lines are **not** recorded in history)
+1. Load layered startup (`.nexusenv` → `.nexusrc` → `.nexuslogin` when login) on interactive TTY
 2. Soft-load `~/.nexus_history` (or the `histfile` local if set in RC / env)
 3. Run the REPL (typed lines are recorded)
 4. Soft-save the histfile on exit / EOF
@@ -70,6 +70,8 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | Context | Suggestions |
 |---------|-------------|
 | `helm <verb>` / `systemctl <verb>` / `aws <svc>` / `gcloud <group>` when token starts with `-` | Curated host verb flags |
+| `aws s3 ` (non-flag token) | Common S3 actions (`ls`, `cp`, `sync`, `mb`, `rb`, `rm`, `presign`) |
+| `gcloud compute ` (non-flag token) | Compute subcommands (`instances`, `ssh`, `disks`, `zones`, …) |
 | `git <verb>` (curated) | Common flags when token starts with `-`; branch names for merge/rebase/checkout/… |
 | `kubectl get` / `describe` | Common resource kinds (`pods`, `deployments`, …) |
 | `git … checkout\|switch\|branch …` (flags allowed) | Local branches under `.git/refs/heads/` |
@@ -85,6 +87,23 @@ Public pieces re-exported from `repl`: `Action`, `HistoryISearch`, `HistoryRecal
 | `heal ` / `doctor ` | `help` / `status` |
 
 Otherwise falls back to **all** builtins (`builtins::NAMES`, including `@docker` / `@kube` / `sandbox` / dirstack / …) + `PATH` + filesystem matches.
+
+**PATH command cache (beat-zsh PR5):** `pathfind` remembers resolved externals and caches
+per-directory executable names for Tab; both invalidate when `PATH` changes. `hash` lists the
+command hash; `hash -r` clears it (like zsh). External spawn reuses the same cache via
+`resolve_first`.
+
+**Beat-zsh PR1 engine:** collectors use case-insensitive prefix matching (substring when the
+prefix length is ≥2). When nothing matches exactly, the engine re-collects with an empty prefix
+and keeps Levenshtein distance ≤1 candidates. Matches carry a `Tag` (`Resources`, `Flags`,
+`Commands`, `Files`, …) for ranked sort and `-- Category --` headers in the arrow menu.
+
+**Beat-zsh PR3 cloud depth:** after curated host services/groups, Tab completes nested actions
+(`aws s3 ls|cp|sync|…`, `gcloud compute instances|ssh|disks|…`). Static description tables
+(`annotate/cloud`, `annotate/nexus`) fill `Match.description`; the arrow menu shows
+`value  — description` when present. Live `@docker logs` container names and `@kube` pod /
+namespace names get `Tag::Resources` and a score bump so they rank above file paths on ties.
+Case-insensitive prefix matching applies to `heal`, `@docker`, and `@kube` static lists.
 
 After a curated host verb, tokens starting with `-` complete common flags (same idea as `git`):
 `kubectl get|describe|logs|apply|delete|exec`, `docker ps|logs|run|exec|rm|images|pull|build`,
@@ -141,19 +160,40 @@ Unix pieces live under `src/jobs/unix/` (child setup, `wait_fg`, tty/`tcsetpgrp`
 
 Background registration is wired from `src/exec/background/`. Cloning `ShellEnvironment` **drops** the job table so subshells do not inherit live children.
 
-## Startup RC (`~/.nexusrc`)
+## Layered startup files
 
-On an **interactive TTY** session (`repl::run_with_env`), before the main loop Nexus loads a startup file like `source`:
+Files live under **`$NEXUS_DOTDIR`** when set, else **`$HOME`**:
 
-| Resolution | Behavior |
-|------------|----------|
-| `NEXUSRC` set to a path | Use that file |
-| `NEXUSRC` empty | Skip RC entirely |
-| unset | `$home` / `$HOME` + `/.nexusrc` |
+| File | When loaded |
+|------|-------------|
+| `.nexusenv` | Every invocation (interactive + scripts); keep stdout quiet |
+| `.nexusrc` | Interactive TTY only |
+| `.nexuslogin` | Interactive TTY + login shell |
+| `.nexuslogout` | On exit of login interactive shells (quiet) |
 
-Missing file = quiet no-op. `exit` in the RC ends the shell before the REPL. Otherwise the RC’s last status seeds the REPL `$?` (`RcLoad::Continue`). Piped / Cursor-based “interactive” tests do **not** load RC (`stdin.is_terminal()` is false).
+Sample templates: `StartupFiles/` at repo root (copy to your dotdir and edit).
 
-Helpers: `repl::load_startup_rc`, `repl::source_rc`, `repl::RcLoad`.
+### Gates
+
+| Variable | Effect |
+|----------|--------|
+| `NEXUS_NORCS=1` | Skip **all** startup files |
+| `NEXUSRC` set to a path | Override **`.nexusrc` only** (empty disables RC) |
+| `NEXUSRC` unset | `$dotdir/.nexusrc` |
+
+Scripts load **`.nexusenv` only** (not rc/login), unless `NEXUS_NORCS=1`.
+
+Interactive TTY order: **env → rc → login (if login) → histfile → compdump boot**.
+
+### Login detection
+
+- argv0 starts with `-` (e.g. `-nexus`)
+- `NEXUS_LOGIN=1`
+- `nexus -l` (flag stripped before script / REPL)
+
+Missing file = quiet no-op. `exit` in env/rc/login ends the shell before the REPL. Otherwise the last loaded file’s status seeds `$?` (`RcLoad::Continue`). Piped / Cursor-based “interactive” tests do **not** load startup files (`stdin.is_terminal()` is false).
+
+Helpers: `repl::load_startup_chain`, `repl::load_startup_env`, `repl::load_startup_rc`, `repl::load_logout`, `repl::source_rc`, `repl::RcLoad`.
 
 ## Observability
 

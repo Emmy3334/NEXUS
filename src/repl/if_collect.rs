@@ -61,7 +61,7 @@ fn read_body_line<I: ReplInput, O: Write, E: Write>(
         bindings,
         line_buf,
         &mut io.input_queue,
-        &[],
+        None,
     )? {
         ReadOutcome::Eof => {
             writeln!(io.stderr, "then: then/endif not found.")?;

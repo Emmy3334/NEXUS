@@ -1,5 +1,6 @@
 //! Script file loading for `nexus script.sh` and `source`.
 
+use super::rc;
 use super::{run_loop, ReplIo};
 use crate::env::ShellEnvironment;
 
@@ -19,6 +20,9 @@ pub fn run_script(
     let contents = read_script(path)?;
     let mut shell_env = ShellEnvironment::capture();
     shell_env.set_argv(argv);
+    let mut stdout = stdout;
+    let mut stderr = stderr;
+    rc::load_startup_env(&mut shell_env, &mut stdout, &mut stderr)?;
     let mut cursor = Cursor::new(contents);
     run_with_cursor(&mut cursor, stdout, stderr, &mut shell_env)
 }

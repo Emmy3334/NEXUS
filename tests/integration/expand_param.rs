@@ -78,3 +78,27 @@ fn plain_braced_name_unchanged() {
     let mut env = env_with(&[("HOME", "/tmp")]);
     assert_eq!(expand("${HOME}", &mut env, 0), "/tmp");
 }
+
+#[test]
+fn substring_slice_offset_and_length() {
+    let mut env = env_with(&[("WORD", "hello")]);
+    assert_eq!(expand("${WORD:1}", &mut env, 0), "ello");
+    assert_eq!(expand("${WORD:1:2}", &mut env, 0), "el");
+    // `:-` is default substitution, not a negative slice.
+    assert_eq!(expand("${WORD:-2}", &mut env, 0), "hello");
+    assert_eq!(expand("${MISS:-0}", &mut env, 0), "0");
+}
+
+#[test]
+fn substring_slice_negative_offset() {
+    let mut env = env_with(&[("WORD", "abcdef")]);
+    // Bash: negative offset needs a space after `:` to disambiguate from `:-`.
+    assert_eq!(expand("${WORD: -3}", &mut env, 0), "def");
+    assert_eq!(expand("${WORD: -3:2}", &mut env, 0), "de");
+}
+
+#[test]
+fn hash_length_scalar_not_array() {
+    let mut env = env_with(&[("NAME", "abcd")]);
+    assert_eq!(expand("${#NAME}", &mut env, 0), "4");
+}

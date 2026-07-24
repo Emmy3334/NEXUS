@@ -52,8 +52,9 @@ fn docker_subcommand_lists_ambiguous_lo() {
 #[test]
 fn npm_subcommand_completes_install_prefix() {
     let (buf, matches) = complete_at("npm instal");
-    assert!(matches.is_empty());
-    assert_eq!(buf, "npm install");
+    assert!(matches.iter().any(|m| m == "install"));
+    assert!(matches.iter().any(|m| m == "uninstall"));
+    assert_eq!(buf, "npm instal");
 }
 
 #[test]
@@ -85,8 +86,9 @@ fn terraform_subcommand_completes_unique_prefix() {
 #[test]
 fn systemctl_subcommand_completes_unique_prefix() {
     let (buf, matches) = complete_at("systemctl resta");
-    assert!(matches.is_empty());
-    assert_eq!(buf, "systemctl restart");
+    assert!(matches.iter().any(|m| m == "restart"));
+    assert!(matches.iter().any(|m| m.contains("restart")));
+    assert_eq!(buf, "systemctl resta");
 }
 
 #[test]

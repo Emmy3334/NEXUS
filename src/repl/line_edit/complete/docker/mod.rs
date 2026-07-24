@@ -2,6 +2,7 @@
 
 mod flags;
 
+use super::matchers::matches_prefix;
 use crate::heal;
 
 const SUBCOMMANDS: &[&str] = &["ps", "logs", "help"];
@@ -52,7 +53,7 @@ fn verb_of(kind: &Complete) -> Option<&'static str> {
 
 fn push_static(items: &[&str], prefix: &str, out: &mut Vec<String>) {
     for item in items {
-        if item.starts_with(prefix) {
+        if matches_prefix(item, prefix) {
             out.push((*item).to_owned());
         }
     }

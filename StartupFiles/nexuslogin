@@ -1,0 +1,4 @@
+# Copy to ~/.nexuslogin (or $NEXUS_DOTDIR/.nexuslogin) and edit.
+# Login shells only (argv0 -nexus, nexus -l, or NEXUS_LOGIN=1).
+:
+# printf 'Welcome back, %s\n' "$user"

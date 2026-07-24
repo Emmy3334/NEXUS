@@ -1,6 +1,7 @@
 //! Read a line, expand history events, lex, and parse.
 
 use super::control_parse;
+use super::line_edit::CompleteCtx;
 use super::line_edit::{self, ReadOutcome, ReplInput};
 use super::ReplIo;
 use crate::case_block::CaseHeader;
@@ -47,12 +48,16 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
     tokens: &mut Vec<lex::Token>,
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<ParseOutcome<'a>> {
-    // Tab complete only needs names on a live TTY; skip the BTreeSet snapshot otherwise.
+    // Tab complete only needs names on a live TTY; skip the snapshot otherwise.
     let tty = interactive && io.stdin.is_terminal();
     let var_names = if tty {
         shell_env.var_names()
     } else {
         Vec::new()
+    };
+    let complete_ctx = CompleteCtx {
+        var_names: &var_names,
+        registry: &shell_env.comp_registry,
     };
     match line_edit::read_logical_line(
         io.stdin,
@@ -62,7 +67,7 @@ pub(super) fn read_and_parse<'a, I: ReplInput, O: Write, E: Write>(
         &mut shell_env.key_bindings,
         line_buffer,
         &mut io.input_queue,
-        &var_names,
+        if tty { Some(&complete_ctx) } else { None },
     )? {
         ReadOutcome::Eof => return Ok(ParseOutcome::Eof),
         ReadOutcome::Line => {}

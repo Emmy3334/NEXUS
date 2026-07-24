@@ -5,6 +5,7 @@ use super::buffer::EditBuffer;
 use super::draw;
 use crate::keybind::Action;
 use crate::repl::line_edit::complete;
+use crate::repl::line_edit::complete::CompleteCtx;
 
 use std::io::{self, Write};
 
@@ -14,10 +15,10 @@ pub(super) fn on_action(
     edit: &mut EditBuffer,
     action: Action,
     prompt: &str,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Option<Loop>> {
     if action == Action::Complete {
-        return Ok(Some(on_tab(stdout, edit, prompt, var_names)?));
+        return Ok(Some(on_tab(stdout, edit, prompt, complete_ctx)?));
     }
     let active = edit
         .complete_cycle
@@ -42,16 +43,15 @@ fn on_tab(
     stdout: &mut impl Write,
     edit: &mut EditBuffer,
     prompt: &str,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
-    let matches = complete::complete_or_cycle(
+    let listed = complete::complete_or_cycle(
         &mut edit.text,
         &mut edit.cursor,
-        var_names,
+        complete_ctx,
         &mut edit.complete_cycle,
     );
-    if matches.is_empty() {
-        // Tab cycled in place — refresh highlight paint if menu still live.
+    if listed.is_empty() {
         if edit.complete_cycle.is_some() {
             repaint(stdout, edit, prompt)?;
         } else {
@@ -59,7 +59,7 @@ fn on_tab(
         }
         return Ok(Loop::Continue);
     }
-    paint_new(stdout, edit, prompt, &matches)
+    paint_new(stdout, edit, prompt)
 }
 
 fn move_hl(
@@ -93,18 +93,11 @@ fn cancel(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::R
     Ok(Loop::Continue)
 }
 
-fn paint_new(
-    stdout: &mut impl Write,
-    edit: &mut EditBuffer,
-    prompt: &str,
-    matches: &[String],
-) -> io::Result<Loop> {
-    let hi = edit
-        .complete_cycle
-        .as_ref()
-        .map(|c| c.highlight)
-        .unwrap_or(0);
-    let lines = complete::list_menu_lines(matches, hi);
+fn paint_new(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::Result<Loop> {
+    let Some(cycle) = edit.complete_cycle.as_ref() else {
+        return draw::redraw(stdout, prompt, edit).map(|_| Loop::Continue);
+    };
+    let lines = complete::list_menu_lines_tagged(&cycle.matches, cycle.highlight);
     writeln!(stdout)?;
     for line in &lines {
         writeln!(stdout, "{line}")?;
@@ -121,7 +114,7 @@ fn repaint(stdout: &mut impl Write, edit: &mut EditBuffer, prompt: &str) -> io::
         return draw::redraw(stdout, prompt, edit);
     };
     let rows = cycle.list_rows;
-    let lines = complete::list_menu_lines(&cycle.matches, cycle.highlight);
+    let lines = complete::list_menu_lines_tagged(&cycle.matches, cycle.highlight);
     if rows > 0 {
         draw::shift_rows(stdout, -(rows as i32))?;
     }

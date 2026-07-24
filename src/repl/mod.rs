@@ -27,11 +27,14 @@ pub use history_persist::{load_session_history, save_session_history};
 #[cfg(unix)]
 pub use line_edit::{after_line_down, after_line_up, take_complete_line};
 pub use line_edit::{
-    complete, complete_or_cycle, format_columns, list_display_lines, list_display_lines_width,
-    list_menu_lines, Action, CompleteCycle, HistoryISearch, HistoryRecall, KeyBindings, ReplInput,
+    complete, complete_matches_for_test, complete_or_cycle, format_columns, list_display_lines,
+    list_display_lines_width, list_menu_lines, list_menu_lines_tagged, Action, CompleteCtx,
+    CompleteCycle, HistoryISearch, HistoryRecall, KeyBindings, Match, ReplInput, Tag,
 };
 pub use prompt::format_primary;
-pub use rc::{load_startup_rc, source_rc, RcLoad};
+pub use rc::{
+    load_logout, load_startup_chain, load_startup_env, load_startup_rc, source_rc, RcLoad,
+};
 pub use script::run_script;
 
 use crate::env::ShellEnvironment;
@@ -90,7 +93,7 @@ pub fn run(
     interactive: bool,
 ) -> io::Result<u8> {
     let mut shell_env = ShellEnvironment::capture();
-    run_with_env(stdin, stdout, stderr, interactive, &mut shell_env)
+    run_with_env(stdin, stdout, stderr, interactive, false, &mut shell_env)
 }
 
 /// Like [`run`], using a caller-owned environment (scripts / tests).
@@ -99,6 +102,7 @@ pub fn run_with_env(
     mut stdout: impl Write,
     mut stderr: impl Write,
     interactive: bool,
+    login: bool,
     shell_env: &mut ShellEnvironment,
 ) -> io::Result<u8> {
     let mut io = ReplIo {
@@ -111,7 +115,8 @@ pub fn run_with_env(
         crate::jobs::install_interactive_handlers()?;
     }
     let tty = interactive && io.stdin.is_terminal();
-    let last_status = match tty_session::boot(tty, shell_env, io.stdout, io.stderr)? {
+    shell_env.login = login;
+    let last_status = match tty_session::boot(tty, login, shell_env, io.stdout, io.stderr)? {
         tty_session::Boot::Exit(code) => return Ok(code),
         tty_session::Boot::Ready(code) => code,
     };
@@ -120,6 +125,9 @@ pub fn run_with_env(
     };
     if tty {
         history_persist::save_session_history(shell_env, io.stderr)?;
+        if login {
+            load_logout(shell_env, io.stdout, io.stderr)?;
+        }
     }
     Ok(code)
 }

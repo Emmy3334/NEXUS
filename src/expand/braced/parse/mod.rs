@@ -1,6 +1,12 @@
 //! Parse `${…}` bodies into plain names or parameter operators.
 
-use super::super::name::{is_name_continue, is_name_start};
+mod index;
+mod name;
+mod slice;
+
+use index::index_form;
+use name::param_name_end;
+use slice::slice_form;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Form<'a> {
@@ -24,6 +30,15 @@ pub(super) enum Form<'a> {
         pat: &'a str,
         longest: bool,
     },
+    Index {
+        name: &'a str,
+        index: &'a str,
+    },
+    Slice {
+        name: &'a str,
+        offset: &'a str,
+        length: Option<&'a str>,
+    },
 }
 
 pub(super) fn form(body: &str) -> Form<'_> {
@@ -39,12 +54,17 @@ pub(super) fn form(body: &str) -> Form<'_> {
     if rest.is_empty() {
         return Form::Plain(name);
     }
+    if let Some(form) = index_form(name, rest) {
+        return form;
+    }
+    if let Some(form) = slice_form(name, rest) {
+        return form;
+    }
     operator(name, rest).unwrap_or(Form::Plain(body))
 }
 
 fn length_name(body: &str) -> Option<&str> {
     let rest = body.strip_prefix('#')?;
-    // `${#}` is argc (plain `#`), not “length of `#`”.
     if rest.is_empty() {
         return None;
     }
@@ -90,32 +110,4 @@ fn operator<'a>(name: &'a str, rest: &'a str) -> Option<Form<'a>> {
         });
     }
     None
-}
-
-fn param_name_end(body: &str) -> usize {
-    let mut chars = body.char_indices();
-    let Some((_, first)) = chars.next() else {
-        return 0;
-    };
-    if first == '*' || first == '#' {
-        return first.len_utf8();
-    }
-    if first.is_ascii_digit() {
-        return scan_while(body, first.len_utf8(), |c| c.is_ascii_digit());
-    }
-    if is_name_start(first) {
-        return scan_while(body, first.len_utf8(), is_name_continue);
-    }
-    0
-}
-
-fn scan_while(body: &str, start: usize, ok: impl Fn(char) -> bool) -> usize {
-    let mut end = start;
-    for (i, c) in body[start..].char_indices() {
-        if !ok(c) {
-            break;
-        }
-        end = start + i + c.len_utf8();
-    }
-    end
 }

@@ -1,8 +1,8 @@
 //! Bonus builtin handlers (`which`, `repeat`, dir stack, `sandbox`, `@kube`, …).
 
 use super::super::{
-    dirstack, docker, heal, kube, local_cmd, repeat, return_cmd, sandbox, typeset_cmd, which,
-    BuiltinResult,
+    comp, dirstack, docker, hash_cmd, heal, kube, local_cmd, repeat, return_cmd, sandbox, typeset,
+    which, BuiltinResult,
 };
 use crate::env::ShellEnvironment;
 
@@ -17,6 +17,7 @@ pub(super) fn run(
     stderr: &mut impl Write,
 ) -> io::Result<Option<BuiltinResult>> {
     Ok(Some(match name {
+        "hash" => hash_cmd::run(argv, shell_env, stdout, stderr)?,
         "which" => BuiltinResult::Status(which::which_cmd(argv, shell_env, stdout, stderr)?),
         "where" => BuiltinResult::Status(which::where_cmd(argv, shell_env, stdout, stderr)?),
         "repeat" => return repeat::repeat_cmd(argv, stderr),
@@ -47,7 +48,10 @@ pub(super) fn run(
         )?),
         "return" => return_cmd::run(argv, shell_env, last_status, stdout, stderr)?,
         "local" => local_cmd::run(argv, shell_env, stdout, stderr)?,
-        "typeset" => typeset_cmd::run(argv, shell_env, stdout, stderr)?,
+        "typeset" => typeset::run(argv, shell_env, stdout, stderr)?,
+        "compdef" | "compinit" | "compdump" => {
+            BuiltinResult::Status(comp::run(name, argv, shell_env, stdout, stderr)?)
+        }
         _ => return Ok(None),
     }))
 }

@@ -1,5 +1,6 @@
-//! Host `aws` service flags.
+//! Host `aws` service flags and curated actions.
 
+mod actions;
 mod flags;
 
 const SERVICES: &[&str] = &[
@@ -36,8 +37,12 @@ pub(super) fn verb_in(words: &[&str]) -> Option<&'static str> {
     None
 }
 
-pub(super) fn collect_for_verb(verb: &str, prefix: &str, out: &mut Vec<String>) {
+pub(super) fn collect_for_verb(verb: &str, words: &[&str], prefix: &str, out: &mut Vec<String>) {
     if prefix.starts_with('-') {
         flags::collect(verb, prefix, out);
+        return;
+    }
+    if actions::awaiting(words, verb) {
+        actions::collect(verb, prefix, out);
     }
 }

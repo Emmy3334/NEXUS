@@ -24,6 +24,7 @@ pub(super) fn run_subshell<I: BufRead, O: Write, E: Write>(
     heredocs: &mut HeredocState,
     io: &mut ExecIo<'_, I, O, E>,
 ) -> io::Result<CommandResult> {
+    let _scope = cwd::CwdScope::new();
     let saved_cwd = cwd::save();
     let mut sub_env = shell_env.clone_for_capture();
     let result = run_isolated(

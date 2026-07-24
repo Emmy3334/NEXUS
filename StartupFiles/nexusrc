@@ -1,0 +1,7 @@
+# Copy to ~/.nexusrc (or $NEXUS_DOTDIR/.nexusrc) and edit.
+# Interactive TTY only. Override entirely with NEXUSRC=/path/to/file.
+:
+# alias ll ls -la
+# alias gs git status
+# compinit
+# Run `heal` when a command is missing — see doc/jobs-and-repl.md.

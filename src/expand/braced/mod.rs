@@ -1,8 +1,10 @@
 //! Nested `${…}` body reader and operator dispatch.
 
 mod apply;
+mod array;
 mod parse;
 mod read;
+mod slice;
 mod trim;
 mod value;
 
@@ -43,6 +45,16 @@ fn dispatch(
     match parse::form(body) {
         Form::Plain(name) => push_named_parameter(name, env, last_status, out, globable),
         Form::Length(name) => apply::length(name, env, last_status, out),
+        Form::Index { name, index } => {
+            array::index(name, index, env, out, globable);
+        }
+        Form::Slice {
+            name,
+            offset,
+            length,
+        } => {
+            slice::slice(name, offset, length, env, last_status, out, globable);
+        }
         Form::Default { name, word } => {
             apply::with_default(name, word, env, last_status, out, globable);
         }

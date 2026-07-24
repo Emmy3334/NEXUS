@@ -21,7 +21,7 @@ Library surface is declared in `src/lib.rs`. Below: responsibility of each publi
 | **env** | `src/env/` | `ShellEnvironment`: vars, locals, aliases, functions, argv, history, keys, dirstack, healers, jobs |
 | **builtins** | `src/builtins/` | Builtin implementations + dispatch |
 | **repl** | `src/repl/` | Main loop, script runner, control collect/run, shared `body_run`, line edition |
-| **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / spawn; `sanitize_path` jail helper |
+| **pathfind** | `src/pathfind/` | PATH search for `which` / `where` / spawn; command hash cache; `sanitize_path` jail helper |
 | **harden** | `src/harden/` | PATH jail, opt-in `trusted_bin` allowlist, opt-in child `setrlimit` |
 | **heal** | `src/heal/` | Self-heal seam + backends + status + opt-in command→image map |
 | **sandbox** | `src/sandbox/` | Wasmtime WASI runner + on-disk module cache (`install`/`list`/`rm`) |

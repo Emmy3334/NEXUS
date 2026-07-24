@@ -8,6 +8,7 @@ mod component;
 mod components;
 mod globstar;
 mod match_name;
+mod qualifier;
 mod walk;
 
 pub use walk::{expand_globs, expand_globs_one, AmbiguousGlob};

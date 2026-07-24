@@ -20,9 +20,11 @@ pub(crate) fn capture_command_output(
     stdin: &mut impl BufRead,
     stderr: &mut impl Write,
 ) -> Result<String, LexError> {
-    let saved_cwd = cwd::save();
+    let _scope = cwd::CwdScope::new();
+    let saved = cwd::save();
+    let _cwd_guard = cwd::CwdGuard::new();
     let result = capture_inner(source, shell_env, last_status, stdin, stderr);
-    cwd::restore(saved_cwd, stderr);
+    cwd::restore(saved, stderr);
     result
 }
 

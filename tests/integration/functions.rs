@@ -23,6 +23,7 @@ fn run(script: &str) -> (u8, String) {
         &mut stdout,
         &mut stderr,
         false,
+        false,
         &mut env,
     )
     .unwrap();

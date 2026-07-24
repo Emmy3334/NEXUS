@@ -165,8 +165,8 @@ fn in_redirect_path() {
 
 #[test]
 fn cmdsubst_cd_does_not_leak_process_cwd() {
-    let _cwd = crate::cwd_lock::lock();
-    let start = std::env::current_dir().unwrap();
+    let cwd = crate::cwd_lock::RestoreCwd::new();
+    let start = cwd.start().to_path_buf();
     let tmp = temp_out("cwd_dir");
     let _ = fs::remove_dir_all(&tmp);
     fs::create_dir_all(&tmp).unwrap();
@@ -181,8 +181,8 @@ fn cmdsubst_cd_does_not_leak_process_cwd() {
 
 #[test]
 fn backtick_cd_does_not_leak_process_cwd() {
-    let _cwd = crate::cwd_lock::lock();
-    let start = std::env::current_dir().unwrap();
+    let cwd = crate::cwd_lock::RestoreCwd::new();
+    let start = cwd.start().to_path_buf();
     let tmp = temp_out("cwd_bt");
     let _ = fs::remove_dir_all(&tmp);
     fs::create_dir_all(&tmp).unwrap();
@@ -197,8 +197,8 @@ fn backtick_cd_does_not_leak_process_cwd() {
 
 #[test]
 fn cmdsubst_cd_restores_cwd_on_failure() {
-    let _cwd = crate::cwd_lock::lock();
-    let start = std::env::current_dir().unwrap();
+    let cwd = crate::cwd_lock::RestoreCwd::new();
+    let start = cwd.start().to_path_buf();
     let tmp = temp_out("cwd_fail");
     let _ = fs::remove_dir_all(&tmp);
     fs::create_dir_all(&tmp).unwrap();

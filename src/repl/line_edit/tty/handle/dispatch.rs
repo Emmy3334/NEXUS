@@ -6,6 +6,7 @@ use super::super::draw;
 use super::super::isearch_mode;
 use crate::history::History;
 use crate::keybind::{Action, Binding, KeyBindings};
+use crate::repl::line_edit::complete::CompleteCtx;
 use crate::repl::line_edit::isearch::HistoryISearch;
 use crate::repl::line_edit::recall::HistoryRecall;
 use crate::repl::prompt::PromptLine;
@@ -22,7 +23,7 @@ pub(super) fn action<'a>(
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
     action: Action,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
     if let Some(result) = isearch_mode::on_action(stdout, edit, isearch, action)? {
         return Ok(result);
@@ -37,7 +38,7 @@ pub(super) fn action<'a>(
         action,
         prompt.as_str(),
         nav,
-        var_names,
+        complete_ctx,
     )
 }
 
@@ -51,11 +52,19 @@ pub(super) fn isearch_raw<'a>(
     history: &'a History,
     isearch: &mut Option<HistoryISearch<'a>>,
     bytes: &[u8],
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
     match bindings.lookup(bytes).cloned() {
         Some(Binding::Action(act)) => action(
-            stdout, edit, bindings, prompt, nav, history, isearch, act, var_names,
+            stdout,
+            edit,
+            bindings,
+            prompt,
+            nav,
+            history,
+            isearch,
+            act,
+            complete_ctx,
         ),
         Some(binding) => {
             isearch_mode::abort(edit, isearch);
@@ -66,7 +75,7 @@ pub(super) fn isearch_raw<'a>(
                 prompt.as_str(),
                 nav,
                 binding,
-                var_names,
+                complete_ctx,
             )
         }
         None if bytes == [0x1b] => {
@@ -85,10 +94,10 @@ pub(super) fn raw(
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
     bytes: &[u8],
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
     match bindings.lookup(bytes).cloned() {
-        Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding, var_names),
+        Some(binding) => apply_binding(stdout, edit, bindings, prompt, nav, binding, complete_ctx),
         None if bytes == [0x1b]
             && edit
                 .complete_cycle
@@ -105,7 +114,15 @@ pub(super) fn raw(
                 Some(Binding::Action(Action::ViCmdMode))
             ) {
                 bindings.enter_command_map();
-                return raw(stdout, edit, bindings, prompt, nav, &bytes[1..], var_names);
+                return raw(
+                    stdout,
+                    edit,
+                    bindings,
+                    prompt,
+                    nav,
+                    &bytes[1..],
+                    complete_ctx,
+                );
             }
             Ok(Loop::Continue)
         }
@@ -120,13 +137,13 @@ pub(super) fn insert_bound(
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
     text: &str,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
     for ch in text.chars() {
         let mut buf = [0u8; 4];
         let encoded = ch.encode_utf8(&mut buf);
         if let Some(binding) = bindings.lookup(encoded.as_bytes()).cloned() {
-            let result = apply_binding(stdout, edit, bindings, prompt, nav, binding, var_names)?;
+            let result = apply_binding(stdout, edit, bindings, prompt, nav, binding, complete_ctx)?;
             if !matches!(result, Loop::Continue) {
                 return Ok(result);
             }
@@ -142,11 +159,11 @@ fn apply_binding(
     prompt: &str,
     nav: &mut HistoryRecall<'_>,
     binding: Binding,
-    var_names: &[String],
+    complete_ctx: &CompleteCtx<'_>,
 ) -> io::Result<Loop> {
     match binding {
         Binding::Action(action) => {
-            actions::apply(stdout, edit, bindings, action, prompt, nav, var_names)
+            actions::apply(stdout, edit, bindings, action, prompt, nav, complete_ctx)
         }
         Binding::Command(cmd) => {
             edit.clear();
