@@ -46,6 +46,8 @@ fn dispatch(
 ) {
     match parse::form(body) {
         Form::Index { name, index } => array::index(name, index, env, fields, globable),
+        Form::Keys(name) => array::keys(name, env, fields, globable),
+        Form::Values(name) => array::values(name, env, fields, globable),
         other => dispatch_single(other, env, last_status, fields, globable),
     }
 }
@@ -79,6 +81,8 @@ fn dispatch_single(
         Form::StripSuffix { name, pat, longest } => {
             apply::strip_suffix(name, pat, longest, env, last_status, out, globable);
         }
-        Form::Index { .. } => unreachable!("handled in dispatch"),
+        Form::Index { .. } | Form::Keys(_) | Form::Values(_) => {
+            unreachable!("handled in dispatch")
+        }
     }
 }

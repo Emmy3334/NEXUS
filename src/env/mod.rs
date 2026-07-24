@@ -11,6 +11,7 @@ mod access;
 mod aliases;
 mod argv;
 mod arrays;
+mod assoc;
 mod comp_registry;
 mod dirstack;
 mod func_frame;
@@ -40,6 +41,8 @@ pub struct ShellEnvironment {
     pub(super) locals: BTreeMap<String, String>,
     /// Shell arrays (`typeset -a`; not passed to children).
     pub(super) arrays: BTreeMap<String, Vec<String>>,
+    /// Associative shell arrays (`typeset -A`; not passed to children).
+    pub(super) assoc: BTreeMap<String, BTreeMap<String, String>>,
     /// Command aliases (not passed to children).
     pub(super) aliases: BTreeMap<String, String>,
     /// Shell functions (not passed to children).
@@ -76,6 +79,7 @@ impl Clone for ShellEnvironment {
             vars: self.vars.clone(),
             locals: self.locals.clone(),
             arrays: self.arrays.clone(),
+            assoc: self.assoc.clone(),
             aliases: self.aliases.clone(),
             functions: self.functions.clone(),
             argv: self.argv.clone(),
@@ -100,6 +104,7 @@ impl PartialEq for ShellEnvironment {
         self.vars == other.vars
             && self.locals == other.locals
             && self.arrays == other.arrays
+            && self.assoc == other.assoc
             && self.aliases == other.aliases
             && self.functions == other.functions
             && self.argv == other.argv
@@ -127,6 +132,7 @@ impl ShellEnvironment {
             vars: std::env::vars().collect(),
             locals: BTreeMap::new(),
             arrays: BTreeMap::new(),
+            assoc: BTreeMap::new(),
             aliases: BTreeMap::new(),
             functions: BTreeMap::new(),
             argv: Vec::new(),
@@ -155,6 +161,7 @@ impl ShellEnvironment {
             vars,
             locals: BTreeMap::new(),
             arrays: BTreeMap::new(),
+            assoc: BTreeMap::new(),
             aliases: BTreeMap::new(),
             functions: BTreeMap::new(),
             argv: Vec::new(),
@@ -182,6 +189,7 @@ impl ShellEnvironment {
             vars: self.vars.clone(),
             locals: self.locals.clone(),
             arrays: self.arrays.clone(),
+            assoc: self.assoc.clone(),
             aliases: self.aliases.clone(),
             functions: self.functions.clone(),
             argv: self.argv.clone(),

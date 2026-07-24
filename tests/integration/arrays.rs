@@ -173,3 +173,94 @@ fn typeset_a_x_combined_errors() {
     assert_eq!(code, 1);
     assert!(err.contains("combined -a -x unsupported"), "{err}");
 }
+
+#[test]
+fn assoc_key_lookup_and_count() {
+    let path = scratch("assoc_lookup");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -A colors=red:ff0000,green:00ff00,blue:0000ff
+printf '%s\\n' ${{colors[green]}} > {}
+printf '%s\\n' ${{colors[missing]}} >> {}
+printf '%s\\n' ${{#colors}} >> {}
+",
+        path.display(),
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "00ff00\n\n3\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn assoc_keys_and_values_flags() {
+    let path = scratch("assoc_kv");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -A colors=red:ff0000,green:00ff00,blue:0000ff
+printf '%s\\n' ${{(k)colors}} > {}
+printf '%s\\n' ${{(v)colors}} >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    // Keys are stored sorted (BTreeMap); values follow key order.
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        "blue\ngreen\nred\n0000ff\n00ff00\nff0000\n"
+    );
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn assoc_at_splat_and_star_join() {
+    let path = scratch("assoc_at");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -A pair=a:1,b:2
+printf '%s\\n' ${{pair[@]}} > {}
+printf '%s\\n' \"${{pair[*]}}\" >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "1\n2\n1 2\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn assoc_empty_and_reassign_wins() {
+    let path = scratch("assoc_empty");
+    let _ = fs::remove_file(&path);
+    let script = format!(
+        "\
+typeset -A h
+printf 'X%sX\\n' ${{(k)h}} > {}
+typeset -A h=k:first,k:second
+printf '%s\\n' ${{h[k]}} >> {}
+",
+        path.display(),
+        path.display()
+    );
+    let (code, err) = run(&script);
+    assert_eq!(code, 0, "err={err}");
+    // Empty assoc contributes no fields; later duplicate key wins.
+    assert_eq!(fs::read_to_string(&path).unwrap(), "XX\nsecond\n");
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn typeset_a_capital_a_combined_errors() {
+    let (code, err) = run("typeset -a -A combo=a:b\n");
+    assert_eq!(code, 1);
+    assert!(err.contains("combined -a -A unsupported"), "{err}");
+}
