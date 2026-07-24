@@ -20,6 +20,7 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 - Word expansion no longer clones the full shell env (including history) on every
   argv word; `` `…` `` / `$(…)` isolation uses `clone_for_capture` (empty history).
+  Capture clones are skipped when quotes / `$((…))` make subst impossible.
 - Lines without `!` / leading `^` skip history expansion (hot-path fast path).
 - `` `…` `` / `$(…)` restore process cwd after `cd` (same as `(…)` subshells).
 - Function bodies replay through the same control path as loop/`if`/`case` bodies, so
