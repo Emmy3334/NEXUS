@@ -7,13 +7,13 @@ use std::path::PathBuf;
 
 /// When `NEXUS_NORCS=1`, all startup files are skipped.
 #[must_use]
-pub(super) fn norcs_disabled() -> bool {
+pub(crate) fn norcs_disabled() -> bool {
     env::var("NEXUS_NORCS").as_deref() == Ok("1")
 }
 
 /// `$NEXUS_DOTDIR` when set and non-empty; else `$home` / `$HOME`.
 #[must_use]
-pub(super) fn resolve_dotdir(shell_env: &ShellEnvironment) -> Option<PathBuf> {
+pub(crate) fn resolve_dotdir(shell_env: &ShellEnvironment) -> Option<PathBuf> {
     if let Ok(dotdir) = env::var("NEXUS_DOTDIR") {
         if !dotdir.is_empty() {
             return Some(PathBuf::from(dotdir));
@@ -55,4 +55,15 @@ pub(super) fn resolve_login_path(shell_env: &ShellEnvironment) -> Option<PathBuf
 #[must_use]
 pub(super) fn resolve_logout_path(shell_env: &ShellEnvironment) -> Option<PathBuf> {
     resolve_dotdir(shell_env).map(|d| d.join(".nexuslogout"))
+}
+
+/// True when any of `.nexusenv` / `.nexusrc` / `.nexuslogin` exists under the dotdir.
+#[must_use]
+pub(crate) fn any_dotfile_present(shell_env: &ShellEnvironment) -> bool {
+    let Some(dotdir) = resolve_dotdir(shell_env) else {
+        return false;
+    };
+    [".nexusenv", ".nexusrc", ".nexuslogin"]
+        .into_iter()
+        .any(|name| dotdir.join(name).is_file())
 }

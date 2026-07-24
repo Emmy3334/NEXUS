@@ -16,6 +16,7 @@ mod if_collect;
 mod if_run;
 mod line;
 mod line_edit;
+mod newuser;
 mod prompt;
 mod rc;
 mod script;
@@ -36,6 +37,12 @@ pub use rc::{
     load_logout, load_startup_chain, load_startup_env, load_startup_rc, source_rc, RcLoad,
 };
 pub use script::run_script;
+
+/// First-run wizard helpers (tests / tooling).
+pub use newuser::{
+    should_offer as newuser_should_offer, write_configured_rc, write_minimal_rc,
+    Config as NewuserConfig, Keymap as NewuserKeymap, PromptStyle as NewuserPromptStyle,
+};
 
 use crate::env::ShellEnvironment;
 use crate::exec::CommandResult;
@@ -116,10 +123,11 @@ pub fn run_with_env(
     }
     let tty = interactive && io.stdin.is_terminal();
     shell_env.login = login;
-    let last_status = match tty_session::boot(tty, login, shell_env, io.stdout, io.stderr)? {
-        tty_session::Boot::Exit(code) => return Ok(code),
-        tty_session::Boot::Ready(code) => code,
-    };
+    let last_status =
+        match tty_session::boot(tty, login, shell_env, io.stdin, io.stdout, io.stderr)? {
+            tty_session::Boot::Exit(code) => return Ok(code),
+            tty_session::Boot::Ready(code) => code,
+        };
     let code = match run_loop(&mut io, interactive, shell_env, last_status)? {
         LoopEnd::Status(code) | LoopEnd::Exit(code) => code,
     };

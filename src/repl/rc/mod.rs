@@ -1,6 +1,6 @@
 //! Layered startup files (`.nexusenv`, `.nexusrc`, `.nexuslogin`, `.nexuslogout`).
 
-mod path;
+pub(crate) mod path;
 
 use super::script::source_file;
 use super::LoopEnd;

@@ -10,6 +10,11 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Added
 
+- First-run wizard (`nexus-newuser-install`): on an interactive TTY with no
+  `.nexusenv` / `.nexusrc` / `.nexuslogin`, offers zsh-newuser-install-style choices
+  `(q)` quit, `(0)` minimal `.nexusrc`, `(1)` menu (history / prompt / keymap /
+  Oh My Nexus), `(2)` recommended file when present. Skip with `NEXUS_NONEWUSER=1`;
+  force with `NEXUS_NEWUSER=1`. Template: `StartupFiles/nexusrc.recommended`.
 - Completion history-word frecency: unique words from session history appear under a
   `history` menu section and boost scores for matching PATH/builtin candidates.
 - Tagged completion menus show per-section counts (`-- commands (3) --`).
