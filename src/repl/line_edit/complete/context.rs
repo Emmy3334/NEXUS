@@ -1,6 +1,6 @@
 //! Classify the completion context from words before the current token.
 
-use super::{docker, docker_host, git, heal, helm, kube, kubectl, subcmds, systemctl};
+use super::{aws, docker, docker_host, gcloud, git, heal, helm, kube, kubectl, subcmds, systemctl};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
@@ -10,6 +10,8 @@ pub(super) enum Kind {
     DockerVerb(&'static str),
     HelmVerb(&'static str),
     SystemctlVerb(&'static str),
+    AwsVerb(&'static str),
+    GcloudVerb(&'static str),
     Subcommand(&'static [&'static str]),
     Interpreter { extensions: &'static [&'static str] },
     Docker(docker::Complete),
@@ -37,6 +39,12 @@ pub(super) fn classify(before: &str) -> Kind {
     }
     if let Some(verb) = systemctl::verb_in(&words) {
         return Kind::SystemctlVerb(verb);
+    }
+    if let Some(verb) = aws::verb_in(&words) {
+        return Kind::AwsVerb(verb);
+    }
+    if let Some(verb) = gcloud::verb_in(&words) {
+        return Kind::GcloudVerb(verb);
     }
     if let Some(names) = subcmds::first_verb(&words) {
         return Kind::Subcommand(names);

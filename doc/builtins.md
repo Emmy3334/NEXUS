@@ -37,6 +37,7 @@ pub enum BuiltinResult {
 | `disown` | `jobs.rs` | Remove job from table without killing it |
 | `return` | `return_cmd.rs` | Leave current function with optional status |
 | `local` | `local_cmd.rs` | Function-scoped shell local (`name` / `name=value`); restores on leave |
+| `typeset` | `typeset_cmd.rs` | Like `local`; `-x` / `--export` also exports (restored on leave in functions) |
 | `source` / `.` | `source.rs` | `BuiltinResult::Source(path)` — run file in current shell |
 | `@` | `at.rs` | tcsh-style `@ i++` / `@ i = n` on locals |
 | `bindkey` | `bindkey/` | List / set / clear editor bindings (`-e` `-v` `-c` `-s` `-a`, …) |
@@ -49,7 +50,7 @@ pub enum BuiltinResult {
 | `where` | `which.rs` | All matches |
 | `repeat` | `repeat.rs` | `Repeat { count, argv }` — run command N times |
 | `sandbox` | `sandbox/` | Run Wasm (path/cache), soft-host; `install` / `list` / `rm` cache UX |
-| `heal` / `doctor` | `heal/` | Print heal order/image/quiet, session attach count, backend probes |
+| `heal` / `doctor` | `heal/` | Heal status: order/image/quiet, probes, tips |
 | `@kube` | `kube/` | Native K8s: `nodes`, `pods`, `logs`, `exec`, `get`, `describe` |
 | `@docker` | `docker/` | Native Docker Engine: `ps`, `logs` |
 | `pushd` | `dirstack/` | Push directory and `cd`; `-l`/`-n`/`-v`/`-p` print flags; `+n` rotates |
@@ -65,16 +66,16 @@ host `PATH` / loader-path vars), or a comma list (`FOO,BAR`). Locals are never
 forwarded. Finite stdin bytes from heredocs / buffered pipes are fed into Docker
 heal; Kube declines when stdin is present so Docker can handle it. Use `heal` /
 `doctor` to print the configured order, image, env pass, catch_all, quiet flag,
-session attach count, and live wasm/kube/docker probes.
+session attach count, live wasm/kube/docker probes, and tips.
 
 ### `heal` / `doctor`
 
 | Form | Behavior |
 |------|----------|
-| `heal` / `doctor` | Print order, image, env, catch_all, quiet, session attach count, per-backend probe |
+| `heal` / `doctor` / `heal status` | Print heal settings, backend probes, tips |
 | `heal help` / `-h` / `--help` | Usage on stderr, status `1` |
 
-Tab: after `heal ` / `doctor ` → `help`.
+Tab: after `heal ` / `doctor ` → `help` / `status`.
 
 ### `sandbox` / Wasm cache
 
@@ -127,7 +128,7 @@ Tab: after `@docker ` → `ps`/`logs`/`help`; after `@docker logs` → running c
 
 `NAMES` / `is_builtin` matches exactly:
 
-`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`.
+`cd`, `setenv`, `unsetenv`, `env`, `exit`, `set`, `unset`, `alias`, `unalias`, `history`, `jobs`, `fg`, `bg`, `disown`, `source`, `.`, `@`, `bindkey`, `which`, `where`, `repeat`, `sandbox`, `heal`, `doctor`, `@kube`, `@docker`, `pushd`, `popd`, `dirs`, `return`, `local`, `typeset`.
 
 Anything else is treated as an **external** (PATH lookup / relative path), subject to spawn errors (`127` when not found).
 

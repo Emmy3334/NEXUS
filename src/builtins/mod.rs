@@ -23,6 +23,7 @@ mod sandbox;
 mod set;
 mod setenv;
 mod source;
+mod typeset_cmd;
 mod unalias;
 mod unset;
 mod unsetenv;

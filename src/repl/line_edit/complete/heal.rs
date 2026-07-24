@@ -1,6 +1,6 @@
 //! Tab completion for `heal` / `doctor`.
 
-const SUBCOMMANDS: &[&str] = &["help"];
+const SUBCOMMANDS: &[&str] = &["help", "status"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Complete {

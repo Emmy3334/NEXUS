@@ -4,7 +4,8 @@
 pub const NAMES: &[&str] = &[
     ".", "@", "@docker", "@kube", "alias", "bg", "bindkey", "cd", "dirs", "disown", "doctor",
     "env", "exit", "fg", "heal", "history", "jobs", "local", "popd", "pushd", "repeat", "return",
-    "sandbox", "set", "setenv", "source", "unalias", "unset", "unsetenv", "where", "which",
+    "sandbox", "set", "setenv", "source", "typeset", "unalias", "unset", "unsetenv", "where",
+    "which",
 ];
 
 /// Whether `name` is a shell builtin.

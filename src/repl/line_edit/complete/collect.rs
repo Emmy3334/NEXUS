@@ -3,7 +3,8 @@
 use super::context::{self, Kind};
 use super::paths::{collect_file_matches, collect_path_commands};
 use super::{
-    docker, docker_host, git, heal, helm, interp, kube, kubectl, subcmds, systemctl, vars,
+    aws, docker, docker_host, gcloud, git, heal, helm, interp, kube, kubectl, subcmds, systemctl,
+    vars,
 };
 use crate::builtins::NAMES;
 
@@ -44,6 +45,14 @@ fn collect_kind(kind: Kind, words: &[&str], prefix: &str, out: &mut Vec<String>)
         }
         Kind::SystemctlVerb(verb) => {
             systemctl::collect_for_verb(verb, prefix, out);
+            fallback_default(prefix, out);
+        }
+        Kind::AwsVerb(verb) => {
+            aws::collect_for_verb(verb, prefix, out);
+            fallback_default(prefix, out);
+        }
+        Kind::GcloudVerb(verb) => {
+            gcloud::collect_for_verb(verb, prefix, out);
             fallback_default(prefix, out);
         }
         Kind::Subcommand(names) => subcmds::collect(names, prefix, out),
