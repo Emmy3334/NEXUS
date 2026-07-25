@@ -41,6 +41,14 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
 
 ### Changed
 
+- Tab completion listings are plain zsh-style columns (column-major, like `ls`), dropping
+  the `-- commands (n) --` / `-- history --` / `-- files --` section headers from the menu.
+- `cd` / `pushd` / `rmdir` complete **directories only** (prefix match), matching zsh.
+- File and directory completion matches by leading characters only (case-insensitive), so
+  `cd ta` no longer offers substring hits like `StartupFiles/` or `Git_Mistakes.pdf`.
+  Command / subcommand completion keeps its substring fallback.
+- Directory completion (`cd `) is filesystem-only: history words are no longer injected as
+  candidates in that context.
 - First-token Tab completion matches zsh defaults: builtins, aliases, functions, and
   PATH only (no cwd files). Files appear for arguments or path-like prefixes (`./`, `/`).
   History words boost existing command matches on the first token; new history-only
@@ -61,6 +69,9 @@ for release tags (crate version remains `0.1.0` until the first tagged release).
   the line buffer (fixes stray `}` / control junk after Tab or arrow navigation).
 - Completion menus are erased on typing, Esc, Enter, and Ctrl-C — clearing the cycle
   alone left painted rows that looked like completions “spilling” after a failed command.
+- `if` / `while` brace conditions (`{ test -n "$var" }`) preserve empty argv words, so
+  unset variables no longer make `test -n` succeed (Oh My Nexus was loading every
+  unfinished `lib/*.nexus` port via `omn_load_all_libs`).
 - Tab completion reads the shell's `PATH` via `harden::effective_path` (honours
   `setenv PATH` and the path jail) instead of the process environ.
 - `cd` integration test shares `cwd_lock::RestoreCwd` with other cwd-mutating

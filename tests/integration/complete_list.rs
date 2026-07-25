@@ -47,7 +47,7 @@ fn menu_lines_highlight_selected_row() {
 
 #[test]
 fn menu_fit_caps_rows_and_keeps_highlight() {
-    use nexus::repl::{list_menu_fit, Match, Tag};
+    use nexus::repl::{list_menu_fit_width, Match, Tag};
     let matches: Vec<Match> = (0..40)
         .map(|i| Match {
             value: format!("cmd{i:02}"),
@@ -56,10 +56,31 @@ fn menu_fit_caps_rows_and_keeps_highlight() {
             description: None,
         })
         .collect();
-    let lines = list_menu_fit(&matches, 20, 8);
+    // width 14 → cell 7 → 2 columns → 20 grid rows, forcing the row window.
+    let lines = list_menu_fit_width(&matches, 20, 8, 14);
     assert!(lines.len() <= 8);
     assert!(lines.last().is_some_and(|l| l.contains("more")));
     assert!(lines
         .iter()
         .any(|l| l.contains("\x1b[7m") && l.contains("cmd20")));
+}
+
+#[test]
+fn menu_fit_is_plain_columns_without_tag_headers() {
+    use nexus::repl::{list_menu_fit_width, Match, Tag};
+    let matches: Vec<Match> = ["target/", "tests/"]
+        .into_iter()
+        .map(|v| Match {
+            value: v.to_owned(),
+            score: 0,
+            tag: Tag::Files,
+            description: None,
+        })
+        .collect();
+    let lines = list_menu_fit_width(&matches, 0, 12, 80);
+    // zsh-style: a single column row, no "-- files (2) --" section header.
+    assert_eq!(lines.len(), 1);
+    assert!(lines[0].contains("target/"));
+    assert!(lines[0].contains("tests/"));
+    assert!(!lines.iter().any(|l| l.contains("--")));
 }

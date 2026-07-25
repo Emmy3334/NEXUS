@@ -4,6 +4,7 @@ mod expand;
 
 use super::annotate;
 use super::collect::collect_matches;
+use super::context::{self, Kind};
 use super::history;
 use super::match_item::{Match, Tag};
 use super::matchers::{approx_matches, prefix_score};
@@ -21,15 +22,17 @@ pub fn run(
     cmd_names: &[String],
     hist: Option<&History>,
 ) -> Vec<Match> {
-    let raw = collect_matches(before, prefix, var_names, registry, path, cmd_names);
+    let kind = context::classify(before, registry);
+    let raw = collect_matches(before, prefix, var_names, registry, path, cmd_names, &kind);
     let mut matches = raw
         .iter()
         .map(|v| to_match(v, prefix_score(v, prefix), infer_tag(v)))
         .collect::<Vec<_>>();
     if matches.is_empty() && !prefix.is_empty() {
-        matches = approx_phase(before, prefix, var_names, registry, path, cmd_names);
+        matches = approx_phase(before, prefix, var_names, registry, path, cmd_names, &kind);
     }
-    if let Some(h) = hist {
+    // Directory completion (`cd `) stays purely filesystem-driven — no history words.
+    if let (Some(h), false) = (hist, kind == Kind::Dirs) {
         apply_history(&mut matches, h, prefix, before.trim().is_empty());
     }
     annotate::enrich(&mut matches, before, registry);
@@ -44,8 +47,9 @@ fn approx_phase(
     registry: &CompRegistry,
     path: &str,
     cmd_names: &[String],
+    kind: &Kind,
 ) -> Vec<Match> {
-    let all = collect_matches(before, "", var_names, registry, path, cmd_names);
+    let all = collect_matches(before, "", var_names, registry, path, cmd_names, kind);
     approx_matches(&all, prefix)
         .into_iter()
         .map(|(v, d)| to_match(&v, -(d as i32), infer_tag(&v)))

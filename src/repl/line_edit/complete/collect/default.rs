@@ -1,7 +1,7 @@
 //! Default / PATH / file match collection (zsh-like first-token rules).
 
 use super::super::matchers::matches_prefix;
-use super::super::paths::{collect_file_matches, collect_path_commands};
+use super::super::paths::{collect_dir_matches, collect_file_matches, collect_path_commands};
 use crate::builtins::NAMES;
 
 /// Fallback when a specialized completer found nothing (argument position → files).
@@ -46,4 +46,9 @@ fn commands(prefix: &str, path: &str, cmd_names: &[String], out: &mut Vec<String
 
 fn files(prefix: &str, out: &mut Vec<String>) {
     collect_file_matches(prefix, out);
+}
+
+/// `cd`/`pushd`/`rmdir` argument: directories only, like zsh.
+pub(super) fn dirs(prefix: &str, out: &mut Vec<String>) {
+    collect_dir_matches(prefix, out);
 }

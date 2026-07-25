@@ -1,4 +1,4 @@
-//! `{ command… }` status → 1/0 in while expressions.
+//! `{ command… }` status → 1/0 in while / if expressions.
 
 use super::eval::Ctx;
 use crate::exec::{self, CommandResult};
@@ -14,7 +14,8 @@ pub(super) fn eval_brace<I: BufRead, E: Write>(
     if words.is_empty() {
         return Err("while: Expression Syntax.".into());
     }
-    let line = words.join(" ");
+    // Re-lex a quoted join so empty argv words (`test -n ""`) survive.
+    let line = join_words(words);
     let mut tokens = Vec::new();
     lex::tokenize_into(&line, &mut tokens).map_err(|err| err.message().to_owned())?;
     let list = match parse::parse_line(&line, &tokens) {
@@ -36,4 +37,25 @@ pub(super) fn eval_brace<I: BufRead, E: Write>(
     )
     .map_err(|err| err.to_string())?;
     Ok(matches!(result, CommandResult::Status(0)))
+}
+
+fn join_words(words: &[String]) -> String {
+    words
+        .iter()
+        .map(|w| quote_arg(w))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn quote_arg(w: &str) -> String {
+    if w.is_empty() {
+        return "''".to_owned();
+    }
+    if w.chars()
+        .any(|c| c.is_whitespace() || "\"'`$\\".contains(c))
+    {
+        format!("'{}'", w.replace('\'', r"'\''"))
+    } else {
+        w.to_owned()
+    }
 }
