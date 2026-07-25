@@ -5,6 +5,7 @@
 mod advanced;
 mod arith_cmd;
 mod arrays;
+mod brace_cond;
 mod brace_glob;
 mod builtins;
 mod case_block;

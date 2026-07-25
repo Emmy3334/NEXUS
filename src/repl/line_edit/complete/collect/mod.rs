@@ -3,7 +3,7 @@
 mod cloud;
 mod default;
 
-use super::context::{self, Kind};
+use super::context::Kind;
 use super::vars;
 use crate::env::CompRegistry;
 
@@ -14,6 +14,7 @@ pub(super) fn collect_matches(
     registry: &CompRegistry,
     path: &str,
     cmd_names: &[String],
+    kind: &Kind,
 ) -> Vec<String> {
     let mut out = Vec::new();
     if vars::is_var_token(prefix) {
@@ -24,7 +25,7 @@ pub(super) fn collect_matches(
     }
     let words: Vec<&str> = before.split_whitespace().collect();
     collect_kind(
-        context::classify(before, registry),
+        kind.clone(),
         &words,
         prefix,
         registry,
@@ -58,6 +59,7 @@ fn collect_kind(
         Kind::Docker(kind) => super::docker::collect(&kind, prefix, out),
         Kind::Kube(kind) => super::kube::collect(&kind, prefix, out),
         Kind::Heal(kind) => super::heal::collect(&kind, prefix, out),
+        Kind::Dirs => default::dirs(prefix, out),
         Kind::Default => default::matches(prefix, path, cmd_names, words.is_empty(), out),
         other => cloud::dispatch(other, words, prefix, out),
     }

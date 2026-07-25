@@ -6,6 +6,8 @@ use crate::env::CompRegistry;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Kind {
     Default,
+    /// Argument to a directory-only command (`cd`, `pushd`, `rmdir`).
+    Dirs,
     RegisteredFirstVerb,
     GitVerb(&'static str),
     KubectlVerb(&'static str),
@@ -15,7 +17,9 @@ pub(super) enum Kind {
     AwsVerb(&'static str),
     GcloudVerb(&'static str),
     Subcommand(&'static [&'static str]),
-    Interpreter { extensions: &'static [&'static str] },
+    Interpreter {
+        extensions: &'static [&'static str],
+    },
     Docker(docker::Complete),
     Kube(kube::Complete),
     Heal(heal::Complete),
@@ -62,6 +66,9 @@ pub(super) fn classify(before: &str, registry: &CompRegistry) -> Kind {
     }
     if let Some(heal) = heal::classify(&words) {
         return Kind::Heal(heal);
+    }
+    if matches!(words.first().copied(), Some("cd" | "pushd" | "rmdir")) {
+        return Kind::Dirs;
     }
     match words.first().copied() {
         Some("python" | "python3") => Kind::Interpreter {

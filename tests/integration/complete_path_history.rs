@@ -84,6 +84,52 @@ fn first_token_skips_cwd_files() {
 }
 
 #[test]
+fn cd_completes_directories_only() {
+    let _cwd = crate::cwd_lock::lock();
+    let dir = scratch("cddirs");
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("target")).unwrap();
+    fs::create_dir_all(dir.join("tests")).unwrap();
+    fs::write(dir.join("takefile.txt"), "").unwrap();
+    let prev = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&dir).unwrap();
+
+    let mut env = ShellEnvironment::default();
+    // History word that only substring-matches the prefix must never leak in.
+    env.history.push("cargo install");
+    let matches = complete_matches_for_test("cd t", &env);
+    let _ = std::env::set_current_dir(prev);
+    let _ = fs::remove_dir_all(&dir);
+
+    let values: Vec<&str> = matches.iter().map(|m| m.value.as_str()).collect();
+    assert!(values.contains(&"target/"), "got {values:?}");
+    assert!(values.contains(&"tests/"), "got {values:?}");
+    assert!(
+        !values.iter().any(|v| v.ends_with(".txt")),
+        "no files: {values:?}"
+    );
+    assert!(!values.contains(&"install"), "no history: {values:?}");
+}
+
+#[test]
+fn cd_prefix_match_only_no_substring() {
+    let _cwd = crate::cwd_lock::lock();
+    let dir = scratch("cdprefix");
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("target")).unwrap();
+    fs::create_dir_all(dir.join("StartupFiles")).unwrap();
+    let prev = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&dir).unwrap();
+
+    let matches = complete_matches_for_test("cd ta", &ShellEnvironment::default());
+    let _ = std::env::set_current_dir(prev);
+    let _ = fs::remove_dir_all(&dir);
+
+    let values: Vec<&str> = matches.iter().map(|m| m.value.as_str()).collect();
+    assert_eq!(values, vec!["target/"], "prefix-only dirs: {values:?}");
+}
+
+#[test]
 fn tagged_menu_shows_counts_and_history_section() {
     let matches = vec![
         Match {

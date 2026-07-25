@@ -1,6 +1,6 @@
 //! Filesystem / PATH scanners for completion.
 
-use super::matchers::matches_prefix;
+use super::matchers::{matches_file_prefix, matches_prefix};
 use crate::pathfind;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,6 +19,15 @@ pub(super) fn collect_path_commands(prefix: &str, path: &str, out: &mut Vec<Stri
 }
 
 pub(super) fn collect_file_matches(prefix: &str, out: &mut Vec<String>) {
+    scan_dir(prefix, false, out);
+}
+
+/// Directory-only scan (zsh `cd`/`pushd`/`rmdir` argument completion).
+pub(super) fn collect_dir_matches(prefix: &str, out: &mut Vec<String>) {
+    scan_dir(prefix, true, out);
+}
+
+fn scan_dir(prefix: &str, dirs_only: bool, out: &mut Vec<String>) {
     let path = Path::new(prefix);
     let (dir, file_prefix) = match (path.parent(), path.file_name()) {
         (Some(parent), Some(name)) if !prefix.is_empty() => {
@@ -31,11 +40,15 @@ pub(super) fn collect_file_matches(prefix: &str, out: &mut Vec<String>) {
     };
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        if !matches_prefix(&name, &file_prefix) {
+        if !matches_file_prefix(&name, &file_prefix) {
+            continue;
+        }
+        let is_dir = entry.path().is_dir();
+        if dirs_only && !is_dir {
             continue;
         }
         let mut rendered = dir.join(&name).display().to_string();
-        if entry.path().is_dir() {
+        if is_dir {
             rendered.push('/');
         }
         out.push(strip_dot_slash(&rendered));

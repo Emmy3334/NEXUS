@@ -23,8 +23,8 @@ pub use complete::{
 };
 /// Column layout helpers for ambiguous completion listings.
 pub use complete::{
-    format_columns, list_display_lines, list_display_lines_width, list_menu_fit, list_menu_lines,
-    list_menu_lines_tagged,
+    format_columns, list_display_lines, list_display_lines_width, list_menu_fit,
+    list_menu_fit_width, list_menu_lines, list_menu_lines_tagged,
 };
 
 use super::prompt::{self, PromptContext};

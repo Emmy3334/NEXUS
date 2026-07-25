@@ -48,7 +48,7 @@ pub struct CompleteCtx<'a> {
 pub use cycle::{complete_or_cycle, CompleteCycle};
 pub use list::{format_columns, list_display_lines, list_display_lines_width, list_menu_lines};
 pub use list_tagged::list_menu_lines_tagged;
-pub use list_window::list_menu_fit;
+pub use list_window::{list_menu_fit, list_menu_fit_width};
 pub use match_item::{Match, Tag};
 
 /// Alias + function names for Tab (first-token command completion).
